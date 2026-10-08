@@ -13,7 +13,9 @@ def test_loopback_echoes_turn_audio_after_final_commit():
         assert json.loads(ws.receive_text())["type"] == "session.ready"
         ws.send_text(json.dumps({"type": "turn.start", "turn_id": 7, "src": "en", "tgt": "es"}))
         assert json.loads(ws.receive_text())["type"] == "turn.started"
-        pcm = bytes(range(256)) * 15  # 3840 bytes = 4 x 20 ms chunks
+        silence = b"\x00\x00" * 480
+        pcm = bytes(range(256)) * 15  # 3840 bytes = 4 x 20 ms chunks, loud
+        ws.send_bytes(silence)  # leading silence is trimmed
         ws.send_bytes(pcm[:1920])
         ws.send_bytes(pcm[1920:])
         ws.send_text(json.dumps({"type": "commit", "turn_id": 7, "final": False}))  # ignored

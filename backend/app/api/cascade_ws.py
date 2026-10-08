@@ -10,8 +10,10 @@ M1), so the transport and the pipeline evolve independently.
 """
 from __future__ import annotations
 
+import array
 import asyncio
 import logging
+import math
 import time
 from typing import Protocol
 
@@ -86,7 +88,7 @@ class LoopbackPipeline:
         if not msg.final or msg.turn_id != self.turn_id:
             return
         t0 = time.monotonic()
-        data, self.buf = bytes(self.buf), bytearray()
+        data, self.buf = trim_leading_silence(bytes(self.buf)), bytearray()
         for i in range(0, len(data), self.CHUNK):
             await self.io.audio(msg.turn_id, data[i:i + self.CHUNK])
             if i == 0:
@@ -100,6 +102,20 @@ class LoopbackPipeline:
 
     async def close(self) -> None:
         self.buf = bytearray()
+
+
+def frame_rms(pcm: bytes) -> float:
+    a = array.array("h", pcm[: len(pcm) // 2 * 2])
+    return math.sqrt(sum(x * x for x in a) / len(a)) / 32768 if a else 0.0
+
+
+def trim_leading_silence(pcm: bytes, threshold: float = 0.01, chunk: int = 960) -> bytes:
+    """Drop the pre-speech silence of a turn so the loopback measures the
+    transport + playout floor, not how long the user waited before talking."""
+    for i in range(0, len(pcm), chunk):
+        if frame_rms(pcm[i:i + chunk]) >= threshold:
+            return pcm[i:]
+    return b""
 
 
 def build_pipeline(start: SessionStart, io: SessionIO) -> TurnPipeline:
