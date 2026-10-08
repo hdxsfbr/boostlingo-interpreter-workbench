@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from app.api.cascade_ws import router as cascade_router
+from app.api.turns import router as turns_router
 from app.core.config import get_settings
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -28,6 +29,7 @@ def create_app() -> FastAPI:
         }
 
     app.include_router(cascade_router)
+    app.include_router(turns_router)
 
     if settings.static_dir and settings.static_dir.is_dir():
         app.mount("/", StaticFiles(directory=settings.static_dir, html=True), name="spa")
