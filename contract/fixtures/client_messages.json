@@ -1,0 +1,8 @@
+[
+  {"type": "session.start", "pipeline": "cascade", "src": "en", "tgt": "es", "turn_mode": "ptt", "providers": {}},
+  {"type": "turn.start", "turn_id": 1, "src": "en", "tgt": "es"},
+  {"type": "commit", "turn_id": 1, "final": false},
+  {"type": "commit", "turn_id": 1, "final": true},
+  {"type": "turn.cancel", "turn_id": 1},
+  {"type": "ping", "t": 1234.5}
+]

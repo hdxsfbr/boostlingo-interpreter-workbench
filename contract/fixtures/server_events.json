@@ -1,0 +1,15 @@
+[
+  {"type": "session.ready", "pipeline": "cascade", "providers": {"stt": "openai_live", "mt": "openai", "tts": "openai"}},
+  {"type": "turn.started", "turn_id": 1, "src": "en", "tgt": "es"},
+  {"type": "transcript.partial", "turn_id": 1, "seg": 0, "text": "Good morning"},
+  {"type": "transcript.final", "turn_id": 1, "seg": 0, "text": "Good morning, doctor."},
+  {"type": "latency.mark", "turn_id": 1, "mark": "stt_final", "ms": 312.5},
+  {"type": "translation.partial", "turn_id": 1, "seg": 0, "text": "Buenos"},
+  {"type": "latency.mark", "turn_id": 1, "mark": "mt_first_token", "ms": 640.0},
+  {"type": "translation.final", "turn_id": 1, "seg": 0, "text": "Buenos días, doctor."},
+  {"type": "latency.mark", "turn_id": 1, "mark": "tts_first_byte", "ms": 1010.2},
+  {"type": "turn.done", "turn_id": 1, "marks": {"stt_final": 312.5, "mt_first_token": 640.0, "tts_first_byte": 1010.2}, "usage": {"stt_audio_s": 1.8, "mt_input_tokens": 120, "mt_output_tokens": 8, "tts_chars": 20}},
+  {"type": "turn.skipped", "turn_id": 2, "reason": "empty_transcript"},
+  {"type": "error", "code": "rate_limited", "stage": "mt", "retryable": true, "message": "Translator rate-limited; retrying", "turn_id": 3},
+  {"type": "pong", "t": 1234.5}
+]
