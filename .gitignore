@@ -1,0 +1,61 @@
+# --- Secrets / environment ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets.json
+appsettings.*.local.json
+appsettings.Local.json
+
+# --- .NET ---
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+*.user
+*.suo
+*.userprefs
+.vs/
+TestResults/
+*.trx
+coverage*.json
+coverage*.xml
+*.coverage
+*.coveragexml
+artifacts/
+publish/
+
+# --- Node / frontend ---
+node_modules/
+dist/
+build/
+.vite/
+coverage/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+
+# --- Python (if used for scripts/benchmarks) ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# --- Local audio / benchmark raw captures (keep exported metrics, not recordings) ---
+recordings/
+docs/benchmarks/raw/
+*.wav
+*.webm
+
+# --- Editors / OS ---
+.idea/
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+Thumbs.db
+*.swp
+*.log
