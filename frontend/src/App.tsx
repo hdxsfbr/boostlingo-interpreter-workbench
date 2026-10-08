@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
-import { InterpreterSession } from "./session/InterpreterSession";
+import { harnessHook, InterpreterSession } from "./session/InterpreterSession";
 import type { Mode, Pipeline, SessionEvent, Speaker } from "./session/protocol";
 import { dismissError, initialState, reduce, type State } from "./store/reducer";
 import { useTurnSink } from "./store/turnSink";
@@ -30,6 +30,9 @@ export default function App() {
   }, [pipeline]);
 
   useTurnSink(state);
+  useEffect(() => {
+    harnessHook().state = state;
+  }, [state]);
 
   const running = state.sessionState === "ready" || state.sessionState === "connecting";
   const start = () => void session().start();

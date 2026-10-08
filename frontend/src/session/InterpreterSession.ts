@@ -11,6 +11,12 @@ import { CascadeTransport } from "./transports/cascadeWs";
 
 export const GATE_TAIL_MS = 300;
 
+/** Read-only probe for the browser test harness (backend/eval). */
+export function harnessHook(): { lastVoiced?: number; state?: unknown } {
+  const w = globalThis as unknown as { __wb?: { lastVoiced?: number; state?: unknown } };
+  return (w.__wb ??= {});
+}
+
 export type SessionConfig = {
   pair: { a: Lang; b: Lang };
   mode: Mode;
@@ -167,6 +173,7 @@ export class InterpreterSession implements InterpreterSessionApi {
   }
 
   private onFrame(pcm: Int16Array, voiced: boolean, tPerf: number): void {
+    if (voiced) harnessHook().lastVoiced = tPerf;
     const gated = this.playingTurn !== null || performance.now() < this.gateUntil;
     const act = this.turns.frame(voiced && !gated, tPerf);
     if (!act.send || !this.transport) return;

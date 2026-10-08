@@ -58,7 +58,8 @@ function patchTurn(s: State, id: number, f: (t: TurnView) => Partial<TurnView>):
 
 function settle(t: TurnView): Partial<TurnView> {
   if (t.status === "skipped" || t.status === "failed") return {};
-  return t.serverDone && (t.audioEnded || t.tFirstAudible === undefined) && t.status !== "listening" ? { status: "done" } : {};
+  // done = server finished AND the browser finished playing that turn
+  return t.serverDone && t.audioEnded && t.status !== "listening" ? { status: "done" } : {};
 }
 
 export function reduce(s: State, ev: SessionEvent): State {
