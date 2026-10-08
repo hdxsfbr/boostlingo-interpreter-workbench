@@ -1,0 +1,38 @@
+# syntax=docker/dockerfile:1
+# ---- frontend build ----
+FROM node:24-slim AS web
+WORKDIR /web
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci --no-audit --no-fund
+COPY frontend/ ./
+COPY contract/ /contract/
+RUN npm run build
+
+# ---- python deps ----
+FROM python:3.12-slim AS py
+ENV PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1
+WORKDIR /app/backend
+COPY backend/pyproject.toml ./
+RUN mkdir app && touch app/__init__.py && pip install . && pip uninstall -y interpreter-workbench
+
+# ---- tests (make test-docker): backend pytest + frontend vitest, no network/keys ----
+FROM py AS test
+COPY --from=web /usr/local/bin/node /usr/local/bin/node
+COPY backend/ /app/backend/
+COPY config/ /app/config/
+COPY contract/ /app/contract/
+COPY --from=web /web /app/frontend
+RUN pip install -e '.[dev]'
+CMD ["sh", "-c", "cd /app/backend && pytest -q && cd /app/frontend && node node_modules/vitest/vitest.mjs run"]
+
+# ---- runtime ----
+FROM py AS runtime
+COPY backend/ /app/backend/
+RUN pip install --no-deps .
+COPY config/ /app/config/
+COPY --from=web /web/dist /app/static
+ENV CONFIG_DIR=/app/config STATIC_DIR=/app/static DATA_DIR=/data PYTHONUNBUFFERED=1
+EXPOSE 8740
+HEALTHCHECK --interval=10s --timeout=3s --start-period=5s --retries=3 \
+  CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8740/healthz',timeout=2).status==200 else 1)"
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8740", "--proxy-headers"]

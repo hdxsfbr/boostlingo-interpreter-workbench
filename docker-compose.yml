@@ -1,0 +1,21 @@
+# One service: FastAPI serving the built SPA + /api + /ws on 127.0.0.1:8740.
+# Bound to loopback only; open it from the Mac with an SSH port-forward
+# (http://localhost is a secure context, so mic + WebRTC work; DESIGN D7).
+services:
+  app:
+    build: { context: ., target: runtime }
+    image: interpreter-workbench:local
+    env_file: .env
+    environment:
+      ELEVENLABS_API_KEY_FILE: /run/secrets/elevenlabs_api_key
+    secrets: [elevenlabs_api_key]
+    user: "${UID:-1000}:${GID:-1000}"
+    ports: ["127.0.0.1:${APP_PORT:-8740}:8740"]
+    volumes: ["./data:/data"]
+    restart: unless-stopped
+
+secrets:
+  elevenlabs_api_key:
+    # ElevenLabs is free-tier and scarce: the key is mounted as a file secret,
+    # never put in .env, and only used when ELEVENLABS_ENABLED=1.
+    file: ${ELEVENLABS_KEY_PATH:-/dev/null}
