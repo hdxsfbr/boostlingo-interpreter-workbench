@@ -59,3 +59,9 @@ docs/benchmarks/raw/
 Thumbs.db
 *.swp
 *.log
+
+# --- Workbench runtime data (turn logs, ElevenLabs ledger) ---
+data/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/

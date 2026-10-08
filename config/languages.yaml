@@ -1,0 +1,9 @@
+# Language pairs are configuration, not code (FR-5 / FR-11).
+languages:
+  en: {name: English}
+  es: {name: Spanish}
+pairs:
+  - id: en-es
+    a: en       # Speaker A speaks this
+    b: es       # Speaker B speaks this
+    glossary: {}

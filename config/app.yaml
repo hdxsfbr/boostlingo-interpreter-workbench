@@ -1,0 +1,40 @@
+# Active providers and model ids. Model ids live ONLY here (and env overrides),
+# never in code. Env overrides: CASCADE_STT, CASCADE_MT, CASCADE_TTS, REALTIME_MODEL, MT_MODEL.
+realtime:
+  model: gpt-realtime-mini        # dev default; final runs use gpt-realtime (D5)
+  transcription_model: gpt-4o-transcribe
+  voice: marin
+  secret_ttl_s: 600
+
+cascade:
+  stt: openai_live
+  mt: openai
+  tts: openai
+  playback_policy: after_speech_end   # D8
+
+providers:
+  openai_live:
+    model: gpt-live-transcribe
+    delay: low
+    languages: [en, es]
+  openai:
+    model: gpt-5.4-nano       # chosen by measured TTFT in M1 (see docs/benchmarks/mt-ttft.md)
+    reasoning_effort: none
+    max_output_tokens: 400
+  anthropic:
+    model: claude-haiku-5-5
+    max_tokens: 400
+  openai_tts:
+    model: gpt-4o-mini-tts
+    voices: {en: marin, es: marin}
+  elevenlabs:
+    model: eleven_flash_v2_5
+    session_char_cap: 1500
+    month_char_cap: 8000
+
+timeouts_s:
+  stt_final: 3
+  mt_first_token: 3
+  tts_first_byte: 3
+  turn: 20
+  connect: 5
