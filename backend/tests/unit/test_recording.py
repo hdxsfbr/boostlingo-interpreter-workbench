@@ -62,8 +62,8 @@ def test_recording_is_off_by_default():
 
 def test_cascade_writes_both_sides_when_enabled(env, tmp_path):
     client = env(True)
-    events, audio = run_turn(client)
-    done = [e for e in events if e["type"] == "turn.done"][0]
+    events, _audio = run_turn(client)
+    done = next(e for e in events if e["type"] == "turn.done")
     assert done["recording"] == {"source": "recordings/s-1/turn-1-source.wav",
                                  "target": "recordings/s-1/turn-1-target.wav"}
     with wave.open(str(tmp_path / "recordings/s-1/turn-1-source.wav")) as w:
