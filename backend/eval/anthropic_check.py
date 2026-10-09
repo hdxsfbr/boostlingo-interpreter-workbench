@@ -1,6 +1,6 @@
 """ONE Anthropic validity check (secret-safe): a single streamed translation
 with the production request shape (incl. anthropic-workspace-id). Prints only
-the HTTP status code; on 200 saves the SSE events (no headers, no secrets) as
+the HTTP status code (plus error type/message on failure); on 200 saves the SSE events (no headers, no secrets) as
 a contract fixture. Never run in loops or CI."""
 import json
 import sys
@@ -23,6 +23,13 @@ t0 = time.perf_counter()
 events, first = [], None
 with httpx.Client(timeout=20) as c, c.stream("POST", mt.url, headers=mt.headers(), json=body) as r:
     print("status", r.status_code)
+    if r.status_code != 200:  # body only: error type + message (never headers or key material)
+        try:
+            err = json.loads(r.read()).get("error", {})
+            print("error_type", err.get("type"))
+            print("error_message", err.get("message"))
+        except ValueError:
+            print("error_body_not_json")
     if r.status_code == 200:
         for line in r.iter_lines():
             if line.startswith("data: "):
