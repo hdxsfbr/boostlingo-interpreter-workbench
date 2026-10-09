@@ -30,6 +30,7 @@ class Settings(BaseSettings):
     openrouter_api_key: SecretStr | None = None
     # ElevenLabs is scarce (free tier). Key is read from a file, never from .env (DESIGN §2).
     elevenlabs_api_key_file: Path | None = None
+    elevenlabs_api_key: SecretStr | None = None  # hosted (Railway variable); the file secret wins when both are set
     elevenlabs_enabled: bool = False
 
     config_dir: Path = REPO_ROOT / "config"
@@ -107,14 +108,21 @@ class Settings(BaseSettings):
 
     def provider_status(self) -> dict[str, bool]:
         """Which providers are configured (never reveals values)."""
-        el_file = self.elevenlabs_api_key_file
         return {
             "openai": bool(self.openai_api_key and self.openai_api_key.get_secret_value()),
             "anthropic": bool(self.anthropic_api_key and self.anthropic_api_key.get_secret_value())
             and self.haiku_enabled(),
             "openrouter": bool(self.openrouter_api_key and self.openrouter_api_key.get_secret_value()),
-            "elevenlabs": bool(self.elevenlabs_enabled and el_file and Path(el_file).is_file()),
+            "elevenlabs": bool(self.elevenlabs_enabled and self.elevenlabs_key()),
         }
+
+    def elevenlabs_key(self) -> str:
+        f = self.elevenlabs_api_key_file
+        try:
+            key = Path(f).read_text().strip() if f else ""
+        except OSError:
+            key = ""
+        return key or (self.elevenlabs_api_key.get_secret_value() if self.elevenlabs_api_key else "")
 
 
 @lru_cache

@@ -59,7 +59,7 @@ def build_providers(settings: Settings, overrides: dict[str, str] | None = None,
                               "benchmark/demo runs). Switch TTS to OpenAI.", provider="elevenlabs", stage="tts")
         el = p["elevenlabs"]
         kwargs[("tts", "elevenlabs")] = lambda: {
-            "api_key": _read_key_file(settings.elevenlabs_api_key_file),
+            "api_key": settings.elevenlabs_key(),
             "model": el.get("model", "eleven_flash_v2_5"),
             "voices": {**{c: lg.voices["elevenlabs"] for c, lg in languages_config().languages.items()
                           if lg.voices.get("elevenlabs")}, **el.get("voices", {})},

@@ -54,5 +54,6 @@ ENV CONFIG_DIR=/app/config STATIC_DIR=/app/static DATA_DIR=/data BENCH_DIR=/app/
     GIT_COMMIT=${GIT_COMMIT}
 EXPOSE 8740
 HEALTHCHECK --interval=10s --timeout=3s --start-period=5s --retries=3 \
-  CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8740/healthz',timeout=2).status==200 else 1)"
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8740", "--proxy-headers"]
+  CMD python -c "import os,urllib.request,sys; sys.exit(0 if urllib.request.urlopen(f'http://127.0.0.1:{os.environ.get(\"PORT\",\"8740\")}/healthz',timeout=2).status==200 else 1)"
+# $PORT on Railway (A15), 8740 locally. --forwarded-allow-ips: trust the platform proxy's X-Forwarded-Proto (Secure cookie)
+CMD ["sh", "-c", "exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8740} --proxy-headers --forwarded-allow-ips='*'"]
