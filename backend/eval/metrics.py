@@ -56,8 +56,11 @@ PROFILES = {
 }
 
 
+_QUOTES = str.maketrans({"’": "'", "‘": "'", "“": '"', "”": '"'})
+
+
 def norm(text: str, lang: str) -> str:
-    return re.sub(r"\s+", " ", _NORM[lang](text or "")).strip()
+    return re.sub(r"\s+", " ", _NORM[lang]((text or "").translate(_QUOTES))).strip()
 
 
 def wer(ref: str, hyp: str, lang: str) -> float | None:
@@ -134,7 +137,7 @@ def judge(rows: list[dict], cache: dict) -> None:
         with _client() as cl:
             res = cl.post("/responses", json={
                 "model": "gpt-5.4-mini", "reasoning": {"effort": "none"},
-                "instructions": JUDGE_PROMPT, "input": json.dumps(items, ensure_ascii=False),
+                "instructions": JUDGE_PROMPT, "input": "Items (json): " + json.dumps(items, ensure_ascii=False),
                 "text": {"format": {"type": "json_object"}}})
             res.raise_for_status()
         out = "".join(c.get("text", "") for o in res.json().get("output", []) for c in o.get("content", []) or [])
