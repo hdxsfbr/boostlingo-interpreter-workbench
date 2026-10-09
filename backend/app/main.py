@@ -13,6 +13,8 @@ from app.api.cascade_ws import router as cascade_router
 from app.api.realtime_relay import router as relay_router
 from app.api.realtime_session import router as realtime_router
 from app.api.recordings import router as recordings_router
+from app.api.review import get_review_store
+from app.api.review import router as review_router
 from app.api.turns import router as turns_router
 from app.core.config import get_settings
 from app.core.recording import get_store
@@ -28,6 +30,8 @@ def create_app() -> FastAPI:
         with contextlib.suppress(OSError):
             await asyncio.to_thread(store.sweep)
         task = asyncio.create_task(store.sweep_forever())
+        with contextlib.suppress(OSError):  # A12: blind set import + preload (idempotent)
+            await asyncio.to_thread(get_review_store)
         yield
         task.cancel()
 
@@ -50,6 +54,7 @@ def create_app() -> FastAPI:
     app.include_router(realtime_router)
     app.include_router(relay_router)
     app.include_router(recordings_router)
+    app.include_router(review_router)
 
     if settings.static_dir and settings.static_dir.is_dir():
         app.mount("/", StaticFiles(directory=settings.static_dir, html=True), name="spa")

@@ -35,6 +35,8 @@ class Settings(BaseSettings):
     config_dir: Path = REPO_ROOT / "config"
     data_dir: Path = REPO_ROOT / "data"
     static_dir: Path | None = None  # built SPA; served when present
+    # A12 Review tab: blind set (blind/) and M5 results (results/m5/results.json)
+    bench_dir: Path = REPO_ROOT / "docs" / "benchmarks"
 
     # Optional env overrides of config/app.yaml
     cascade_stt: str | None = None
