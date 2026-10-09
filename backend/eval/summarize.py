@@ -26,7 +26,7 @@ def cell(xs):
 
 
 def load(path):
-    return [json.loads(line) for line in open(path)]  # noqa: SIM115
+    return [json.loads(line) for line in open(path)]
 
 
 def main() -> None:
