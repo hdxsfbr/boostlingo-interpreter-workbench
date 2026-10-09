@@ -168,3 +168,11 @@ This repo is built by an agentic coding assistant (Grok Bot executor agents) dir
   - Live provider tests in `backend/tests/live/` (opt-in `LIVE_TESTS=1`, not collected otherwise). Run once: 6/6 passed, ElevenLabs 5 chars through the guard (ledger 883→888). Agent finding: the module-level shared httpx client is bound to the first test's event loop, so the live conftest resets it per test.
   - Default Realtime model is `gpt-realtime`. Experiments keep the `realtime-mini` default for cost, and the harness without `--rt-model` now uses `gpt-realtime`.
   - REQUIREMENTS_TRACE: 92 Met / 2 Partial / 0 Not met / 10 N/A. The two Partial rows are the cascade < 2 s p90 target.
+- **Railway deploy behind a password (DESIGN A15, Andre via Butler):**
+  - App-wide gate: Basic, then a signed session cookie. It covers every route and both WebSockets; `/healthz` is minimal. 34 new tests.
+  - Probe finding: WebKit/Safari does not send cached Basic on WS upgrades and Chromium does, so the gate uses a cookie (`scripts/auth_probe/`).
+  - Railway project `boostlingo-interpreter-workbench`, service `workbench`, https://workbench-production-c1ea.up.railway.app, 5 GB volume on `/data`. Persistence was verified by a redeploy.
+  - Secrets set with `railway variable set --stdin`, never in argv or output. The password is in `~/.config/agentforge/boostlingo_app_password` (600).
+  - External checks:
+    - Without credentials: 401 on `/`, `/api/*`, the token mint, SSE and both WS upgrades.
+    - With credentials: the SPA loads, and the review preload is 48/48. Live turns: realtime-mini over WebRTC (en-s01, H 1282 ms), cascade (es-s01, H 2794 ms) and relay (es-s02, gpt-realtime).

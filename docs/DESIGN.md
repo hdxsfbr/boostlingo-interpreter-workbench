@@ -152,6 +152,20 @@ Decided or recorded during M4 (2026-10-08):
   - **Live provider tests (PRD CQ-3.5).** `backend/tests/live/` has one minimal call each for OpenAI STT, MT, TTS, the Realtime mint, OpenRouter MT, and ElevenLabs (5 characters, through `ElevenLabsBudget` and the real ledger). Each skips unless `LIVE_TESTS=1` and its key is set. `tests/conftest.py` keeps them out of collection otherwise, so `pytest`, `make test` and `make test-docker` never reach them.
   - **Default Realtime model.** The default is now `gpt-realtime`, the brief's model, superseding the dev default of D5. Mini stays one URL flag away (`?rt_model=gpt-realtime-mini`) or `REALTIME_MODEL=gpt-realtime-mini`. The Experiments tab still defaults to the `realtime-mini` setup for cost.
   - **Still EN/ES-specific (benchmark tooling only):** `docs/benchmarks/utterances.yaml` and `eval/metrics.py`'s WER normalisers.
+- **A15: Hosted on Railway behind a password (Andre via Butler).**
+  - **Gate.** `app/core/auth.py` is an outermost ASGI middleware, active when `APP_USERNAME` and `APP_PASSWORD` are set:
+    - HTTP Basic, checked in constant time, then a signed HttpOnly, SameSite=Strict (Secure on HTTPS) `wb_session` cookie for 12 h. Its key derives from the password, so rotating the password logs everyone out.
+    - It covers the SPA, `/api` (token mint, recordings, Review, Experiments, SSE) and both WebSockets.
+    - WS upgrades also need a same-origin `Origin`, and a refusal gets HTTP 401.
+  - **Why the cookie.** Probed on 9 Oct 2026: Chromium sends cached Basic on WS upgrades, WebKit 26 does not; both send the cookie (`scripts/auth_probe/`).
+  - **`/healthz`** is open and returns only `{"status":"ok"}`; the details moved to `/api/health`.
+  - **Gate off** (unset variables): behaviour is unchanged, with a loud warning on hosted platforms.
+  - **Experiments.** The runner's harness inherits the credentials (`eval/auth.py`), so there is no bypass. `self_url` follows `$PORT`.
+  - **Deploy.** Railway builds the existing `Dockerfile` (`railway.json`, `$PORT`, health check `/healthz`) with a 5 GB volume on `/data`, so data persists.
+    - Keys are Railway variables. `ELEVENLABS_API_KEY` is a new fallback for the file secret.
+    - Production defaults: recording off, ElevenLabs off, `gpt-realtime`, cost confirmation kept.
+    - Plan: Hobby (peak ≈ 490 MB with Chromium), about $5/month.
+  - **Not done:** rate limiting and login throttling (Andre: none for now), per-user accounts.
 
 ## 1. Transport per mode
 

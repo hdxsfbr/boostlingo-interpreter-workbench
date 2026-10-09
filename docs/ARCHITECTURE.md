@@ -230,11 +230,25 @@ DESIGN §6 has the full table. In short:
   - The ElevenLabs key is mounted as a Docker secret file and never put in `.env`.
 - **Short-lived keys for the browser.** For Realtime, the server mints a key valid for 600 s (`realtime.secret_ttl_s`); the real OpenAI key never reaches the browser. Only `gpt-realtime` and `gpt-realtime-mini` can be requested (also via `?rt_model=`; the server checks an allowlist).
 - **Experiment guardrails:** one run at a time (a second gets HTTP 409), a confirmation above the cost threshold (HTTP 428), and ElevenLabs only with an explicit opt-in.
-- **Local only.** The app is bound to `127.0.0.1` and reached through SSH. Browsers allow the mic and WebRTC on `http://localhost`.
+- **Password gate (A15, `app/core/auth.py`).** When `APP_USERNAME` and `APP_PASSWORD` are set, an outermost ASGI middleware protects every HTTP and WebSocket route:
+  - the SPA and its assets, `/docs`, all of `/api` (including the Realtime token mint, recordings, Review, Experiments and their SSE), and `/ws/cascade` and `/ws/realtime`.
+  - **Flow:** HTTP Basic (constant-time `hmac.compare_digest`) → a signed session cookie `wb_session`. The cookie is an HMAC-SHA256 of its expiry, with the key derived from the password. It lasts 12 h and is HttpOnly, SameSite=Strict, and Secure on HTTPS (uvicorn trusts the proxy's `X-Forwarded-Proto`).
+  - **WebSockets** need the cookie (or Basic) and a same-origin `Origin` header, which guards against cross-site WebSocket hijacking. A refused upgrade gets HTTP 401.
+  - **Why a cookie:** WebKit/Safari does not attach cached Basic credentials to WS upgrades, and Chromium does (probe in `scripts/auth_probe/`).
+  - **Only `GET /healthz` is open,** and it returns `{"status":"ok"}` only. The UI's details moved to `/api/health`.
+  - **Unset = off** (local dev). A loud warning is logged when `PORT`/`RAILWAY_*` is set without a password.
+  - **The in-app Experiments runner** inherits `APP_USERNAME`/`APP_PASSWORD`. Its headless Chromium answers the Basic challenge, so there is no loopback bypass.
+- **Deployments.**
+  - **Locally,** the app is bound to `127.0.0.1` and reached through SSH. Browsers allow the mic and WebRTC on `http://localhost`.
+  - **Hosted** on Railway behind the gate (README "Deploy"). There, the API keys are Railway variables.
 - **Input validation on recordings:** session id pattern, whitelisted turn and side, content type and a 20 MB size cap. Writes are atomic, and path traversal is blocked (A11).
 
 **What is missing for production.**
-- **No user authentication or authorisation on any endpoint.** Anyone who can reach the port can mint Realtime keys (spending our OpenAI budget), open cascade sessions, post turn records, upload or delete recordings, start paid experiments, and rate or delete ratings under any name (Review raters are plain names).
+- **One shared password, no per-user accounts or roles.** With the gate off (local dev), anyone who can reach the port can use everything. With it on, anyone who has the password can:
+  - mint Realtime keys and start paid experiments;
+  - delete recordings;
+  - rate as any name, since Review raters are plain names.
+- **No login throttling.** Basic auth has no lockout, so brute force is limited only by the password's strength (32 random URL-safe characters on Railway).
 - **No encryption at rest** for logs or recordings, and no access logging.
 - **No per-participant consent record** beyond the UI notice.
 - **No rate limiting** on our own endpoints.

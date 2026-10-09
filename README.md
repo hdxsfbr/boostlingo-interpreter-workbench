@@ -150,6 +150,24 @@ One minimal real call per provider: OpenAI STT, MT, TTS, the Realtime session mi
 
 STT uses `data/fixtures/en-s01.wav` (`make fixtures`). A full run costs well under $0.01.
 
+## Deploy (Railway, behind a password; DESIGN A15)
+
+Live: **https://workbench-production-c1ea.up.railway.app**. The user is `andre`; the password is in `~/.config/agentforge/boostlingo_app_password` on hdx-lab (mode 600).
+
+- **Password gate.** Set `APP_USERNAME` and `APP_PASSWORD` and every route asks for HTTP Basic, then uses a signed session cookie (covers WebSocket and SSE, also in Safari). Only `/healthz` is open and returns `{"status":"ok"}`. Unset = no gate (local dev); a hosted run without it logs a loud warning.
+- **Railway setup.** Project `boostlingo-interpreter-workbench`, service `workbench`:
+  - Built from the `Dockerfile` (`railway.json`). It listens on `$PORT` and Railway health-checks `/healthz`.
+  - A 5 GB volume is mounted on `/data`, so sessions, Review ratings and experiments **persist across redeploys** (checked by redeploying). On a fresh volume, the blind set, Andre's 48 ratings and the M5 baseline are seeded at startup.
+  - Variables: `APP_USERNAME`, `APP_PASSWORD`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY` and `ELEVENLABS_API_KEY`, all set via `railway variable set K --stdin` from the key files. Production defaults are also variables: `RECORDING_ENABLED=0`, `ELEVENLABS_ENABLED=0`, `REALTIME_MODEL=gpt-realtime`. The experiment cost confirmation stays at $1, and `GIT_COMMIT` is set too.
+- **Deploy a new version:** `railway up --service workbench --ci` from the repo root. Set `GIT_COMMIT=$(git rev-parse --short HEAD)` first if experiments should record the commit.
+- **Run the harness against it:** `APP_USERNAME=andre APP_PASSWORD_FILE=~/.config/agentforge/boostlingo_app_password python -m eval.harness --url https://workbench-production-c1ea.up.railway.app ...`
+- **Size and cost:** measured locally, the container idles at about 50 MB and peaks at about 490 MB during a headless-Chromium experiment run. That needs more than the Free plan's 0.5 GB per service, so it runs on **Hobby**: $5/month, which includes $5 of usage. At [Railway's rates](https://railway.com/pricing) (memory $10/GB-month, CPU $20/vCPU-month, volume $0.15/GB-month, checked 9 Oct 2026), a mostly idle service costs about $1–2/month in usage, so **about $5/month total**. API usage (OpenAI/OpenRouter) is billed separately.
+- **Caveats:**
+  - The provider keys now live on Railway.
+  - The password is shared, and there is **no rate limiting** or login throttling. Anyone with the password can spend the API budget, so experiments keep the cost confirmation.
+  - The Realtime relay uses the server's default model (`gpt-realtime`); `?rt_model=` applies to WebRTC.
+  - `railway.json` is "config as code", which Railway deprecates; it keeps working until 2026-12-01 (`railway config migrate`).
+
 ## Configuration and secrets
 
 - `.env` (gitignored, mode 600) holds `OPENAI_API_KEY` and `OPENROUTER_API_KEY` (Haiku runs via OpenRouter). The direct Anthropic adapter is disabled and its key is no longer loaded. `.env.example` lists the variables without values. `scripts/setup_env.py` fills them from key files and prints only "set"/"missing".
