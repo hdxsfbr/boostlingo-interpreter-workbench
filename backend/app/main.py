@@ -28,6 +28,7 @@ def create_app() -> FastAPI:
             "providers": settings.provider_status(),
             "cascade": cfg["cascade"],
             "realtime_model": cfg["realtime"]["model"],
+            "swaps": settings.swap_options(),
         }
 
     app.include_router(cascade_router)

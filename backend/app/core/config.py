@@ -62,6 +62,25 @@ class Settings(BaseSettings):
             return self.anthropic_enabled
         return bool(self.app_config()["providers"].get("anthropic", {}).get("enabled", False))
 
+    def swap_options(self) -> dict[str, list[dict]]:
+        """Cascade providers selectable per session (FR-9), with readiness and why not."""
+        st = self.provider_status()
+        key = bool(self.anthropic_api_key and self.anthropic_api_key.get_secret_value())
+
+        def opt(name: str, ready: bool, reason: str = "") -> dict:
+            return {"name": name, "ready": ready, "reason": "" if ready else reason}
+        cfg = self.app_config()["providers"]
+        return {
+            "mt": [opt("openai", st["openai"], "OPENAI_API_KEY missing") | {"model": cfg["openai"]["model"]},
+                   opt("anthropic", st["anthropic"], "Anthropic key missing" if not key else
+                       "disabled: validity check failed (see AGENTS.md)") | {"model": cfg["anthropic"]["model"]},
+                   opt("openrouter", st["openrouter"], "OPENROUTER_API_KEY not set")
+                   | {"model": cfg.get("openrouter", {}).get("model", "")}],
+            "tts": [opt("openai", st["openai"], "OPENAI_API_KEY missing") | {"model": cfg["openai_tts"]["model"]},
+                    opt("elevenlabs", st["elevenlabs"], "disabled to save free-tier credits (ELEVENLABS_ENABLED=0)")
+                    | {"model": cfg["elevenlabs"]["model"]}],
+        }
+
     def languages(self) -> dict[str, Any]:
         return yaml.safe_load((self.config_dir / "languages.yaml").read_text())
 

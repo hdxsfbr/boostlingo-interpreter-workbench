@@ -12,4 +12,8 @@ def test_healthz_reports_status_without_secrets(monkeypatch):
     assert body["status"] == "ok"
     assert body["providers"]["openai"] is True
     assert "sk-test-not-real" not in str(body)
+    mt = {o["name"]: o for o in body["swaps"]["mt"]}
+    assert mt["openai"]["ready"] is True and set(mt) == {"openai", "anthropic", "openrouter"}
+    tts = {o["name"]: o for o in body["swaps"]["tts"]}
+    assert tts["elevenlabs"]["ready"] is False and "credits" in tts["elevenlabs"]["reason"]
     get_settings.cache_clear()
