@@ -31,7 +31,10 @@ COPY backend/ /app/backend/
 RUN pip install --no-deps .
 COPY config/ /app/config/
 COPY --from=web /web/dist /app/static
-ENV CONFIG_DIR=/app/config STATIC_DIR=/app/static DATA_DIR=/data PYTHONUNBUFFERED=1
+# A12 Review tab: blind clips + sheet/key (key stays server-side) and M5 results
+COPY docs/benchmarks/blind/ /app/bench/blind/
+COPY docs/benchmarks/results/m5/results.json /app/bench/results/m5/results.json
+ENV CONFIG_DIR=/app/config STATIC_DIR=/app/static DATA_DIR=/data BENCH_DIR=/app/bench PYTHONUNBUFFERED=1
 EXPOSE 8740
 HEALTHCHECK --interval=10s --timeout=3s --start-period=5s --retries=3 \
   CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8740/healthz',timeout=2).status==200 else 1)"

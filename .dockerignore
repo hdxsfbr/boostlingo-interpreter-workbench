@@ -9,4 +9,7 @@ data
 **/__pycache__
 **/.pytest_cache
 docs
+# A12 Review tab: the blind set and the M5 results ship in the image
+!docs/benchmarks/blind
+!docs/benchmarks/results/m5/results.json
 sources
