@@ -61,6 +61,7 @@ class TurnDone(_Event):
     turn_id: int
     marks: dict[str, float] = Field(default_factory=dict)
     usage: dict[str, Any] = Field(default_factory=dict)
+    recording: dict[str, str] | None = None  # A11: relative paths of the saved source/target audio
 
 
 class TurnSkipped(_Event):
@@ -104,6 +105,8 @@ class SessionStart(_Event):
     tgt: Lang = "es"
     turn_mode: Literal["ptt", "vad"] = "ptt"
     providers: dict[str, str] = Field(default_factory=dict)
+    session_id: str | None = Field(default=None, max_length=80)
+    record: bool = False  # A11: per-session opt-in; refused unless recording.enabled
 
 
 class TurnStart(_Event):

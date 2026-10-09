@@ -12,7 +12,8 @@ from app.cascade.session import CascadeSession, Timeouts
 from app.core.budget import ElevenLabsBudget, Ledger
 from app.core.config import Settings, get_settings
 from app.core.errors import ConfigError, ProviderError
-from app.core.events import Commit, ErrorEvent, SessionStart, TurnStart
+from app.core.events import Commit, ErrorEvent, SessionStart, TurnDone, TurnSkipped, TurnStart
+from app.core.recording import CascadeRecorder, RecordingError, RecordingStore, get_store
 from app.providers import registry
 
 log = logging.getLogger(__name__)
@@ -87,6 +88,45 @@ def speculative_enabled(ccfg: dict, tts_name: str) -> bool:
     return True
 
 
+def make_recorder(start: SessionStart, store: RecordingStore) -> tuple[CascadeRecorder | None, str | None]:
+    """A11: record only if the session asked AND the server allows it; otherwise
+    return a refusal message for the UI (nothing is captured)."""
+    if not start.record:
+        return None, None
+    if not store.cfg.enabled:
+        return None, "Recording is disabled on this server (recording.enabled=false); nothing is recorded."
+    try:
+        return CascadeRecorder(store, start.session_id or ""), None
+    except RecordingError as e:
+        return None, f"Recording refused: {e}"
+
+
+def recording_io(io: SessionIO, rec: CascadeRecorder | None):
+    """Wrap the session's outputs to capture TTS audio and save each turn's
+    files when it ends (done, skipped or failed)."""
+    if rec is None:
+        return io.event, io.audio
+
+    async def send_audio(turn_id: int, pcm: bytes) -> None:
+        rec.add(turn_id, "target", pcm)
+        await io.audio(turn_id, pcm)
+
+    async def send_event(ev) -> None:
+        terminal = isinstance(ev, TurnDone | TurnSkipped) or (
+            isinstance(ev, ErrorEvent) and ev.turn_id is not None and not ev.retryable)
+        if terminal:
+            try:
+                paths = await rec.finish(ev.turn_id)
+            except (OSError, RecordingError, PermissionError):
+                log.warning("turn %s: recording write failed", ev.turn_id, exc_info=True)
+                paths = {}
+            if paths and isinstance(ev, TurnDone):
+                ev = ev.model_copy(update={"recording": paths})
+        await io.event(ev)
+
+    return send_event, send_audio
+
+
 class CascadePipeline:
     name = "cascade"
 
@@ -95,6 +135,8 @@ class CascadePipeline:
         self.names = names
         self._warm = warm
         self._opened: asyncio.Task | None = None
+        self.recorder: CascadeRecorder | None = None
+        self._rec_turn: int | None = None
 
     @classmethod
     def from_settings(cls, start: SessionStart, io: SessionIO, settings: Settings | None = None) -> CascadePipeline:
@@ -104,17 +146,22 @@ class CascadePipeline:
         glossary = next((pr.get("glossary") or {} for pr in langs.get("pairs", [])
                          if {pr.get("a"), pr.get("b")} == {start.src, start.tgt}), {})
         ccfg = settings.app_config()["cascade"]
-        session = CascadeSession(prov["stt"], prov["mt"], prov["tts"], send_event=io.event, send_audio=io.audio,
+        rec, refusal = make_recorder(start, get_store())
+        send_event, send_audio = recording_io(io, rec)
+        session = CascadeSession(prov["stt"], prov["mt"], prov["tts"], send_event=send_event, send_audio=send_audio,
                                  voices=voices, langs=[start.src, start.tgt], timeouts=timeouts, glossary=glossary,
                                  speculative=speculative_enabled(ccfg, names["tts"]),
                                  merge_fragments=bool(ccfg.get("merge_fragments", True)),
                                  chunker=ccfg.get("chunker") or {})
         pipe = cls(session, names, [prov["mt"], prov["tts"]])
-        pipe._opened = asyncio.get_running_loop().create_task(pipe._open(io))
+        pipe.recorder = rec
+        pipe._opened = asyncio.get_running_loop().create_task(pipe._open(io, refusal))
         return pipe
 
-    async def _open(self, io: SessionIO) -> None:
+    async def _open(self, io: SessionIO, refusal: str | None = None) -> None:
         """Warm the STT socket and HTTP connections so turn 1 isn't slower."""
+        if refusal:
+            await io.event(ErrorEvent(code="recording_refused", stage="recording", retryable=False, message=refusal))
         try:
             await self.session.open()
         except ProviderError as e:
@@ -129,12 +176,17 @@ class CascadePipeline:
         return dict(self.names)
 
     async def turn_start(self, msg: TurnStart) -> None:
+        self._rec_turn = msg.turn_id
         await self.session.turn_start(msg.turn_id, msg.src, msg.tgt)
 
     async def audio(self, pcm: bytes) -> None:
+        if self.recorder is not None and self._rec_turn is not None:
+            self.recorder.add(self._rec_turn, "source", pcm)
         self.session.audio(pcm)
 
     async def commit(self, msg: Commit) -> None:
+        if msg.final and msg.turn_id == self._rec_turn:
+            self._rec_turn = None  # the session ignores audio after the final commit; so does the recording
         await self.session.commit(msg.turn_id, msg.final)
 
     async def cancel(self, turn_id: int) -> None:
