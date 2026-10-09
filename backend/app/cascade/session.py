@@ -233,6 +233,16 @@ class CascadeSession:
             t.watchdogs.append(asyncio.create_task(self._watchdog(t, "turn", self.timeouts.turn)))
             self._mark(t, "commit_received")
 
+    def pause_hint(self, turn_id: int) -> None:
+        """Short in-turn silence seen by the browser (before any commit): speculate
+        on the current partial of the not-yet-committed segment."""
+        t = self._turns.get(turn_id)
+        if t is None or t.final_commit.is_set():
+            return
+        seg = t.n_commits
+        if seg in t.partials:
+            self._speculate(t, seg, t.partials[seg])
+
     async def cancel(self, turn_id: int) -> None:
         t = self._turns.get(turn_id)
         if t is not None:

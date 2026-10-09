@@ -128,6 +128,9 @@ class CascadePipeline:
     async def cancel(self, turn_id: int) -> None:
         await self.session.cancel(turn_id)
 
+    async def pause_hint(self, turn_id: int) -> None:
+        self.session.pause_hint(turn_id)
+
     async def close(self) -> None:
         if self._opened and not self._opened.done():
             self._opened.cancel()

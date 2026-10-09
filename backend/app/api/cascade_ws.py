@@ -25,6 +25,7 @@ from app.core.events import (
     Commit,
     ErrorEvent,
     LatencyMark,
+    PauseHint,
     Ping,
     Pong,
     SessionReady,
@@ -181,6 +182,10 @@ async def cascade_ws(ws: WebSocket) -> None:
                 await pipeline.commit(msg)
             elif isinstance(msg, TurnCancel):
                 await pipeline.cancel(msg.turn_id)
+            elif isinstance(msg, PauseHint):
+                hint = getattr(pipeline, "pause_hint", None)  # optional: loopback ignores it
+                if hint:
+                    await hint(msg.turn_id)
     except WebSocketDisconnect:
         pass
     finally:

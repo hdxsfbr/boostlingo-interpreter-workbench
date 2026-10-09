@@ -132,8 +132,16 @@ class Ping(_Event):
     t: float | None = None
 
 
+class PauseHint(_Event):
+    """Browser VAD saw a short in-turn silence (before the pause commit): the
+    cascade may start speculative MT on the current partial (M4)."""
+
+    type: Literal["pause.hint"] = "pause.hint"
+    turn_id: int
+
+
 ClientMessage = Annotated[
-    SessionStart | TurnStart | Commit | TurnCancel | Ping, Field(discriminator="type")
+    SessionStart | TurnStart | Commit | TurnCancel | Ping | PauseHint, Field(discriminator="type")
 ]
 client_message_adapter: TypeAdapter[ClientMessage] = TypeAdapter(ClientMessage)
 

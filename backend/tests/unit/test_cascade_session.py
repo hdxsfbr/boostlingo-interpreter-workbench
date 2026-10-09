@@ -340,3 +340,18 @@ def test_norm_text_ignores_case_and_punctuation():
     from app.cascade.session import norm_text
     assert norm_text("¿Me duele  mucho la Cabeza?") == norm_text("me duele mucho la cabeza")
     assert norm_text("Good morning") != norm_text("Good morning, doctor")
+
+
+async def test_pause_hint_speculates_before_any_commit():
+    mt = FakeTranslator({"Good morning, doctor": "Buenos días, doctor."})
+    s, sink = make_spec(PartialFirstSTT("Good morning, doctor", "Good morning, doctor."), mt=mt)
+    await s.turn_start(1, "en", "es")
+    s.audio(FRAME)
+    await asyncio.sleep(0.02)
+    s.pause_hint(1)  # browser: 150 ms of silence, no commit yet
+    await asyncio.sleep(0.05)
+    assert len(mt.calls) == 1  # MT already running on the partial
+    await s.commit(1, True)  # same text at commit: no restart
+    await finish(s)
+    assert len(mt.calls) == 1
+    assert "spec_hit" in sink.of("turn.done")[0]["marks"]
