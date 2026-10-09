@@ -138,4 +138,5 @@ This repo is built by an agentic coding assistant (Grok Bot executor agents) dir
   - Tests: 8 backend tests (off by default, files when on, nothing without the toggle, server refusal, upload 403/validation/traversal, retention, delete) and 7 Vitest tests (per-turn MediaRecorder lifecycle, barge-in, flush on close, toggle disabled/consent, turn-record paths). All mocked.
   - One live smoke per mode with `RECORDING_ENABLED=1` and `eval.harness --session-record` (2 short utterances each; cascade default, and gpt-realtime-mini over WebRTC). All 8 files appeared, decoded, had plausible durations and were non-silent (ffprobe/volumedetect).
   - Agent mistake caught: the first backend commit went in with two ruff findings in the new test, because `ruff … | tail` hid the exit code. Fixed in the next commit.
+- **Recording latency A/B (Butler):** default cascade, PTT 450 ms, 12 scored utterances (10 short) plus 2 unscored warm-ups, arms alternated off/on/off/on (n=24 per arm). Short H p50 was 1785 (off) vs 1781 ms (on), short tail p50 1733 vs 1720 ms: no measurable cost, so no fix was needed. Results are in `docs/benchmarks/results/recording-ab/`.
 
