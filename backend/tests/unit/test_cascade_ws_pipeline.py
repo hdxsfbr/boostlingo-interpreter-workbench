@@ -77,3 +77,17 @@ def test_haiku_profile_is_gated_until_enabled(monkeypatch):
     s.anthropic_enabled = True
     built, names, _, _ = build_providers(s, {"stt": "fake", "mt": "anthropic", "tts": "fake"})
     assert names["mt"] == "anthropic" and built["mt"].headers()["anthropic-workspace-id"] == "wrkspc_x"
+
+
+def test_openrouter_profile_needs_its_key():
+    from app.cascade.ws_pipeline import build_providers
+    from app.core.config import Settings
+    from app.core.errors import ConfigError
+
+    with pytest.raises(ConfigError, match="OPENROUTER_API_KEY"):
+        build_providers(Settings(openai_api_key="sk-x", openrouter_api_key=None),  # pin env (lesson from M1)
+                        {"stt": "fake", "mt": "openrouter", "tts": "fake"})
+    built, names, _, _ = build_providers(Settings(openai_api_key="sk-x", openrouter_api_key="sk-or-x"),
+                                         {"stt": "fake", "mt": "openrouter", "tts": "fake"})
+    from app.providers.base import TurnContext
+    assert built["mt"].body("x", "en", "es", TurnContext())["provider"] == {"sort": "latency"}

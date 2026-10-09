@@ -45,6 +45,12 @@ def build_providers(settings: Settings, overrides: dict[str, str] | None = None)
             model=p["anthropic"]["model"], max_tokens=p["anthropic"].get("max_tokens", 400),
             effort=p["anthropic"].get("effort", "low")),
     }
+    if names["mt"] == "openrouter":
+        orc = p.get("openrouter", {})
+        kwargs[("mt", "openrouter")] = lambda: {
+            "api_key": settings.openrouter_api_key.get_secret_value() if settings.openrouter_api_key else "",
+            "model": orc.get("model", "anthropic/claude-haiku-5-5"), "max_tokens": orc.get("max_tokens", 400),
+            "sort": orc.get("sort", "latency")}
     if names["tts"] == "elevenlabs":
         if not settings.elevenlabs_enabled:
             raise ConfigError("ElevenLabs is disabled (ELEVENLABS_ENABLED=0; free-tier credits are reserved for "

@@ -26,6 +26,8 @@ class Settings(BaseSettings):
     anthropic_workspace_id: SecretStr | None = None
     # cascade-haiku gate; None = config/app.yaml providers.anthropic.enabled
     anthropic_enabled: bool | None = None
+    # Optional; not auto-filled by scripts/setup_env.py (needs Andre's OK to use).
+    openrouter_api_key: SecretStr | None = None
     # ElevenLabs is scarce (free tier). Key is read from a file, never from .env (DESIGN §2).
     elevenlabs_api_key_file: Path | None = None
     elevenlabs_enabled: bool = False
@@ -70,6 +72,7 @@ class Settings(BaseSettings):
             "openai": bool(self.openai_api_key and self.openai_api_key.get_secret_value()),
             "anthropic": bool(self.anthropic_api_key and self.anthropic_api_key.get_secret_value())
             and self.haiku_enabled(),
+            "openrouter": bool(self.openrouter_api_key and self.openrouter_api_key.get_secret_value()),
             "elevenlabs": bool(self.elevenlabs_enabled and el_file and Path(el_file).is_file()),
         }
 
