@@ -34,9 +34,14 @@ async def run(a: argparse.Namespace) -> list[dict]:
         if a.block_webrtc:  # simulate a network that blocks the WebRTC SDP exchange (auto -> relay fallback)
             await page.route("https://api.openai.com/v1/realtime/calls*", lambda r: r.abort())
         q = f"pipeline={a.pipeline}&mode={a.mode}&rt={a.rt}&turn={a.turn_mode}"
+        q += "".join(f"&{k}={v}" for k, v in (("mt", a.mt), ("tts", a.tts)) if v)
         await page.goto(f"{a.url}/?{q}")
         await page.click("[data-testid=start]")
-        await page.wait_for_function("window.__wb?.state?.sessionState === 'ready'", timeout=20000)
+        await page.wait_for_function("['ready','error'].includes(window.__wb?.state?.sessionState)", timeout=20000)
+        if await page.evaluate("window.__wb.state.sessionState") == "error":
+            print("SESSION ERROR:", json.dumps(await page.evaluate("window.__wb.state.errors"), ensure_ascii=False))
+            await browser.close()
+            return []
         print("providers:", json.dumps(await page.evaluate("window.__wb.state.providers")))
         results = []
         for i in range(a.turns):
@@ -169,6 +174,8 @@ def main() -> None:
     ap.add_argument("--mode", default="cascade", choices=["cascade", "realtime"])
     ap.add_argument("--rt", default="auto", choices=["webrtc", "relay", "auto"])
     ap.add_argument("--turn-mode", default="ptt", choices=["ptt", "vad"])
+    ap.add_argument("--mt", help="cascade translator override (FR-9), e.g. anthropic")
+    ap.add_argument("--tts", help="cascade TTS override, e.g. elevenlabs (refused unless enabled)")
     ap.add_argument("--block-webrtc", action="store_true", help="abort the SDP POST to test the relay fallback")
     ap.add_argument("--barge-in", action="store_true", help="probe interrupting a playing translation")
     ap.add_argument("--switches", type=int, default=0, help="mode switches for the leak check")
