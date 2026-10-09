@@ -17,6 +17,8 @@ from app.review import results as res
 from app.review import sources
 from app.review.store import DIMS, MAX_NOTES, ReviewError, ReviewStore, norm_rater
 
+# explicit: slim images may lack /etc/mime.types, and the browser needs audio/* to play a clip
+AUDIO_TYPES = {".ogg": "audio/ogg", ".wav": "audio/wav", ".webm": "audio/webm", ".m4a": "audio/mp4", ".mp3": "audio/mpeg"}
 router = APIRouter(prefix="/api/review")
 _STORE: ReviewStore | None = None
 
@@ -115,7 +117,8 @@ def audio(set_id: str, item_id: str) -> FileResponse:
     if root not in p.parents or not p.is_file():
         raise HTTPException(404, "audio not found (deleted by retention?)")
     # no filename / path in the response headers: the clip name is all the client knows
-    return FileResponse(p, media_type=mimetypes.guess_type(p.name)[0] or "application/octet-stream")
+    return FileResponse(p, media_type=AUDIO_TYPES.get(p.suffix.lower()) or mimetypes.guess_type(p.name)[0]
+                        or "application/octet-stream")
 
 
 @router.post("/sets/{set_id}/reveal")

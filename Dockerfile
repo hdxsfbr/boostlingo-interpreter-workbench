@@ -21,6 +21,11 @@ COPY --from=web /usr/local/bin/node /usr/local/bin/node
 COPY backend/ /app/backend/
 COPY config/ /app/config/
 COPY contract/ /app/contract/
+# benchmark data the Review/Experiments/language tests read (REPO_ROOT/docs/benchmarks)
+COPY docs/benchmarks/blind/ /app/docs/benchmarks/blind/
+COPY docs/benchmarks/results/m5/results.json /app/docs/benchmarks/results/m5/results.json
+COPY docs/benchmarks/results/m5/raw/ /app/docs/benchmarks/results/m5/raw/
+COPY docs/benchmarks/utterances.yaml /app/docs/benchmarks/utterances.yaml
 COPY --from=web /web /app/frontend
 RUN pip install -e '.[dev]'
 CMD ["sh", "-c", "cd /app/backend && pytest -q && cd /app/frontend && node node_modules/vitest/vitest.mjs run"]
