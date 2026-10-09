@@ -62,3 +62,7 @@ This repo is built by an agentic coding assistant (Grok Bot executor agents) dir
   - Barge-in used `lastCommittedTurn`, which is cleared once audio starts, so a press during playback cancelled nothing. It now cancels the playing turn; the relay also drops late audio frames of a cancelled turn.
   - The first barge-in probe measured the session's own flag (16 ms) rather than the end of audio; it now waits for the interrupted turn's `audio.ended`.
 
+### Decisions recorded after M2 (Andre, CTO)
+- **Per-turn direction instructions stay ON for Realtime PTT** (DESIGN amendment A1). Evidence: 2 of 5 ES→EN turns were answered instead of translated without them; 20/20 correct afterwards.
+- **Benchmarks use a fixed 450 ms PTT release for every variant**, and every number is also reported with the release gap subtracted (DESIGN amendment A2). The harness already emits `release_lag_ms` and `H_minus_lag_ms` per turn.
+

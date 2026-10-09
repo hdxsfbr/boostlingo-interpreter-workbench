@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | v0.2, 2026-10-08. Finalized against `docs/api-research.md` (checked 2026-10-08). For Andre's review; nothing implemented yet |
+| **Status** | v0.2 approved 2026-10-08; amended after M2 by Andre's decisions (see [Amendments](#amendments-after-approval)) |
 | **Inputs** | [`PRD.md`](PRD.md) v0.1, [`sources/assignment.pdf`](../sources/assignment.pdf) (authoritative), [`api-research.md`](api-research.md) (cited as "R§x") |
 | **Fixed by Andre** | Python (FastAPI) backend, TypeScript (React + Vite) frontend, Docker on hdx-lab, one setup command, local-only. Providers: OpenAI, Anthropic, ElevenLabs (free tier), OpenRouter, local/free |
 | **Targets** (PRD §3, NFR-1/2, from the brief) | Realtime **< 1.5 s**, Cascade **< 3 s, target < 2 s**, speech end → first audio out; 5-minute conversation with no disconnect, drift or leak |
@@ -59,6 +59,19 @@ flowchart LR
   TTS <--> P3[("gpt-4o-mini-tts /<br/>ElevenLabs Flash v2.5")]
   EV["Eval harness<br/>Playwright drives the real SPA"] -.-> SRC
 ```
+
+## Amendments after approval
+
+Decided by Andre (CTO) on 2026-10-08 after the M2 smoke run. These are deliberate deviations from v0.2.
+
+- **A1: per-turn direction instructions in Realtime PTT (on by default).**
+  - What: every PTT `response.create` carries `response.instructions` = "the speaker just spoke *SRC*; say only the faithful *TGT* translation; never answer". It overrides the bidirectional session prompt for that response only (`frontend/src/session/realtimePrompt.ts`; `directionHint: false` turns it off). VAD mode keeps the session prompt, since the direction is unknown there.
+  - Why: PTT already knows the direction (Speaker A/B), so there's no reason to make the model infer it. In the first M2 ES→EN run, **2 of 5 turns were answered instead of translated** with the session prompt alone ("I'm sorry you're feeling that way… seek medical attention"). With A1 on (and the A2 release policy), all 20 following PTT turns were correct translations (`docs/benchmarks/m2-realtime-smoke.md`).
+  - Effect on §2 and R2: the language policy is now enforced per response in PTT. The harness still measures the "answered" rate.
+- **A2: fixed 450 ms PTT release policy for every benchmark variant, and the release gap is reported alongside every number.**
+  - What: the harness releases PTT 450 ms after the last voiced frame, in every mode and profile. This replaces §9's "released at end + 150 ms". Every reported H is given twice: as measured (including the release gap) and with the release gap subtracted (H − (t_release − t_speech_end), per turn).
+  - Why: the ES fixture has a 350 ms in-sentence pause. A shorter release window cut the turn mid-sentence (the M1 ES cascade numbers and the first M2 ES realtime run were affected). The same fixed window for every variant keeps the comparison fair, and the subtracted number shows system latency independent of the policy.
+  - Effect on §4: the H definition is unchanged; A2 only fixes how the harness, as the "user", releases.
 
 ## 1. Transport per mode
 
@@ -251,7 +264,7 @@ Dockerfile (node build → python runtime) · docker-compose.yml (app, eval prof
 - **Fixtures:** OpenAI TTS voices distinct from the pipeline voice, plus human recordings (D9). `*.wav` is gitignored, so the script and `make fixtures` are committed instead.
 - **Driver:**
   - Playwright runs **the real SPA** in headless Chrome (`--autoplay-policy=no-user-gesture-required`) with `?source=file`. `fileSource.ts` plays each fixture into a `MediaStreamAudioDestinationNode`, whose track replaces the mic for both transports.
-  - PTT is pressed at file start and released at end + 150 ms. The VAD variant just plays with trailing silence.
+  - PTT is pressed at file start and released 450 ms after the last voiced frame (A2); results report H and H − release gap. The VAD variant just plays with trailing silence.
   - Both modes therefore go through their production paths, timed by the same browser instrumentation (R§1.7 "same audio into both modes").
   - Fallback if headless WebRTC misbehaves: run Realtime via the relay fallback and state it.
 - **Profiles:** `realtime-mini` (dev), **`realtime`**, **`cascade-openai`**, `cascade-haiku`, `cascade-elevenlabs`, optional `realtime-translate`.
