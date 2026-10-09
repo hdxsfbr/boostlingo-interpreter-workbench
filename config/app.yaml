@@ -33,6 +33,10 @@ providers:
     model: eleven_flash_v2_5
     session_char_cap: 1500
     month_char_cap: 8000
+    prewarm: true          # pre-open one socket per target language between turns
+    voices:                # premade multilingual voice (George); verify by ear at demo time
+      en: JBFqnCBsd6RMkjVDRZzb
+      es: JBFqnCBsd6RMkjVDRZzb
 
 timeouts_s:
   stt_final: 3

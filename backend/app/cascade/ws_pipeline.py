@@ -3,16 +3,26 @@ providers from config (registry + config/app.yaml + env overrides)."""
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
+from pathlib import Path
 
 from app.api.cascade_ws import SessionIO
 from app.cascade.session import CascadeSession, Timeouts
+from app.core.budget import ElevenLabsBudget, Ledger
 from app.core.config import Settings, get_settings
 from app.core.errors import ConfigError, ProviderError
 from app.core.events import Commit, ErrorEvent, SessionStart, TurnStart
 from app.providers import registry
 
 log = logging.getLogger(__name__)
+
+
+def _read_key_file(path) -> str:
+    try:
+        return Path(path).read_text().strip() if path else ""
+    except OSError:
+        return ""
 
 
 def build_providers(settings: Settings, overrides: dict[str, str] | None = None):
@@ -35,12 +45,27 @@ def build_providers(settings: Settings, overrides: dict[str, str] | None = None)
             model=p["anthropic"]["model"], max_tokens=p["anthropic"].get("max_tokens", 400),
             effort=p["anthropic"].get("effort", "low")),
     }
+    if names["tts"] == "elevenlabs":
+        if not settings.elevenlabs_enabled:
+            raise ConfigError("ElevenLabs is disabled (ELEVENLABS_ENABLED=0; free-tier credits are reserved for "
+                              "benchmark/demo runs). Switch TTS to OpenAI.", provider="elevenlabs", stage="tts")
+        el = p["elevenlabs"]
+        kwargs[("tts", "elevenlabs")] = lambda: {
+            "api_key": _read_key_file(settings.elevenlabs_api_key_file),
+            "model": el.get("model", "eleven_flash_v2_5"), "voices": el.get("voices", {}),
+            "prewarm": el.get("prewarm", True)}
     if names["mt"] == "anthropic" and not settings.haiku_enabled():
         raise ConfigError("cascade-haiku is disabled (Anthropic validity check failed); "
                           "set providers.anthropic.enabled or ANTHROPIC_ENABLED=1 after a passing check",
                           provider="anthropic", stage="mt")
     built = {kind: registry.create(kind, names[kind], **kwargs.get((kind, names[kind]), dict)())
              for kind in ("stt", "mt", "tts")}
+    if names["tts"] == "elevenlabs":  # always behind the credit guard
+        el = p["elevenlabs"]
+        built["tts"] = ElevenLabsBudget(built["tts"], enabled=settings.elevenlabs_enabled,
+                                        ledger=Ledger(settings.data_dir / "elevenlabs_ledger.json"),
+                                        session_char_cap=el.get("session_char_cap", 1500),
+                                        month_char_cap=el.get("month_char_cap", 8000))
     voices = p.get("openai_tts", {}).get("voices", {}) if names["tts"] == "openai" else {}
     return built, names, voices, Timeouts.from_config(cfg.get("timeouts_s", {}))
 
@@ -98,3 +123,8 @@ class CascadePipeline:
         if self._opened and not self._opened.done():
             self._opened.cancel()
         await self.session.close()
+        for p in self._warm:  # e.g. pre-opened ElevenLabs sockets
+            aclose = getattr(p, "aclose", None)
+            if aclose:
+                with contextlib.suppress(Exception):
+                    await aclose()
