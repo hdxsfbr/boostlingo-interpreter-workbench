@@ -90,3 +90,45 @@ def test_openrouter_profile_needs_its_key():
                                          {"stt": "fake", "mt": "openrouter", "tts": "fake"})
     from app.providers.base import TurnContext
     assert built["mt"].body("x", "en", "es", TurnContext())["provider"] == {"sort": "latency"}
+
+
+def test_speculation_is_off_with_elevenlabs_by_default():
+    from app.cascade.ws_pipeline import speculative_enabled
+    cfg = {"speculative_mt": True}
+    assert speculative_enabled(cfg, "openai") is True
+    assert speculative_enabled(cfg, "elevenlabs") is False  # A9: no credits on cancelled runs
+    assert speculative_enabled({**cfg, "speculative_with_elevenlabs": True}, "elevenlabs") is True
+    assert speculative_enabled({"speculative_mt": False, "speculative_with_elevenlabs": True}, "elevenlabs") is False
+
+
+def test_pipeline_with_mocked_elevenlabs_builds_session_without_speculation(monkeypatch):
+    import app.cascade.ws_pipeline as wp
+    from app.providers.fakes import FakeSTT, FakeTranslator, FakeTTS
+
+    fake_tts = FakeTTS()
+    fake_tts.name = "elevenlabs"
+    monkeypatch.setattr(wp, "build_providers", lambda settings, providers: (
+        {"stt": FakeSTT(), "mt": FakeTranslator(), "tts": fake_tts},
+        {"stt": "fake", "mt": "fake", "tts": "elevenlabs"}, {}, wp.Timeouts()))
+    from app.core.config import Settings
+    from app.core.events import SessionStart
+
+    async def noop(*a, **k):
+        return None
+
+    class IO:
+        event = staticmethod(noop)
+        audio = staticmethod(noop)
+
+    start = SessionStart(type="session.start", src="en", tgt="es", providers={"tts": "elevenlabs"})
+    s = Settings(openai_api_key="sk-x")
+    assert s.app_config()["cascade"]["speculative_mt"] is True
+    import asyncio
+
+    async def build():
+        pipe = wp.CascadePipeline.from_settings(start, IO(), s)
+        pipe._opened.cancel()
+        return pipe
+
+    pipe = asyncio.run(build())
+    assert pipe.session.speculative is False

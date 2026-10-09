@@ -76,6 +76,17 @@ def build_providers(settings: Settings, overrides: dict[str, str] | None = None)
     return built, names, voices, Timeouts.from_config(cfg.get("timeouts_s", {}))
 
 
+def speculative_enabled(ccfg: dict, tts_name: str) -> bool:
+    """Speculative MT/TTS is off by default with ElevenLabs (DESIGN A9): its
+    cancelled runs still send chunks, which spend scarce free-tier credits.
+    `cascade.speculative_with_elevenlabs: true` opts back in."""
+    if not ccfg.get("speculative_mt", False):
+        return False
+    if tts_name == "elevenlabs":
+        return bool(ccfg.get("speculative_with_elevenlabs", False))
+    return True
+
+
 class CascadePipeline:
     name = "cascade"
 
@@ -95,7 +106,7 @@ class CascadePipeline:
         ccfg = settings.app_config()["cascade"]
         session = CascadeSession(prov["stt"], prov["mt"], prov["tts"], send_event=io.event, send_audio=io.audio,
                                  voices=voices, langs=[start.src, start.tgt], timeouts=timeouts, glossary=glossary,
-                                 speculative=bool(ccfg.get("speculative_mt", False)),
+                                 speculative=speculative_enabled(ccfg, names["tts"]),
                                  merge_fragments=bool(ccfg.get("merge_fragments", True)),
                                  chunker=ccfg.get("chunker") or {})
         pipe = cls(session, names, [prov["mt"], prov["tts"]])
