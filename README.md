@@ -6,6 +6,8 @@ A Gauntlet partner project for **Boostlingo**. A browser workbench that interpre
 
 Latency is measured **in the browser, on one clock**, from the last voiced microphone frame to the first audible output sample, identically in both modes.
 
+The app has three tabs: **Interpreter** (the live conversation), **Review** (blind human quality ratings) and **Experiments** (run the benchmark from the app and compare runs).
+
 ## Status (due Sun 2026-10-11)
 
 | Milestone | State |
@@ -16,6 +18,11 @@ Latency is measured **in the browser, on one clock**, from the last voiced micro
 | M3 provider swaps: Haiku (via OpenRouter), ElevenLabs TTS + credit guard, per-session selector | done ([swaps](docs/provider-swaps.md)) |
 | M4 harness, fixtures, cascade tuning (speculative MT), VAD sweep, 5-min soak | done ([M4 results](docs/benchmarks/m4-tuning.md)) |
 | M5 hedged first output, fragment merge, error-state pass, final benchmark matrix, README, AGENTS.md | done ([summary](docs/benchmarks/results/m5/summary.md), [results.json](docs/benchmarks/results/m5/results.json)) |
+| A11 opt-in session recording (audit), off by default, 30-day retention | done ([recording A/B](docs/benchmarks/results/recording-ab/summary.md): no measurable latency cost) |
+| A12 Review tab: in-app blind ratings (SQLite) | done (see "Review tab" below) |
+| A13 Experiments tab: run the M5 harness from the app, history, compare | done (see "Experiments tab" below; [slowdown check](docs/benchmarks/results/inapp-slowdown/summary.md)) |
+| Tests | 184 backend (pytest) + 49 frontend (Vitest), all passing on 2026-10-09 (`make test`) |
+| Requirement coverage | [`docs/REQUIREMENTS_TRACE.md`](docs/REQUIREMENTS_TRACE.md): every brief, portal and PRD requirement with status and evidence |
 | Comparison write-up (must-have #8) | done: [`docs/comparison.md`](docs/comparison.md) (2-page write-up) + [`docs/comparison-details.md`](docs/comparison-details.md) (method, full numbers); blind human ratings done (1 rater): [`docs/benchmarks/blind/results.md`](docs/benchmarks/blind/results.md) |
 
 ## Run it (runbook)
@@ -57,7 +64,7 @@ The key is mounted as a file secret, never put in `.env`. The guard refuses past
 6. Press a speaker button while a translation plays to barge in. **Export JSON / CSV** downloads the session's turns and latencies.
 7. Open the **Review** tab, enter a name and rate a few blind clips with the keyboard, or open Results as `andre` (see "Review tab" below).
 
-URL options: `?mode=realtime`, `?rt=webrtc|relay|auto` (default `auto`: WebRTC, falling back to the relay), `?turn=vad` (VAD instead of PTT; `vad_ms=` sets the window), `?mt=openrouter`, `?tts=elevenlabs`.
+URL options: `?tab=review|experiments`, `?mode=realtime`, `?rt_model=gpt-realtime|gpt-realtime-mini` (Realtime model for this session, from a server allowlist), `?rt=webrtc|relay|auto` (default `auto`: WebRTC, falling back to the relay), `?turn=vad` (VAD instead of PTT; `vad_ms=` sets the window), `?mt=openrouter`, `?tts=elevenlabs`.
 
 Other targets: `make test` (backend pytest + frontend Vitest/tsc, no keys or network needed), `make test-docker` (both suites inside Docker with `--network none`), `make logs`, `make down`, `make dev-backend` / `make dev-frontend` (Vite dev server with proxy on :5180), `make fixtures` (benchmark audio).
 
@@ -136,7 +143,7 @@ Open the **Experiments** tab (or `http://localhost:8740/?tab=experiments`). It r
 
 - `.env` (gitignored, mode 600) holds `OPENAI_API_KEY` and `OPENROUTER_API_KEY` (Haiku runs via OpenRouter). The direct Anthropic adapter is disabled and its key is no longer loaded. `.env.example` lists the variables without values. `scripts/setup_env.py` fills them from key files and prints only "set"/"missing".
 - The ElevenLabs key is mounted as a Compose **file secret**, never put in `.env`, and only used when `ELEVENLABS_ENABLED=1` (free tier: tests always mock it). Even then, `core/budget.py` refuses before the call past 1,500 chars/session or 8,000 chars/month (ledger in `data/elevenlabs_ledger.json`).
-- Model ids and active providers live in `config/app.yaml` (env overrides `REALTIME_MODEL`, `MT_MODEL`, `CASCADE_STT|MT|TTS`). Providers can also be swapped per session from the UI; see [`docs/provider-swaps.md`](docs/provider-swaps.md). Language pairs live in `config/languages.yaml`.
+- Model ids and active providers live in `config/app.yaml` (env overrides `REALTIME_MODEL`, `MT_MODEL`, `CASCADE_STT|MT|TTS`). Providers can also be swapped per session from the UI; see [`docs/provider-swaps.md`](docs/provider-swaps.md). Language pairs live in `config/languages.yaml`, but the UI pair is fixed to English ↔ Spanish today (`frontend/src/App.tsx`); adding a pair still needs small code edits ([KEY_METRICS §5](docs/KEY_METRICS.md#5-time-to-onboard-a-new-language-pair)).
 - Keys never reach the browser: Realtime uses short-lived client secrets; the cascade runs server-side.
 
 ## Architecture (short; full design in [`docs/DESIGN.md`](docs/DESIGN.md))
@@ -150,7 +157,12 @@ Browser (React + TS)                              hdx-lab (Docker, FastAPI)
    RealtimeRelay     ── WS /ws/realtime ───────┼──> relay to OpenAI Realtime WS (fallback, key server-side)
  playback worklet / remote track -> output tap │    POST /api/turns -> data/sessions/*.jsonl
  UI: transcripts, waterfall, p50/p90, export   │
+ Review tab ── /api/review/* ──────────────────┼──> review/ (SQLite data/review.sqlite3)
+ Experiments tab ── /api/experiments/* (SSE) ──┼──> experiments/runner.py: eval.harness + headless Chromium
+                                               │    drives this app; SQLite data/experiments.sqlite3
 ```
+
+Full, verified component map with diagrams: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 - **Realtime:** OpenAI events from either transport go through one normaliser (`frontend/src/session/normalizers/oaiEvents.ts`). PTT sends `commit` + `response.create` with per-turn direction instructions; VAD uses `server_vad`. Older conversation items are deleted after each response. The uplink is a cloned mic track that is disabled while the model speaks.
 - **Mode-agnostic UI:** the UI only consumes `SessionEvent`s from `InterpreterSession`; transports are swappable (`frontend/src/session/`).
@@ -168,6 +180,8 @@ The brief prefers .NET/C# but accepts Python. We chose Python/FastAPI because th
 - [`docs/KEY_METRICS.md`](docs/KEY_METRICS.md) the brief's five metrics: definition, how measured, target, results, status
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) components, data flow, latency measurement points, error handling, config, security posture (with diagrams)
 - [`docs/SCALING.md`](docs/SCALING.md) what breaks and what changes at 10 to 100,000 users, with cost formulas
-- `docs/PRD.md` requirements · `docs/DESIGN.md` approved design · `docs/api-research.md` provider research
+- [`docs/REQUIREMENTS_TRACE.md`](docs/REQUIREMENTS_TRACE.md) every requirement from the brief, the portal and the PRD, with status and evidence
+- [`docs/provider-swaps.md`](docs/provider-swaps.md) what each provider swap touched · [`docs/benchmarks/`](docs/benchmarks/) M1–M5 results, blind ratings, recording A/B, in-app slowdown check
+- `docs/PRD.md` requirements · `docs/DESIGN.md` approved design (amendments A1–A13) · `docs/api-research.md` provider research
 - `AGENTS.md` how the coding agent was directed
 - `sources/assignment.pdf` the authoritative brief
