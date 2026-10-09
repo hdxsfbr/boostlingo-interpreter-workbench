@@ -1,9 +1,15 @@
-# Language pairs are configuration, not code (FR-5 / FR-11).
+# Language pairs are configuration, not code (FR-5 / FR-11; DESIGN A14).
+# Onboarding a pair = add its languages and the pair here (no code change).
+# Validated at startup by backend/app/core/languages.py.
 languages:
-  en: {name: English}
-  es: {name: Spanish}
+  en:
+    name: English
+  es:
+    name: Spanish
+default_pair: en-es
 pairs:
   - id: en-es
-    a: en       # Speaker A speaks this
-    b: es       # Speaker B speaks this
+    a: en           # Speaker A speaks this
+    b: es           # Speaker B speaks this
+    benchmarked: true   # the only pair with a benchmark set (docs/benchmarks/utterances.yaml)
     glossary: {}
