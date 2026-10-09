@@ -73,6 +73,22 @@ Decided by Andre (CTO) on 2026-10-08 after the M2 smoke run. These are deliberat
   - Why: the ES fixture has a 350 ms in-sentence pause. A shorter release window cut the turn mid-sentence (the M1 ES cascade numbers and the first M2 ES realtime run were affected). The same fixed window for every variant keeps the comparison fair, and the subtracted number shows system latency independent of the policy.
   - Effect on §4: the H definition is unchanged; A2 only fixes how the harness, as the "user", releases.
 
+Decided or recorded during M4 (2026-10-08):
+
+- **A3: Haiku runs only via OpenRouter; the direct Anthropic route is dropped (Andre).**
+  - What: `cascade-haiku` = MT `openrouter` with model `anthropic/claude-haiku-5.5` (`provider.sort: latency`). The direct Anthropic adapter (`providers/mt/anthropic.py`) stays in code, tested with mocks, but disabled (`providers.anthropic.enabled: false`), and `setup_env.py` no longer loads the Anthropic key or workspace id.
+  - Why: the direct key returned HTTP 400 `invalid_request_error` ("Your credit balance is too low to access the Anthropic API…"), a billing state, not a code issue. Andre approved OpenRouter instead; its one validity check through the adapter returned 200.
+  - Use: benchmarks and the demo only, never tests or loops (tests mock it).
+- **A4: speculative MT in the cascade (on by default).**
+  - What: STT partials stream while the user speaks, so at each commit the segment's partial is usually complete. MT → chunker → TTS start on it immediately; the run is held (no audio, no translation events, no marks) until the STT final arrives, then adopted if the final matches case/punctuation-insensitively, else cancelled and redone on the final. STT `delay` stays `low` (`minimal` is ~0.2 s faster but raised WER 2–3×); the first TTS chunk is cut at a word boundary once 20 chars are buffered (`chunker.first_word_min`).
+  - Why: measured in M4 (`docs/benchmarks/m4-tuning.md`): the last-segment latency fell by ~0.5 s (tail p50 2.08 → 1.58 s with STT delay low). 0 mismatches in 242 adoptions across the tuning runs. Cost: extra MT/TTS calls when a later partial changes the text.
+  - A `pause.hint` message (speculate at 150 ms of silence, before the pause commit) was built and measured with no gain; it ships off (`?hint_ms=`).
+- **A5: harness release rule and file source details (refines A2 and §9).**
+  - What: the harness releases PTT 450 ms after the utterance's **last** voiced frame (it knows the fixture; the offset is precomputed with the capture VAD rule), not at the first 450 ms pause. The file source adds a -60 dBFS noise floor.
+  - Why: the TTS fixtures have 0.5–0.9 s pauses between sentences, which would end turns early under a first-pause rule; a person holding PTT releases when they are done. With pure digital silence between files the WebRTC sender went quiet and the Realtime server VAD never saw speech end.
+- **A6: cascade VAD mode implemented in the browser.**
+  - What: `VadSegmenter` (3-frame debounce, 300 ms pre-roll, end after `silence_duration_ms`, the same window value as Realtime `server_vad`); the user picks the speaker (direction) in the UI, because STT/MT need it.
+
 ## 1. Transport per mode
 
 **Weighing it.** In the v0.1 draft, the relay's two main arguments were one server clock and a mode-agnostic UI. The first no longer holds: the headline is measured in the browser in both modes (NFR-5, R§1.7), so server timestamps are diagnostics either way. The second can be had with a client-side adapter. Meanwhile the research gives concrete evidence for WebRTC:

@@ -22,6 +22,6 @@ The brief asks for provider flexibility. DESIGN §2 claims **a swap = one adapte
 
 | Provider | Live status | Why |
 |---|---|---|
-| Anthropic Haiku | **disabled** (`providers.anthropic.enabled: false`) | The one allowed validity check, sent *with* `anthropic-workspace-id`, returned **HTTP 400**. Enable with `ANTHROPIC_ENABLED=1` after a passing check. |
+| Anthropic Haiku (direct) | **disabled, key dropped** (`providers.anthropic.enabled: false`; `setup_env.py` no longer loads the key) | M3 check: HTTP 400. M4's one diagnostic call showed the cause: `invalid_request_error` "Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits." Andre then dropped the direct route (DESIGN A3); the adapter stays in code, mock-tested. |
 | ElevenLabs Flash | **disabled** (`ELEVENLABS_ENABLED=0`) | Free-tier credits are reserved for the final benchmark subset and the demo. Never called in tests or dev. |
-| OpenRouter | **no key loaded** | A key file exists on hdx-lab, but OpenRouter use wasn't authorised for this run, so `setup_env.py` doesn't load it. |
+| OpenRouter → Haiku (`anthropic/claude-haiku-5.5`) | **enabled: this is `cascade-haiku`** (`CASCADE_MT=openrouter` or the per-session selector) | Approved by Andre in M4; `setup_env.py` loads the key into the mode-600 `.env`. One check through the adapter (`eval/openrouter_check.py`): **HTTP 200**, served `anthropic/claude-haiku-5.5`. Benchmarks and demo only; tests mock it. |

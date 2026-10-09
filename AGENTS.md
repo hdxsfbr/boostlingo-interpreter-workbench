@@ -79,3 +79,26 @@ This repo is built by an agentic coding assistant (Grok Bot executor agents) dir
   - A new config test would have depended on the host environment again (the M1 lesson), so the OpenRouter key is now pinned to `None` in the test.
   - Commit order: the guard commit's test referenced pipeline wiring from the next commit, so one intermediate commit has a failing test (HEAD is green).
 
+
+### M4 (harness, latency tuning, VAD sweep, soak)
+- Direction: "Priority is cascade latency tuning toward the 2 s aim with OpenAI providers: lower STT delay, speculative/early MT on partial transcripts if sound, a shorter first TTS chunk, and anything else measured to help. Plus the VAD silence-window sweep and the stable 5-minute soak. Keep using gpt-realtime-mini for dev. Do NOT do the final gpt-realtime or ElevenLabs benchmark runs yet." Also: ONE more Anthropic call printing only the status and the error type/message.
+- Anthropic: the one extra call returned `400 invalid_request_error`: "Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits." Andre then dropped the direct key (DESIGN A3). `setup_env.py` no longer loads it, the adapter stays in code but disabled, and no further Anthropic calls were made.
+- OpenRouter (approved mid-M4): the key was loaded by `setup_env.py` into the mode-600 `.env` (never printed). Before the one check, the agent read the public model list (no key) and found that the configured id `anthropic/claude-haiku-5-5` is not OpenRouter's canonical id. A sed fix failed silently, so the check went out with `-5-5`. It returned **HTTP 200, served `anthropic/claude-haiku-5.5`**. The config now uses the canonical id. Then 6 dev turns through the real SPA, and nothing else.
+- Order of work:
+  1. Harness first, so every later change could be measured the same way: the `?source=file` file source, a 48-utterance fixture set (`make fixtures`), and the Playwright harness with JSONL rows, H−gap, a tail estimate, VAD and soak modes.
+  2. A full baseline.
+  3. A transcription-socket probe (timestamps only) showed that partials stream *before* commit. That is what made speculation sound.
+  4. Each tuning change was A/B'd in its own container (`interpreter-workbench:m4*` with env overrides) on the same 24-utterance subset.
+  5. Final full runs, VAD sweeps, and soaks in both modes.
+- Speculative MT was built test-first with a streaming fake STT (partial before commit): hit, miss, late-partial restart, speculative error not failing the turn, pause hint. Speculative output is held until adopted, so a miss is invisible.
+- Decided by data, not by intuition:
+  - TTS warm-up, the pause hint and STT `minimal` alone didn't help.
+  - Speculation (−0.5 s tail) and the 20-char first chunk (−0.1 s) did.
+  - `minimal` + speculation was ~0.2 s faster, but STT WER rose 2–3×, so the default stays `low`. This was found only because the agent spot-read soak transcripts and then computed WER for every run.
+- Results: `docs/benchmarks/m4-tuning.md`. Cascade tail p50 went 2080 → 1578 ms (short utterances 1962 → 1375 ms, including the 450 ms release). Realtime-mini PTT stayed at 976 ms. Both 5-minute soaks had 0 errors, 0 reconnects, flat RSS and no drift.
+- **Agent mistakes / findings caught and fixed:**
+  - The first harness release rule (release at the first 450 ms of silence) cut multi-sentence fixtures, whose TTS voices pause 0.5–0.9 s between sentences. It also counted trailing file silence in the release gap. Now it releases 450 ms after the utterance's last voiced frame (DESIGN A5).
+  - The first VAD sweep was invalid: pure digital silence from the file source stalled WebRTC, so server VAD never ended turns. The agent diagnosed it with a turn-state trace, added a noise floor, and re-ran.
+  - The sweep then exposed two real client/server bugs (turns stuck in "playing"; cascade VAD turns cancelling each other's translation). The first queueing fix introduced a third (two turns reading one STT socket → STT timeouts). It was caught in the next sweep and fixed with a regression test.
+  - A chained shell command ran the realtime soak from the wrong directory (module not found), and one commit went in with 3 lint errors (fixed in the next commit). Both were noticed from logs and re-run or fixed.
+  - The agent killed only processes and containers it had started, by PID or name.
