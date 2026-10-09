@@ -33,6 +33,7 @@ export class RealtimeRelayTransport implements Transport {
   private direction: { src: Lang; tgt: Lang } | null = null;
   private pruner = new HistoryPruner(2);
   private responseIds: string[] = [];
+  private cancelled = new Set<number>();
   private closing = false;
   model = "";
   readonly recorded: OaiEvent[] = [];
@@ -72,7 +73,7 @@ export class RealtimeRelayTransport implements Transport {
         if (e.data instanceof ArrayBuffer) {
           const { turnId: respIdx, pcm } = unpackAudio(e.data);
           const turn = this.normalizer.turnOf(this.responseIds[respIdx - 1]);
-          if (turn != null) o.onAudio(turn, pcm);
+          if (turn != null && !this.cancelled.has(turn)) o.onAudio(turn, pcm); // drop audio still in flight after a barge-in
           return;
         }
         const ev = JSON.parse(e.data as string) as OaiEvent;
@@ -138,6 +139,7 @@ export class RealtimeRelayTransport implements Transport {
   }
 
   cancel(turnId: number): void {
+    this.cancelled.add(turnId);
     this.normalizer.turnCancelled(turnId);
     this.oai({ type: "response.cancel" });
   }

@@ -69,6 +69,9 @@ describe("RealtimeRelayTransport", () => {
     ws.onmessage?.({ data: frame(1, [1, 2, 3]) });
     ws.onmessage?.({ data: frame(9, [1]) }); // unknown response: dropped
     expect(audio).toEqual([[7, 3]]);
+    t.cancel(7); // barge-in: late frames of the cancelled turn are dropped
+    ws.onmessage?.({ data: frame(1, [4, 5]) });
+    expect(audio).toEqual([[7, 3]]);
 
     await t.close();
     expect(ws.readyState).toBe(3);
