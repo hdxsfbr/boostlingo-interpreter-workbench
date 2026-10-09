@@ -4,7 +4,7 @@ import asyncio
 import pytest
 
 from app.cascade.session import CascadeSession, Timeouts, is_empty_text
-from app.core.errors import AuthError, ProviderTimeout, RateLimited
+from app.core.errors import AuthError, RateLimited
 from app.providers.fakes import FakeSTT, FakeTranslator, FakeTTS
 
 FRAME = b"\x10\x00" * 480

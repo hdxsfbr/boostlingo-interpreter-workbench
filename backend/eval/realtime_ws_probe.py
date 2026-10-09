@@ -1,8 +1,17 @@
 """Records a two-turn gpt-realtime-mini session over WS (dev fixture source). Key read from ~/.config/agentforge, never printed."""
-import asyncio, base64, json, pathlib, time, wave, sys
+import asyncio
+import base64
+import json
+import pathlib
+import sys
+import time
+import wave
+
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 import websockets
+
 from app.realtime.session_config import build_interpreter_session
+
 k = pathlib.Path.home().joinpath('.config/agentforge/openai_api_key').read_text().strip()
 def pcm_of(path):
     with wave.open(path) as w: return w.readframes(w.getnframes())

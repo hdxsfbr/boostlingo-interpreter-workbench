@@ -45,7 +45,7 @@ class CascadePipeline:
         self._opened: asyncio.Task | None = None
 
     @classmethod
-    def from_settings(cls, start: SessionStart, io: SessionIO, settings: Settings | None = None) -> "CascadePipeline":
+    def from_settings(cls, start: SessionStart, io: SessionIO, settings: Settings | None = None) -> CascadePipeline:
         settings = settings or get_settings()
         (prov, names, voices, timeouts) = build_providers(settings, start.providers)
         langs = settings.languages()

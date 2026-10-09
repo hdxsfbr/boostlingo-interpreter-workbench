@@ -9,7 +9,13 @@ from contextlib import asynccontextmanager
 
 import httpx
 
-from app.core.errors import ProviderDisconnected, ProviderError, ProviderTimeout, from_http_status, parse_retry_after
+from app.core.errors import (
+    ProviderDisconnected,
+    ProviderError,
+    ProviderTimeout,
+    from_http_status,
+    parse_retry_after,
+)
 
 _client: httpx.AsyncClient | None = None
 

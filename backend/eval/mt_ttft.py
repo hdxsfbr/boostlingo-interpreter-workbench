@@ -56,8 +56,8 @@ async def main(models: list[str], rounds: int) -> None:
                 res[m].append((ttft, total))
                 if len(samples[m]) < 3:
                     samples[m].append(f"{text} -> {out}")
-    q = lambda xs, p: statistics.quantiles(xs, n=10)[8] if p == 90 else statistics.median(xs)  # noqa: E731
-    print(f"| model | n | TTFT p50 ms | TTFT p90 ms | total p50 ms |\n|---|---|---|---|---|")
+    q = lambda xs, p: statistics.quantiles(xs, n=10)[8] if p == 90 else statistics.median(xs)
+    print("| model | n | TTFT p50 ms | TTFT p90 ms | total p50 ms |\n|---|---|---|---|---|")
     for m in models:
         tt = [r[0] for r in res[m]]
         tot = [r[1] for r in res[m]]

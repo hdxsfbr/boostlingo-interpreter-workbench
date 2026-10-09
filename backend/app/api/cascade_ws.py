@@ -20,9 +20,21 @@ from typing import Protocol
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, ValidationError
 
-from app.core.events import (Commit, ErrorEvent, LatencyMark, Ping, Pong, SessionReady, SessionStart,
-                             TurnCancel, TurnDone, TurnStart, TurnStarted, client_message_adapter,
-                             pack_audio)
+from app.core.events import (
+    Commit,
+    ErrorEvent,
+    LatencyMark,
+    Ping,
+    Pong,
+    SessionReady,
+    SessionStart,
+    TurnCancel,
+    TurnDone,
+    TurnStart,
+    TurnStarted,
+    client_message_adapter,
+    pack_audio,
+)
 
 log = logging.getLogger(__name__)
 router = APIRouter()

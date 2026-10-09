@@ -1,7 +1,14 @@
 import pytest
 
-from app.core.errors import (AuthError, BadRequest, ProviderTimeout, ProviderUnavailable, RateLimited,
-                             from_http_status, parse_retry_after)
+from app.core.errors import (
+    AuthError,
+    BadRequest,
+    ProviderTimeout,
+    ProviderUnavailable,
+    RateLimited,
+    from_http_status,
+    parse_retry_after,
+)
 from app.core.retry import backoff_delay, stream_with_retry
 
 

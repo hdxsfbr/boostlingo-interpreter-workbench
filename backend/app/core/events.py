@@ -10,7 +10,7 @@ PCM16 mono 24 kHz little-endian samples.
 from __future__ import annotations
 
 import struct
-from typing import Annotated, Any, Literal, Union
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 
@@ -90,8 +90,7 @@ class Pong(_Event):
 
 
 ServerEvent = Annotated[
-    Union[TurnStarted, TranscriptEvent, TranslationEvent, LatencyMark, TurnDone, TurnSkipped,
-          ErrorEvent, SessionReady, Pong],
+    TurnStarted | TranscriptEvent | TranslationEvent | LatencyMark | TurnDone | TurnSkipped | ErrorEvent | SessionReady | Pong,
     Field(discriminator="type"),
 ]
 server_event_adapter: TypeAdapter[ServerEvent] = TypeAdapter(ServerEvent)
@@ -134,7 +133,7 @@ class Ping(_Event):
 
 
 ClientMessage = Annotated[
-    Union[SessionStart, TurnStart, Commit, TurnCancel, Ping], Field(discriminator="type")
+    SessionStart | TurnStart | Commit | TurnCancel | Ping, Field(discriminator="type")
 ]
 client_message_adapter: TypeAdapter[ClientMessage] = TypeAdapter(ClientMessage)
 

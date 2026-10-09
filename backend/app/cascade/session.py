@@ -28,10 +28,10 @@ from typing import Any
 
 from app.cascade.chunker import SentenceChunker
 from app.core.errors import EmptyResult, ProviderError, ProviderTimeout
-from app.core.events import (ErrorEvent, LatencyMark, TranscriptEvent as TranscriptOut, TranslationEvent,
-                             TurnDone, TurnSkipped, TurnStarted)
+from app.core.events import ErrorEvent, LatencyMark, TranslationEvent, TurnDone, TurnSkipped, TurnStarted
+from app.core.events import TranscriptEvent as TranscriptOut
 from app.core.retry import stream_with_retry
-from app.providers.base import Commit, STTProvider, TTSProvider, Translator, TurnContext, Usage
+from app.providers.base import Commit, STTProvider, Translator, TTSProvider, TurnContext, Usage
 
 log = logging.getLogger(__name__)
 
@@ -62,7 +62,7 @@ class Timeouts:
     turn: float = 20.0
 
     @classmethod
-    def from_config(cls, cfg: dict) -> "Timeouts":
+    def from_config(cls, cfg: dict) -> Timeouts:
         return cls(**{k: float(v) for k, v in cfg.items() if k in cls.__dataclass_fields__})
 
 

@@ -5,8 +5,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from app.core.events import (client_message_adapter, pack_audio, server_event_adapter,
-                             unpack_audio)
+from app.core.events import client_message_adapter, pack_audio, server_event_adapter, unpack_audio
 
 FIX = Path(__file__).resolve().parents[3] / "contract" / "fixtures"
 

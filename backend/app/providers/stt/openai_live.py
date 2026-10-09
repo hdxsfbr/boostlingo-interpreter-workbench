@@ -22,8 +22,14 @@ import logging
 from collections.abc import AsyncIterator, Awaitable, Callable
 from typing import Any, Protocol
 
-from app.core.errors import (AuthError, BadRequest, ConfigError, ProviderDisconnected, ProviderError,
-                             RateLimited)
+from app.core.errors import (
+    AuthError,
+    BadRequest,
+    ConfigError,
+    ProviderDisconnected,
+    ProviderError,
+    RateLimited,
+)
 from app.providers.base import Commit, TranscriptEvent
 from app.providers.registry import register
 

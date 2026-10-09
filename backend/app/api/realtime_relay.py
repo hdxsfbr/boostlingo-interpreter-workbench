@@ -22,7 +22,8 @@ import base64
 import contextlib
 import json
 import logging
-from typing import Awaitable, Callable, Protocol
+from collections.abc import Awaitable, Callable
+from typing import Protocol
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, ValidationError
@@ -101,7 +102,7 @@ async def relay(ws: WebSocket) -> None:
     try:
         first = await asyncio.wait_for(ws.receive_text(), timeout=10)
         start = RelayStart.model_validate_json(first)
-    except (asyncio.TimeoutError, ValidationError, WebSocketDisconnect, KeyError):
+    except (TimeoutError, ValidationError, WebSocketDisconnect, KeyError):
         with contextlib.suppress(Exception):
             await ws.send_text(_err("bad_message", "expected relay.start"))
             await ws.close()
