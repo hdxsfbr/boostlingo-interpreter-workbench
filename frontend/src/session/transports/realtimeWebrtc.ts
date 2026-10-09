@@ -250,6 +250,11 @@ export class RealtimeTransport implements Transport {
     this.uplink = null;
   }
 
+  /** Gating probe: WebRTC uplink track live and enabled. */
+  get uplinkLive(): boolean {
+    return !!this.uplink && this.uplink.enabled && this.uplink.readyState === "live";
+  }
+
   /** Leak probe for the harness. */
   get liveResources(): { pc: boolean; dc: boolean; uplink: boolean } {
     return { pc: this.pc !== null, dc: this.dc !== null, uplink: this.uplink?.readyState === "live" };

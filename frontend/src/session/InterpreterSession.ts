@@ -22,7 +22,16 @@ export type HarnessHook = {
   /** Raw OpenAI events of the current realtime transport (fixture capture). */
   oaiEvents?: () => unknown[];
 };
-export type Diag = { transport: string | null; openTransports: number; created: number; engineNodes: number; micLive: boolean };
+export type Diag = {
+  transport: string | null;
+  openTransports: number;
+  created: number;
+  engineNodes: number;
+  micLive: boolean;
+  /** Mic gating probe: is output playing, and is the uplink currently live? */
+  playing: boolean;
+  uplinkLive: boolean | null;
+};
 
 export function harnessHook(): HarnessHook {
   const w = globalThis as unknown as { __wb?: HarnessHook };
@@ -53,6 +62,7 @@ type AnyTransport = Transport & {
   setUplinkEnabled?(on: boolean): void;
   liveResources?: Record<string, boolean>;
   recorded?: unknown[];
+  uplinkLive?: boolean;
 };
 
 export class InterpreterSession implements InterpreterSessionApi {
@@ -88,6 +98,8 @@ export class InterpreterSession implements InterpreterSessionApi {
       created: this.created.length,
       engineNodes: this.engine?.liveNodes ?? 0,
       micLive: this.engine?.micStream.getAudioTracks().some((t) => t.readyState === "live") ?? false,
+      playing: this.playingTurn !== null,
+      uplinkLive: this.transport?.uplinkLive ?? null,
     };
   }
 
