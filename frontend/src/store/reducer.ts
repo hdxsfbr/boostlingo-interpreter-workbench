@@ -22,6 +22,8 @@ export type TurnView = {
   status: TurnStatus;
   reason?: string;
   usage?: Record<string, unknown>;
+  /** A11: saved audio paths (relative to data/), when the session is recorded. */
+  recording?: Record<string, string>;
   serverDone: boolean;
   audioEnded: boolean;
 };
@@ -111,9 +113,11 @@ export function reduce(s: State, ev: SessionEvent): State {
       return patchTurn(s2, ev.turn_id, settle);
     }
     case "turn.done": {
-      const s2 = patchTurn(s, ev.turn_id, () => ({ serverDone: true, usage: ev.usage }));
+      const s2 = patchTurn(s, ev.turn_id, (t) => ({ serverDone: true, usage: ev.usage, ...(ev.recording ? { recording: { ...t.recording, ...ev.recording } } : {}) }));
       return patchTurn(s2, ev.turn_id, settle);
     }
+    case "turn.recording":
+      return patchTurn(s, ev.turn_id, (t) => ({ recording: { ...t.recording, ...ev.recording } }));
     case "turn.skipped":
       return patchTurn(s, ev.turn_id, () => ({ status: "skipped", reason: ev.reason }));
     case "error": {

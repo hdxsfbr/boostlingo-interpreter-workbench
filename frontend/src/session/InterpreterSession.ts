@@ -11,6 +11,8 @@ import { TurnController, VadSegmenter } from "./turnController";
 import { CascadeTransport } from "./transports/cascadeWs";
 import { RealtimeRelayTransport } from "./transports/realtimeRelay";
 import { RealtimeTransport, type TurnMode } from "./transports/realtimeWebrtc";
+import { SESSION_ID } from "./sessionId";
+import { BrowserTurnRecorder, httpUpload, pickMime } from "./turnRecorder";
 
 export const GATE_TAIL_MS = 300;
 
@@ -69,6 +71,9 @@ export type SessionConfig = {
   source?: "mic" | "file";
   /** VAD mode: which speaker label/direction new turns get in the UI. */
   vadSpeaker?: Speaker;
+  /** A11: record this session (only honoured when the server enables recording). */
+  record?: boolean;
+  sessionId?: string;
 };
 
 type AnyTransport = Transport & {
@@ -95,6 +100,9 @@ export class InterpreterSession implements InterpreterSessionApi {
   private playingTurn: number | null = null;
   private gateUntil = 0;
   private lastCommittedTurn: number | null = null;
+  private turnRec: BrowserTurnRecorder | null = null;
+  record: boolean;
+  readonly sessionId: string;
   mode: Mode;
   pipeline: Pipeline;
   turnMode: TurnMode;
@@ -105,6 +113,8 @@ export class InterpreterSession implements InterpreterSessionApi {
     this.pipeline = cfg.pipeline;
     this.turnMode = cfg.turnMode ?? "ptt";
     this.providers = { ...(cfg.providers ?? {}) };
+    this.record = cfg.record ?? false;
+    this.sessionId = cfg.sessionId ?? SESSION_ID;
     this.turns = new TurnController(cfg.pair, cfg.pauseCommitMs ?? 300, cfg.pauseHintMs ?? null, cfg.minSegmentMs ?? 0);
     this.vadSeg = new VadSegmenter(cfg.silenceDurationMs ?? 400);
     const hook = harnessHook();
@@ -144,7 +154,26 @@ export class InterpreterSession implements InterpreterSessionApi {
 
   private emit = (ev: SessionEvent): void => {
     for (const l of this.listeners) l(ev);
+    this.turnRec?.onEvent(ev); // after the listeners: the turn must exist before its paths
   };
+
+  /** A11: per-session opt-in; applies from the next (re)connect. */
+  setRecording(on: boolean): void {
+    this.record = on;
+  }
+
+  private startTurnRecorder(): void {
+    if (!this.engine || this.mode !== "realtime" || !this.record) return;
+    const fmt = pickMime();
+    if (!fmt) {
+      this.emit({ type: "error", code: "recording_unsupported", stage: "recording", retryable: false, message: "This browser cannot record webm/ogg opus; nothing is recorded." });
+      return;
+    }
+    const onError = (msg: string) => this.emit({ type: "error", code: "recording_upload_failed", stage: "recording", retryable: false, message: `Recording upload failed (${msg}).` });
+    const rec = new BrowserTurnRecorder({ source: this.engine.micStream, target: this.engine.outputStream() }, this.sessionId, httpUpload(this.sessionId, onError), fmt);
+    rec.onPaths = (turn, paths) => this.emit({ type: "turn.recording", turn_id: turn, recording: paths });
+    this.turnRec = rec;
+  }
 
   get started(): boolean {
     return this.engine !== null;
@@ -223,6 +252,8 @@ export class InterpreterSession implements InterpreterSessionApi {
       src: this.cfg.pair.a,
       tgt: this.cfg.pair.b,
       providers: this.providers,
+      sessionId: this.sessionId,
+      record: this.record,
       emit: this.emit,
       onAudio: (turnId, pcm) => this.engine?.play(turnId, pcm),
     });
@@ -243,6 +274,7 @@ export class InterpreterSession implements InterpreterSessionApi {
         await t.connect();
       }
       this.transport = t;
+      this.startTurnRecorder();
       this.emit({ type: "session.state", state: "ready", mode: this.mode });
     } catch (e) {
       await this.transport?.close();
@@ -312,6 +344,9 @@ export class InterpreterSession implements InterpreterSessionApi {
     this.engine?.detachRemote();
     const t = this.transport;
     this.transport = null;
+    const rec = this.turnRec;
+    this.turnRec = null;
+    await rec?.close();
     if (t) await t.close();
   }
 

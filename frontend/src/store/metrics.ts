@@ -30,6 +30,7 @@ export type TurnRecord = {
   turn_id: number; mode: Mode; speaker: string; src: string; tgt: string; status: string; reason?: string;
   latency_ms?: number; browser_marks: Record<string, number>; server_marks: Record<string, number>;
   source_text: string; target_text: string; usage?: Record<string, unknown>;
+  recording?: Record<string, string>;
 };
 
 export function toRecord(t: TurnView): TurnRecord {
@@ -38,6 +39,7 @@ export function toRecord(t: TurnView): TurnRecord {
     turn_id: t.id, mode: t.mode, speaker: t.speaker, src: t.src, tgt: t.tgt, status: t.status, reason: t.reason,
     latency_ms: t.latencyMs, browser_marks: t.browserMarks, server_marks: t.serverMarks,
     source_text: txt(t.source), target_text: txt(t.target), usage: t.usage,
+    ...(t.recording ? { recording: t.recording } : {}),
   };
 }
 

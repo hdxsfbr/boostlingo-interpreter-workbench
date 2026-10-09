@@ -12,6 +12,9 @@ export type CascadeOptions = {
   src: Lang;
   tgt: Lang;
   providers?: Record<string, string>;
+  /** A11: session id for the JSONL/recordings folder; record = ask the server to record. */
+  sessionId?: string;
+  record?: boolean;
   emit: (ev: SessionEvent) => void;
   onAudio: (turnId: number, pcm: Int16Array) => void;
   connectTimeoutMs?: number;
@@ -24,7 +27,7 @@ export function normalizeServerEvent(ev: ServerEvent): SessionEvent | null {
     case "latency.mark":
       return { ...ev, clock: "server" };
     case "turn.done":
-      return { type: "turn.done", turn_id: ev.turn_id, usage: { ...ev.usage, server_marks: ev.marks } };
+      return { type: "turn.done", turn_id: ev.turn_id, usage: { ...ev.usage, server_marks: ev.marks }, ...(ev.recording ? { recording: ev.recording } : {}) };
     case "turn.started": // the browser already emitted turn.started at PTT press
     case "pong":
       return null;
@@ -58,7 +61,7 @@ export class CascadeTransport implements Transport {
       }, opts.connectTimeoutMs ?? 5000);
       let ready = false;
       ws.onopen = () =>
-        this.send({ type: "session.start", pipeline: opts.pipeline, src: opts.src, tgt: opts.tgt, turn_mode: "ptt", providers: opts.providers ?? {} });
+        this.send({ type: "session.start", pipeline: opts.pipeline, src: opts.src, tgt: opts.tgt, turn_mode: "ptt", providers: opts.providers ?? {}, session_id: opts.sessionId, record: opts.record ?? false });
       ws.onmessage = (e) => {
         if (e.data instanceof ArrayBuffer) {
           const { turnId, pcm } = unpackAudio(e.data);

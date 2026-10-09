@@ -58,6 +58,7 @@ export class AudioEngine {
   private tap!: AudioWorkletNode;
   private nodes: AudioNode[] = [];
   private recDest: MediaStreamAudioDestinationNode | null = null;
+  private auditDest: MediaStreamAudioDestinationNode | null = null;
   private recorder: MediaRecorder | null = null;
   private recChunks: Blob[] = [];
   private remote: { src: MediaStreamAudioSourceNode; el: HTMLAudioElement } | null = null;
@@ -182,8 +183,20 @@ export class AudioEngine {
     return new Blob(this.recChunks, { type: "audio/webm" });
   }
 
+  /** A11 session recording: a stream of what the listener hears (after the tap),
+   * covering cascade playback, the relay and the remote WebRTC track alike. */
+  outputStream(): MediaStream {
+    if (!this.auditDest) {
+      this.auditDest = this.ctx.createMediaStreamDestination();
+      this.tap.connect(this.auditDest);
+    }
+    return this.auditDest.stream;
+  }
+
   async close(): Promise<void> {
     this.recorder?.stop();
+    this.auditDest?.disconnect();
+    this.auditDest = null;
     this.recDest?.disconnect();
     this.recDest = null;
     this.detachRemote();

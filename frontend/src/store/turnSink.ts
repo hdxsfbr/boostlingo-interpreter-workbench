@@ -2,8 +2,7 @@
 import { useEffect, useRef } from "react";
 import { toRecord } from "./metrics";
 import type { State } from "./reducer";
-
-const SESSION_ID = `${new Date().toISOString().replace(/[:.]/g, "-")}-${Math.random().toString(36).slice(2, 7)}`;
+import { SESSION_ID } from "../session/sessionId";
 
 export function useTurnSink(state: State): void {
   const sent = useRef(new Set<number>());

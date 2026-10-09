@@ -20,14 +20,14 @@ export type ServerEvent =
   | { type: "transcript.partial" | "transcript.final"; turn_id: number; seg: number; text: string }
   | { type: "translation.partial" | "translation.final"; turn_id: number; seg: number; text: string }
   | { type: "latency.mark"; turn_id: number; mark: string; ms: number }
-  | { type: "turn.done"; turn_id: number; marks: Record<string, number>; usage: Record<string, unknown> }
+  | { type: "turn.done"; turn_id: number; marks: Record<string, number>; usage: Record<string, unknown>; recording?: Record<string, string> | null }
   | { type: "turn.skipped"; turn_id: number; reason: string }
   | { type: "error"; code: string; stage: string; retryable: boolean; message: string; turn_id?: number | null }
   | { type: "pong"; t?: number | null };
 
 // ---------- wire: client -> server ----------
 export type ClientMessage =
-  | { type: "session.start"; pipeline: Pipeline; src: Lang; tgt: Lang; turn_mode: "ptt" | "vad"; providers: Record<string, string> }
+  | { type: "session.start"; pipeline: Pipeline; src: Lang; tgt: Lang; turn_mode: "ptt" | "vad"; providers: Record<string, string>; session_id?: string; record?: boolean }
   | { type: "turn.start"; turn_id: number; src: Lang; tgt: Lang }
   | { type: "commit"; turn_id: number; final: boolean }
   | { type: "pause.hint"; turn_id: number }
@@ -62,8 +62,10 @@ export type SessionEvent =
   | { type: "latency.mark"; turn_id: number; mark: string; ms: number; clock: MarkClock }
   | { type: "audio.started"; turn_id: number; t_first_audible: number }
   | { type: "audio.ended"; turn_id: number; at: number }
-  | { type: "turn.done"; turn_id: number; usage: Record<string, unknown> }
+  | { type: "turn.done"; turn_id: number; usage: Record<string, unknown>; recording?: Record<string, string> | null }
   | { type: "turn.skipped"; turn_id: number; reason: string }
+  /** A11: where this turn's audio is (or will be) saved, relative to data/. */
+  | { type: "turn.recording"; turn_id: number; recording: Record<string, string> }
   | { type: "error"; code: string; stage: string; retryable: boolean; message: string; turn_id?: number | null };
 
 export type SessionListener = (ev: SessionEvent) => void;
