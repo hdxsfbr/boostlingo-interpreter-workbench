@@ -53,7 +53,8 @@ export default function App() {
         silenceDurationMs: Number(params.get("vad_ms")) || undefined,
         pauseHintMs: Number(params.get("hint_ms")) || null, // off by default: no gain measured in M4
         minSegmentMs: Number(params.get("min_seg_ms")) || 0, // A/B only: the server merges fragments instead (M5)
-        vadSpeaker: params.get("vad_speaker") === "B" ? "B" : "A" });
+        vadSpeaker: params.get("vad_speaker") === "B" ? "B" : "A",
+        realtimeModel: params.get("rt_model") ?? undefined });
       s.on((ev) => dispatch({ kind: "ev", ev }));
       sessionRef.current = s;
     }

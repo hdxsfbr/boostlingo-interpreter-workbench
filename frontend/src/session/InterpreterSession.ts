@@ -74,6 +74,8 @@ export type SessionConfig = {
   /** A11: record this session (only honoured when the server enables recording). */
   record?: boolean;
   sessionId?: string;
+  /** WebRTC: Realtime model for this session (server allowlist; default = config). A13 experiments. */
+  realtimeModel?: string;
 };
 
 type AnyTransport = Transport & {
@@ -240,6 +242,7 @@ export class InterpreterSession implements InterpreterSessionApi {
       return new RealtimeTransport({
         ...common,
         micStream: this.engine!.micStream,
+        ...(this.cfg.realtimeModel ? { model: this.cfg.realtimeModel } : {}),
         onRemoteStream: (stream) => this.engine?.attachRemote(stream),
         onRemoteGone: () => this.engine?.detachRemote(),
         onPlaying: (turnId, playing) => this.onRemotePlaying(turnId, playing),
