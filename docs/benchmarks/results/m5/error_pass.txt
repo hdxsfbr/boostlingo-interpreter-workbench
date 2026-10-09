@@ -1,0 +1,5 @@
+# python -m eval.error_pass --url http://127.0.0.1:8760   (interpreter-workbench:m5, 2026-10-08)
+mic_denied: PASS: blocking banner + Retry; recovered to ready
+insecure_context: PASS: banner shown
+elevenlabs_disabled: PASS: 1 banner(s): config_error: ElevenLabs is disabled (ELEVENLABS_ENABLED=0; free-tier credits are reserved for benchmark/demo
+silent_turn: PASS: {"turns": [["skipped", "empty_transcript"]], "state": "ready", "errors": 0}
