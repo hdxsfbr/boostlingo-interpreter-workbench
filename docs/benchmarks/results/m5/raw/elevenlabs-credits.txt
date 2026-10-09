@@ -1,0 +1,4 @@
+before: {"status": 200, "tier": "free", "character_count": 0, "character_limit": 10000, "next_reset_unix": 1793102942}
+after:  {"status": 200, "tier": "free", "character_count": 403, "character_limit": 10000, "next_reset_unix": 1793102942}
+ledger data/elevenlabs_ledger.json: {"2026-10":883}
+ElevenLabs estimate: 1111 chars for 12 utterances (cap 1400, ledger used 0, month allowance left 8000, session cap 1500)
