@@ -57,3 +57,35 @@ main { display: grid; grid-template-columns: 1fr 340px; gap: 16px; }
 .record.on .consent { color: #8a2b06; }
 .rec-indicator { color: #c0182b; font-weight: 600; margin-left: auto; margin-right: 0.8rem; animation: recblink 1.4s ease-in-out infinite; }
 @keyframes recblink { 50% { opacity: 0.45; } }
+
+/* A12 Review tab (UX from Butler's rate.py) */
+.tabs { margin-left: 12px; }
+.review h2 { font-size: 16px; margin: 16px 0 8px; }
+.review-head { gap: 16px; }
+.rate { max-width: 780px; }
+.rate-head { display: flex; justify-content: space-between; margin-top: 8px; font-size: 14px; }
+.rate-done { color: #667; }
+.bar { height: 6px; background: #e4e7ec; border-radius: 3px; margin: 8px 0 14px; }
+.bar div { height: 6px; background: #22c55e; border-radius: 3px; transition: width .2s; }
+.card { background: white; border-radius: 12px; padding: 18px 20px; box-shadow: 0 1px 2px #0001; }
+.card .lbl { font-size: 11px; color: #778; text-transform: uppercase; margin-top: 12px; letter-spacing: .03em; }
+.card .txt { font-size: 16px; margin-top: 3px; }
+.card .variant { color: #2456d6; font-weight: 600; }
+.card audio { width: 100%; margin-top: 14px; }
+.score-row { display: flex; align-items: center; gap: 10px; margin: 10px 0; padding: 2px 6px; border-radius: 8px; }
+.score-row.focus { background: #eef3ff; }
+.score-row b { width: 110px; cursor: pointer; }
+.score-row small { color: #778; }
+.opts button { width: 40px; height: 36px; margin-right: 4px; font-size: 16px; }
+.opts button.on { background: #2456d6; color: white; border-color: #2456d6; }
+.card textarea { width: 100%; height: 54px; margin-top: 6px; font: inherit; }
+.card .nav { display: flex; justify-content: space-between; margin-top: 14px; }
+.save-ok { color: #16a34a; font-size: 13px; margin-top: 8px; }
+.save-error { background: #fdecec; border: 1px solid #f2b8b8; color: #9b1c1c; padding: 8px 12px; border-radius: 8px; font-size: 13px; margin-top: 8px; }
+.results-table { width: 100%; border-collapse: collapse; background: white; font-size: 13px; font-variant-numeric: tabular-nums; box-shadow: 0 1px 2px #0001; border-radius: 8px; }
+.results-table th, .results-table td { padding: 6px 8px; border-bottom: 1px solid #eef0f4; text-align: left; }
+.results-table th { font-weight: 600; color: #556; font-size: 12px; }
+.results-table td.composite { font-weight: 700; }
+.results h3 { font-size: 14px; margin: 16px 0 6px; }
+.results .row a { font-size: 13px; }
+.locked p { margin-top: 0; }

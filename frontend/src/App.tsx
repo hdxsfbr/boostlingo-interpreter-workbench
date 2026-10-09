@@ -8,6 +8,7 @@ import { Controls, type RecordingConfig, type Swaps } from "./ui/Controls";
 import { ErrorBanner } from "./ui/ErrorBanner";
 import { MetricsSummary } from "./ui/MetricsSummary";
 import { TranscriptPane } from "./ui/TranscriptPane";
+import { ReviewTab } from "./review/ReviewTab";
 
 const PAIR = { a: "en", b: "es" };
 
@@ -41,6 +42,7 @@ export default function App() {
       .catch(() => setRecCfg(null));
   }, []);
   const recording = recordWanted && !!recCfg?.enabled;
+  const [tab, setTab] = useState<"interpreter" | "review">(params.get("tab") === "review" ? "review" : "interpreter");
   const sessionRef = useRef<InterpreterSession | null>(null);
   const [active, setActive] = useState<Speaker | null>(null);
 
@@ -101,6 +103,7 @@ export default function App() {
   // Keyboard PTT: hold F = Speaker A, hold J = Speaker B.
   useEffect(() => {
     const keyToSpeaker = (k: string): Speaker | null => (k === "f" ? "A" : k === "j" ? "B" : null);
+    if (tab !== "interpreter") return; // the Review tab owns the keyboard
     const kd = (e: KeyboardEvent) => {
       const sp = keyToSpeaker(e.key.toLowerCase());
       if (sp && !e.repeat && state.sessionState === "ready") down(sp);
@@ -121,6 +124,13 @@ export default function App() {
     <div className="app">
       <header>
         <h1>AI Interpreter Workbench</h1>
+        <nav className="toggle tabs" role="tablist" aria-label="Workbench">
+          {(["interpreter", "review"] as const).map((t) => (
+            <button key={t} role="tab" aria-selected={tab === t} className={tab === t ? "on" : ""} onClick={() => setTab(t)} data-testid={`tab-${t}`}>
+              {t === "interpreter" ? "Interpreter" : "Review"}
+            </button>
+          ))}
+        </nav>
         {running && recording && (
           <span className="rec-indicator" data-testid="rec-indicator" title="Both sides of every turn are being saved on this server">
             ● Recording
@@ -128,6 +138,10 @@ export default function App() {
         )}
         <span className={`state state-${state.sessionState}`}>{state.sessionState}</span>
       </header>
+      {tab === "review" ? (
+        <ReviewTab />
+      ) : (
+        <>
       <ErrorBanner errors={state.errors} onDismiss={(id) => dispatch({ kind: "dismiss", id })} onRetry={start} sessionState={state.sessionState} />
       <Controls
         mode={state.mode}
@@ -156,6 +170,8 @@ export default function App() {
         <TranscriptPane state={state} />
         <MetricsSummary state={state} />
       </main>
+        </>
+      )}
     </div>
   );
 }
