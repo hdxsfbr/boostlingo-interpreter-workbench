@@ -16,6 +16,7 @@ _MODULES = {
     ("mt", "openai"): "app.providers.mt.openai",
     ("mt", "anthropic"): "app.providers.mt.anthropic",
     ("tts", "openai"): "app.providers.tts.openai",
+    ("tts", "elevenlabs"): "app.providers.tts.elevenlabs",
     ("stt", "fake"): "app.providers.fakes",
     ("mt", "fake"): "app.providers.fakes",
     ("tts", "fake"): "app.providers.fakes",
