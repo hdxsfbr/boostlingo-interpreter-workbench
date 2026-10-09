@@ -154,6 +154,7 @@ class Turn:
     task: asyncio.Task | None = None
     fail: ProviderError | None = None
     watchdogs: list[asyncio.Task] = field(default_factory=list)
+    after: asyncio.Task | None = None  # previous turn still translating: play after it (VAD back-to-back turns)
     source_text: list[str] = field(default_factory=list)
     target_text: dict[int, str] = field(default_factory=dict)
     audio_bytes: int = 0
@@ -197,9 +198,17 @@ class CascadeSession:
 
     # ---------------- inputs from the gateway ----------------
     async def turn_start(self, turn_id: int, src: str, tgt: str) -> None:
-        if self.turn is not None and self.turn.task and not self.turn.task.done():
-            await self._cancel_turn(self.turn, reason="superseded")
-        t = Turn(id=turn_id, src=src, tgt=tgt)
+        prev = self.turn
+        after = None
+        if prev is not None and prev.task and not prev.task.done():
+            if prev.final_commit.is_set():
+                # The previous turn is complete on the input side and still being
+                # translated (e.g. VAD ended it and the speaker went on). Keep it and
+                # queue this turn's audio behind it; barge-in sends an explicit cancel.
+                after = prev.task
+            else:
+                await self._cancel_turn(prev, reason="superseded")
+        t = Turn(id=turn_id, src=src, tgt=tgt, after=after)
         self.turn = t
         self._turns[turn_id] = t
         await self.send_event(TurnStarted(turn_id=turn_id, src=src, tgt=tgt))
@@ -439,6 +448,8 @@ class CascadeSession:
 
     async def _sender(self, t: Turn, segq_list: asyncio.Queue) -> None:
         await t.final_commit.wait()  # playback policy: after_speech_end (D8)
+        if t.after is not None:  # keep turns' audio in order (never interleave two turns)
+            await asyncio.wait({t.after})
         while (segq := await segq_list.get()) is not None:
             while (pcm := await segq.get()) is not None:
                 if t.audio_bytes == 0:

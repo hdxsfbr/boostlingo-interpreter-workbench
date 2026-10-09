@@ -213,7 +213,8 @@ async def test_new_turn_supersedes_unfinished_turn_and_close_releases_stt():
     stt = FakeSTT()
     s, sink = make(stt=stt, mt=FakeTranslator(ttft=0.5))
     await s.open()
-    await speak(s, turn_id=1)
+    await s.turn_start(1, "en", "es")  # still capturing (no final commit): superseded
+    s.audio(FRAME)
     await speak(s, turn_id=2)
     assert sink.of("turn.skipped")[0] == {"type": "turn.skipped", "turn_id": 1, "reason": "superseded"}
     await s.close()
@@ -355,3 +356,27 @@ async def test_pause_hint_speculates_before_any_commit():
     await finish(s)
     assert len(mt.calls) == 1
     assert "spec_hit" in sink.of("turn.done")[0]["marks"]
+
+
+async def test_back_to_back_turn_queues_behind_a_committed_turn_instead_of_cancelling_it():
+    # VAD mode: turn 1 ended (final commit) and is translating when turn 2 starts
+    mt = FakeTranslator({"Good morning, doctor.": "Buenos días, doctor."})
+    mt.ttft = 0.15
+    s, sink = make(mt=mt)
+    await speak(s, turn_id=1)
+    await speak(s, turn_id=2)
+    await finish(s, 1)
+    await finish(s, 2)
+    assert not [e for e in sink.of("turn.skipped") if e["reason"] == "superseded"]
+    assert {e["turn_id"] for e in sink.of("turn.done")} == {1, 2}
+    ids = [tid for tid, _ in sink.audio]
+    assert ids == sorted(ids)  # all of turn 1's audio before any of turn 2's
+
+
+async def test_uncommitted_turn_is_still_superseded():
+    s, sink = make()
+    await s.turn_start(1, "en", "es")
+    s.audio(FRAME)
+    await s.turn_start(2, "en", "es")
+    await asyncio.sleep(0.05)
+    assert sink.of("turn.skipped")[0]["reason"] == "superseded"
