@@ -1,7 +1,10 @@
 """ONE Anthropic validity check (secret-safe): a single streamed translation
 with the production request shape (incl. anthropic-workspace-id). Prints only
 the HTTP status code (plus error type/message on failure); on 200 saves the SSE events (no headers, no secrets) as
-a contract fixture. Never run in loops or CI."""
+a contract fixture. Never run in loops or CI.
+
+RETIRED (M4): Andre dropped the direct Anthropic key; Haiku runs only via
+OpenRouter (eval/openrouter_check.py). Kept for the record; do not run."""
 import json
 import sys
 import time
