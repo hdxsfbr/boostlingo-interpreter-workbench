@@ -11,6 +11,9 @@ type Props = {
   mode: Mode;
   turnMode: TurnMode;
   onTurnMode(m: TurnMode): void;
+  /** Cascade VAD: STT/MT direction must be known, so the user picks who speaks. */
+  vadSpeaker?: "A" | "B";
+  onVadSpeaker?(s: "A" | "B"): void;
   pipeline: Pipeline;
   pair: { a: string; b: string };
   running: boolean;
@@ -102,11 +105,22 @@ export function Controls(p: Props) {
           <button className="primary" onClick={p.onStart} data-testid="start">Start session</button>
         )}
       </div>
-      {p.mode === "realtime" && p.turnMode === "vad" ? (
+      {p.turnMode === "vad" ? (
         <div className="row ptts">
           <p className="vad-hint" data-testid="vad-listening">
-            {p.ready ? "Listening: speak in either language; the model detects the end of your turn (server VAD) and translates." : "Start the session to listen."}
+            {!p.ready
+              ? "Start the session to listen."
+              : p.mode === "realtime"
+                ? "Listening: speak in either language; the model detects the end of your turn (server VAD) and translates."
+                : "Listening: the browser VAD ends your turn after a short silence. Pick who is speaking:"}
           </p>
+          {p.mode === "cascade" && p.onVadSpeaker
+            ? (["A", "B"] as const).map((sp) => (
+                <button key={sp} className={p.vadSpeaker === sp ? "on" : ""} onClick={() => p.onVadSpeaker?.(sp)} data-testid={`vad-speaker-${sp}`}>
+                  {sp === "A" ? `${NAMES[p.pair.a]} → ${NAMES[p.pair.b]}` : `${NAMES[p.pair.b]} → ${NAMES[p.pair.a]}`}
+                </button>
+              ))
+            : null}
         </div>
       ) : (
         <div className="row ptts">

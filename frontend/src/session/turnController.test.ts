@@ -48,3 +48,25 @@ describe("TurnController", () => {
     expect(tc.pttDown("B", 2).id).toBe(2);
   });
 });
+
+describe("VadSegmenter (cascade VAD)", () => {
+  const f = () => new Int16Array(480);
+  it("debounces, replays pre-roll and ends after the silence window", async () => {
+    const { VadSegmenter } = await import("./turnController");
+    const v = new VadSegmenter(400, 5, 3);
+    let t = 0;
+    for (let i = 0; i < 10; i++) expect(v.frame(f(), false, (t += 20)).start).toBeNull();
+    expect(v.frame(f(), true, (t += 20)).start).toBeNull(); // click: one voiced frame
+    expect(v.frame(f(), false, (t += 20)).start).toBeNull();
+    v.frame(f(), true, (t += 20));
+    v.frame(f(), true, (t += 20));
+    const a = v.frame(f(), true, (t += 20));
+    expect(a.start?.length).toBe(5); // pre-roll capped, includes the debounce frames
+    expect(v.active).toBe(true);
+    const lastVoiced = t;
+    let ended = -1;
+    for (let i = 0; i < 30 && ended < 0; i++) if (v.frame(f(), false, (t += 20)).end) ended = t;
+    expect(ended - lastVoiced).toBe(400);
+    expect(v.active).toBe(false);
+  });
+});

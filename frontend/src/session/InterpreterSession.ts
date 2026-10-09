@@ -5,8 +5,9 @@
  * UI history; the store inserts the switch marker (FR-4).
  */
 import { AudioEngine, MicError, requestMic } from "../audio/engine";
+import { FileSource } from "../audio/fileSource";
 import type { InterpreterSessionApi, Lang, Mode, Pipeline, SessionEvent, SessionListener, Speaker, Transport } from "./protocol";
-import { TurnController } from "./turnController";
+import { TurnController, VadSegmenter } from "./turnController";
 import { CascadeTransport } from "./transports/cascadeWs";
 import { RealtimeRelayTransport } from "./transports/realtimeRelay";
 import { RealtimeTransport, type TurnMode } from "./transports/realtimeWebrtc";
@@ -21,6 +22,10 @@ export type HarnessHook = {
   diag?: () => Diag;
   /** Raw OpenAI events of the current realtime transport (fixture capture). */
   oaiEvents?: () => unknown[];
+  /** `?source=file`: play a fixture as the microphone; resolves when it ends. */
+  playFile?: (url: string) => Promise<{ durationMs: number }>;
+  /** VAD mode: label/direction for the next detected turns (harness). */
+  setVadSpeaker?: (s: Speaker) => void;
 };
 export type Diag = {
   transport: string | null;
@@ -52,6 +57,8 @@ export type SessionConfig = {
   silenceDurationMs?: number;
   /** Cascade provider overrides per session (FR-9), e.g. {mt: "anthropic", tts: "elevenlabs"}. */
   providers?: Record<string, string>;
+  /** "file" = benchmark harness input (DESIGN §9); default "mic". */
+  source?: "mic" | "file";
   /** VAD mode: which speaker label/direction new turns get in the UI. */
   vadSpeaker?: Speaker;
 };
@@ -72,8 +79,10 @@ export class InterpreterSession implements InterpreterSessionApi {
   private engine: AudioEngine | null = null;
   private transport: AnyTransport | null = null;
   private created: AnyTransport[] = [];
+  private fileSource: FileSource | null = null;
   private gateTimer: ReturnType<typeof setTimeout> | undefined;
   private turns: TurnController;
+  private vadSeg: VadSegmenter;
   private speechEnd = new Map<number, number>();
   private playingTurn: number | null = null;
   private gateUntil = 0;
@@ -89,7 +98,9 @@ export class InterpreterSession implements InterpreterSessionApi {
     this.turnMode = cfg.turnMode ?? "ptt";
     this.providers = { ...(cfg.providers ?? {}) };
     this.turns = new TurnController(cfg.pair, cfg.pauseCommitMs ?? 300);
+    this.vadSeg = new VadSegmenter(cfg.silenceDurationMs ?? 400);
     const hook = harnessHook();
+    hook.setVadSpeaker = (sp) => this.setVadSpeaker(sp);
     hook.diag = () => this.diag();
     hook.oaiEvents = () => this.transport?.recorded ?? [];
   }
@@ -128,7 +139,14 @@ export class InterpreterSession implements InterpreterSessionApi {
     this.emit({ type: "session.state", state: "connecting", mode: this.mode });
     let mic: MediaStream;
     try {
-      mic = await requestMic();
+      if (this.cfg.source === "file") {
+        this.fileSource = new FileSource();
+        const fs = this.fileSource;
+        harnessHook().playFile = (url: string) => fs.play(url);
+        mic = fs.stream;
+      } else {
+        mic = await requestMic();
+      }
     } catch (e) {
       await ctx.close();
       const err = e instanceof MicError ? e : new MicError("mic_failed", String(e));
@@ -222,9 +240,15 @@ export class InterpreterSession implements InterpreterSessionApi {
     return t;
   }
 
+  setVadSpeaker(sp: Speaker): void {
+    this.cfg = { ...this.cfg, vadSpeaker: sp };
+  }
+
   async setTurnMode(m: TurnMode): Promise<void> {
     if (m === this.turnMode) return;
     this.turnMode = m;
+    this.vadSeg.reset();
+    this.turns.active = null;
     if (this.engine) {
       await this.teardownTransport();
       await this.connectTransport();
@@ -292,6 +316,11 @@ export class InterpreterSession implements InterpreterSessionApi {
 
   pttUp(_speaker: Speaker): void {
     if (this.turnMode === "vad") return;
+    this.endTurn();
+  }
+
+  /** PTT release, or the cascade VAD silence window elapsing: final commit. */
+  private endTurn(): void {
     const end = this.turns.pttUp(performance.now());
     if (!end) return;
     const id = end.turn.id;
@@ -349,10 +378,39 @@ export class InterpreterSession implements InterpreterSessionApi {
       this.transport?.sendAudio?.(gated ? new Int16Array(pcm.length) : pcm);
       return;
     }
+    if (this.turnMode === "vad" && this.mode === "cascade") {
+      this.cascadeVadFrame(pcm, voiced && !gated, tPerf);
+      return;
+    }
     const act = this.turns.frame(voiced && !gated, tPerf);
     if (!act.send || !this.transport) return;
     this.transport.sendAudio?.(gated ? new Int16Array(pcm.length) : pcm);
     if (act.pauseCommit && this.turns.active) this.transport.commit(this.turns.active.id, false);
+  }
+
+  /** Cascade VAD mode: local segmentation with the Realtime-matched silence window. */
+  private cascadeVadFrame(pcm: Int16Array, voiced: boolean, tPerf: number): void {
+    if (!this.transport || this.transport.isOpen === false) return;
+    const act = this.vadSeg.frame(pcm, voiced, tPerf);
+    if (act.start) {
+      if (this.turns.active) return;
+      const speaker = this.cfg.vadSpeaker ?? "A";
+      const now = performance.now();
+      const turn = this.turns.pttDown(speaker, now);
+      this.transport.turnStart(turn.id, turn.src, turn.tgt);
+      this.emit({ type: "turn.started", turn_id: turn.id, src: turn.src, tgt: turn.tgt, speaker, mode: this.mode, at: now });
+      for (const f of act.start) this.transport.sendAudio?.(f); // pre-roll incl. this frame
+      this.turns.frame(true, tPerf);
+      return;
+    }
+    if (!this.turns.active) return;
+    const fa = this.turns.frame(voiced, tPerf);
+    this.transport.sendAudio?.(pcm);
+    if (act.end) {
+      this.endTurn();
+      return;
+    }
+    if (fa.pauseCommit) this.transport.commit(this.turns.active.id, false);
   }
 
   private onAudible(turnId: number, tPerf: number): void {
@@ -368,6 +426,8 @@ export class InterpreterSession implements InterpreterSessionApi {
     await Promise.all(this.created.map((t) => t.close()));
     await this.engine?.close();
     this.engine = null;
+    await this.fileSource?.close();
+    this.fileSource = null;
     this.turns.active = null;
     this.emit({ type: "session.state", state: "closed", mode: this.mode });
   }

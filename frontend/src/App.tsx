@@ -36,7 +36,10 @@ export default function App() {
 
   const session = useCallback(() => {
     if (!sessionRef.current) {
-      const s = new InterpreterSession({ pair: PAIR, mode: initialMode, pipeline, turnMode, realtime: realtimeKind, providers: initialProviders });
+      const s = new InterpreterSession({ pair: PAIR, mode: initialMode, pipeline, turnMode, realtime: realtimeKind, providers: initialProviders,
+        source: params.get("source") === "file" ? "file" : "mic",
+        silenceDurationMs: Number(params.get("vad_ms")) || undefined,
+        vadSpeaker: params.get("vad_speaker") === "B" ? "B" : "A" });
       s.on((ev) => dispatch({ kind: "ev", ev }));
       sessionRef.current = s;
     }
@@ -55,6 +58,11 @@ export default function App() {
   const setProvider = (kind: "mt" | "tts", name: string) => {
     setChosen((c) => ({ ...c, [kind]: name }));
     void session().setProviders({ [kind]: name });
+  };
+  const [vadSpeaker, setVadSpeakerState] = useState<Speaker>(params.get("vad_speaker") === "B" ? "B" : "A");
+  const setVadSpeaker = (sp: Speaker) => {
+    setVadSpeakerState(sp);
+    session().setVadSpeaker(sp);
   };
   const setTurnMode = (m: TurnMode) => {
     setTurnModeState(m);
@@ -108,6 +116,8 @@ export default function App() {
         chosen={chosen}
         onProvider={setProvider}
         onTurnMode={setTurnMode}
+        vadSpeaker={vadSpeaker}
+        onVadSpeaker={setVadSpeaker}
         pipeline={pipeline}
         pair={PAIR}
         running={running}

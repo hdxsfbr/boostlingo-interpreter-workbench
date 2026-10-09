@@ -63,3 +63,60 @@ export class TurnController {
     return { turn: t, tSpeechEnd: t.lastVoiced ?? now, hadSpeech: t.voicedFrames > 0 };
   }
 }
+
+export type VadAction = { start: Int16Array[] | null; end: boolean };
+
+/**
+ * Cascade VAD mode (FR-2): the browser segments turns with the same frame
+ * energy VAD that defines t_speech_end. A turn starts after `minRun`
+ * consecutive voiced frames (debounce against clicks) and replays a short
+ * pre-roll so the first syllable reaches STT; it ends after `silenceMs` of
+ * silence since the last voiced frame, i.e. the same window the Realtime
+ * server_vad uses (`silence_duration_ms`), so the two modes are comparable.
+ */
+export class VadSegmenter {
+  private ring: Int16Array[] = [];
+  private run = 0;
+  private inSpeech = false;
+  private lastVoiced = 0;
+
+  constructor(
+    public silenceMs = 400,
+    private readonly prerollFrames = 15, // 300 ms of 20 ms frames
+    private readonly minRun = 3,
+  ) {}
+
+  get active(): boolean {
+    return this.inSpeech;
+  }
+
+  frame(pcm: Int16Array, voiced: boolean, tPerf: number): VadAction {
+    if (!this.inSpeech) {
+      this.ring.push(pcm);
+      if (this.ring.length > this.prerollFrames) this.ring.shift();
+      this.run = voiced ? this.run + 1 : 0;
+      if (this.run < this.minRun) return { start: null, end: false };
+      this.inSpeech = true;
+      this.lastVoiced = tPerf;
+      const pre = this.ring;
+      this.ring = [];
+      this.run = 0;
+      return { start: pre, end: false };
+    }
+    if (voiced) {
+      this.lastVoiced = tPerf;
+      return { start: null, end: false };
+    }
+    if (tPerf - this.lastVoiced >= this.silenceMs) {
+      this.inSpeech = false;
+      return { start: null, end: true };
+    }
+    return { start: null, end: false };
+  }
+
+  reset(): void {
+    this.ring = [];
+    this.run = 0;
+    this.inSpeech = false;
+  }
+}
