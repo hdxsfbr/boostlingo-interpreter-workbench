@@ -169,7 +169,7 @@ This repo is built by an agentic coding assistant (Grok Bot executor agents) dir
   - Default Realtime model is `gpt-realtime`. Experiments keep the `realtime-mini` default for cost, and the harness without `--rt-model` now uses `gpt-realtime`.
   - REQUIREMENTS_TRACE: 92 Met / 2 Partial / 0 Not met / 10 N/A. The two Partial rows are the cascade < 2 s p90 target.
 - **Railway deploy behind a password (DESIGN A15, Andre via Butler):**
-  - App-wide gate: Basic, then a signed session cookie. It covers every route and both WebSockets; `/healthz` is minimal. 34 new tests.
+  - App-wide gate: Basic, then a signed session cookie. It covers every route and both WebSockets; `/healthz` is minimal. 33 new tests (232 backend in total).
   - Probe finding: WebKit/Safari does not send cached Basic on WS upgrades and Chromium does, so the gate uses a cookie (`scripts/auth_probe/`).
   - Railway project `boostlingo-interpreter-workbench`, service `workbench`, https://workbench-production-c1ea.up.railway.app, 5 GB volume on `/data`. Persistence was verified by a redeploy.
   - Secrets set with `railway variable set --stdin`, never in argv or output. The password is in `~/.config/agentforge/boostlingo_app_password` (600).
