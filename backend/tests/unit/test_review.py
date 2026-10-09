@@ -67,7 +67,10 @@ def test_results_match_blind_results_output(client):
                 assert g[d][k] == pytest.approx(float(e[f"{d}_{k}"])), (e["profile"], e["scope"], d, k)
         assert g["composite_mean"] == pytest.approx(float(e["composite_mean"]))
     # and against blind_results.py's own load()+stats() (sacrebleu is only needed for chrF)
-    sys.modules.setdefault("sacrebleu", types.ModuleType("sacrebleu"))
+    try:  # sacrebleu is only needed for chrF; stub it where it isn't installed
+        import sacrebleu  # noqa: F401
+    except ImportError:
+        sys.modules["sacrebleu"] = types.ModuleType("sacrebleu")
     from eval import blind_results as br
     src = br.load()
     for v in VARIANTS:
