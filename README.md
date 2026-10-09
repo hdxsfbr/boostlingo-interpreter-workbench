@@ -133,6 +133,7 @@ The brief prefers .NET/C# but accepts Python. We chose Python/FastAPI because th
 - [`docs/comparison.md`](docs/comparison.md) Realtime vs Cascade write-up (latency, quality, cost, controllability, recommendation)
 - [`docs/comparison-details.md`](docs/comparison-details.md) technical companion: method, full metrics, engineering findings, cost breakdown
 - [`docs/KEY_METRICS.md`](docs/KEY_METRICS.md) the brief's five metrics: definition, how measured, target, results, status
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) components, data flow, latency measurement points, error handling, config, security posture (with diagrams)
 - `docs/PRD.md` requirements · `docs/DESIGN.md` approved design · `docs/api-research.md` provider research
 - `AGENTS.md` how the coding agent was directed
 - `sources/assignment.pdf` the authoritative brief
