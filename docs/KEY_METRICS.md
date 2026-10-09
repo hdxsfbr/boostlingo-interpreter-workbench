@@ -237,6 +237,11 @@ Details are in [comparison-details.md](comparison-details.md#cost-breakdown).
    - OpenAI notes its voices are "optimized for English".
    - We found no published language list for `gpt-realtime`.
 
+**How it would be measured now.** The two newer tabs cover the evaluation step, but only for English and Spanish today:
+- **Experiments tab (A13):** once a pair's sentences and audio exist, one run gives its latency, source WER, chrF and cost per minute next to the M5 baseline. Today the runner's directions are fixed to `both`, `en` or `es`, and the sentence list (`utterances.yaml`) has only English and Spanish (`backend/app/experiments/config.py`, `runner.py`).
+- **Review tab (A12):** a native speaker can rate recorded sessions of the new pair (record a session, then **Create review set**). Nothing in the Review tab is tied to a language pair.
+- **Onboarding time** itself would be the wall-clock time from the first config edit to a passing Experiments run plus a Review set; nobody has timed it.
+
 **Measured.** **Not demonstrated.** The optional third pair (PRD FR-11) was not built, so we have no measured onboarding time. We give no hour estimate, because nothing here would ground one.
 - **What can be said:** the code changes are a handful of small edits in about ten files.
 - **The longer job is evaluation:** writing reference translations, plus native-speaker review.

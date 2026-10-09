@@ -186,7 +186,7 @@ By direction (composite, 6 clips each): EN→ES realtime 4.89, cascade-openai 4.
 - **ElevenLabs round-trip WER (0.022).** 2 of the 3 sentences with differences are number formatting ("500" vs "quinientos", "850mg" vs "eight hundred fifty milligrams"). The third is one misheard verb.
 - **Defaults after the final runs** (DESIGN A10): `gpt-5.4-nano` stays the cascade translator, for speed. Haiku via OpenRouter is the quality option, and fragment merging stays on.
 - **Recording** (added by the CTO while this was being written; `config/app.yaml` → `recording`): off by default (`enabled: false`). A session records only if the server allows it and the session asks for it. Audio for each turn (speech in, translation out) is saved on our server, each saved file adds an audit line to the session log, and files older than `retention_days` (default 30) are deleted at startup and on a regular sweep. The benchmark runs above did not use it.
-- **Tests.** All automated tests pass, re-run on 8 Oct 2026: 141 backend and 33 frontend before the recording feature, and 149 backend and 33 frontend with it.
+- **Tests.** All automated tests pass. Re-run on 8 Oct 2026: 141 backend and 33 frontend before the recording feature, and 149 backend and 33 frontend with it. Re-run on 9 Oct 2026 after the Review and Experiments tabs (commit fd48fa1): **184 backend (pytest) and 49 frontend (Vitest)**.
 - **Model retirement dates.** All are listed as deprecated by OpenAI, and every model ID is a configuration value:
 
 | Model | Retires |
