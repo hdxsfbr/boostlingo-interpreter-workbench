@@ -24,6 +24,7 @@ export type HarnessHook = {
   oaiEvents?: () => unknown[];
   /** `?source=file`: play a fixture as the microphone; resolves when it ends. */
   playFile?: (url: string) => Promise<{ durationMs: number }>;
+  fileStartedAt?: () => number | null;
   /** VAD mode: label/direction for the next detected turns (harness). */
   setVadSpeaker?: (s: Speaker) => void;
 };
@@ -143,6 +144,7 @@ export class InterpreterSession implements InterpreterSessionApi {
         this.fileSource = new FileSource();
         const fs = this.fileSource;
         harnessHook().playFile = (url: string) => fs.play(url);
+        harnessHook().fileStartedAt = () => fs.startedAt;
         mic = fs.stream;
       } else {
         mic = await requestMic();

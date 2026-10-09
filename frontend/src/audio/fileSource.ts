@@ -10,6 +10,8 @@ export class FileSource {
   private dest: MediaStreamAudioDestinationNode;
   private current: AudioBufferSourceNode | null = null;
   private cache = new Map<string, AudioBuffer>();
+  /** performance.now() when the current file started playing (harness timing). */
+  startedAt: number | null = null;
 
   constructor() {
     this.ctx = new AudioContext({ latencyHint: "interactive" });
@@ -42,6 +44,7 @@ export class FileSource {
     this.current = src;
     const ended = new Promise<void>((resolve) => (src.onended = () => resolve()));
     src.start();
+    this.startedAt = performance.now();
     await ended;
     if (this.current === src) this.current = null;
     return { durationMs: buf.duration * 1000 };
