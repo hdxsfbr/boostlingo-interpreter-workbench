@@ -52,7 +52,7 @@ ELEVENLABS_ENABLED=1 ELEVENLABS_KEY_PATH=~/.config/agentforge/elevenlabs_api_key
 
 The key is mounted as a file secret, never put in `.env`. The guard refuses past 1,500 chars per session and 8,000 per month, based on the ledger in `data/elevenlabs_ledger.json`. Plain `make up` turns it off again.
 
-**Final-quality Realtime model for the demo:** `REALTIME_MODEL=gpt-realtime make up`. The default is `gpt-realtime-mini`.
+**Realtime model:** the default is `gpt-realtime` (the brief's model). For cheaper development use `?rt_model=gpt-realtime-mini` per session or `REALTIME_MODEL=gpt-realtime-mini make up`. The Experiments tab defaults to the `realtime-mini` setup for cost, and you can tick `realtime` (full).
 
 ### Demo steps (about 5 minutes)
 

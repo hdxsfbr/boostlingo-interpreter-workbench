@@ -27,7 +27,7 @@ class MintRequest(BaseModel):
     b: str | None = None
     turn_mode: Literal["ptt", "vad"] = "ptt"
     silence_duration_ms: int = 400
-    model: str | None = None  # defaults to config (gpt-realtime-mini in dev)
+    model: str | None = None  # defaults to config (gpt-realtime; mini via ?rt_model=)
 
 
 def _client() -> httpx.AsyncClient:

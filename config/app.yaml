@@ -1,7 +1,7 @@
 # Active providers and model ids. Model ids live ONLY here (and env overrides),
 # never in code. Env overrides: CASCADE_STT, CASCADE_MT, CASCADE_TTS, REALTIME_MODEL, MT_MODEL.
 realtime:
-  model: gpt-realtime-mini        # dev default; final runs use gpt-realtime (D5)
+  model: gpt-realtime        # brief default (A14); gpt-realtime-mini via ?rt_model=gpt-realtime-mini, Experiments default to mini for cost
   transcription_model: gpt-4o-transcribe
   voice: marin
   secret_ttl_s: 600
