@@ -4,7 +4,7 @@ import type { TurnMode } from "./session/transports/realtimeWebrtc";
 import type { Mode, Pipeline, SessionEvent, Speaker } from "./session/protocol";
 import { dismissError, initialState, reduce, type State } from "./store/reducer";
 import { useTurnSink } from "./store/turnSink";
-import { Controls } from "./ui/Controls";
+import { Controls, type Swaps } from "./ui/Controls";
 import { ErrorBanner } from "./ui/ErrorBanner";
 import { MetricsSummary } from "./ui/MetricsSummary";
 import { TranscriptPane } from "./ui/TranscriptPane";
@@ -21,12 +21,22 @@ export default function App() {
   const realtimeKind = (params.get("rt") as RealtimeKind | null) ?? "auto";
   const [turnMode, setTurnModeState] = useState<TurnMode>(params.get("turn") === "vad" ? "vad" : "ptt");
   const [state, dispatch] = useReducer(appReducer, initialState(initialMode));
+  const initialProviders: Record<string, string> = {};
+  for (const k of ["mt", "tts"]) if (params.get(k)) initialProviders[k] = params.get(k)!;
+  const [chosen, setChosen] = useState<Record<string, string>>(initialProviders);
+  const [swaps, setSwaps] = useState<Swaps | null>(null);
+  useEffect(() => {
+    fetch("/healthz")
+      .then((r) => r.json())
+      .then((h) => setSwaps(h.swaps ?? null))
+      .catch(() => setSwaps(null));
+  }, []);
   const sessionRef = useRef<InterpreterSession | null>(null);
   const [active, setActive] = useState<Speaker | null>(null);
 
   const session = useCallback(() => {
     if (!sessionRef.current) {
-      const s = new InterpreterSession({ pair: PAIR, mode: initialMode, pipeline, turnMode, realtime: realtimeKind });
+      const s = new InterpreterSession({ pair: PAIR, mode: initialMode, pipeline, turnMode, realtime: realtimeKind, providers: initialProviders });
       s.on((ev) => dispatch({ kind: "ev", ev }));
       sessionRef.current = s;
     }
@@ -42,6 +52,10 @@ export default function App() {
   const start = () => void session().start();
   const stop = () => void session().stop();
   const setMode = (m: Mode) => void session().setMode(m);
+  const setProvider = (kind: "mt" | "tts", name: string) => {
+    setChosen((c) => ({ ...c, [kind]: name }));
+    void session().setProviders({ [kind]: name });
+  };
   const setTurnMode = (m: TurnMode) => {
     setTurnModeState(m);
     void session().setTurnMode(m);
@@ -90,6 +104,9 @@ export default function App() {
       <Controls
         mode={state.mode}
         turnMode={turnMode}
+        swaps={swaps}
+        chosen={chosen}
+        onProvider={setProvider}
         onTurnMode={setTurnMode}
         pipeline={pipeline}
         pair={PAIR}

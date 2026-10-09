@@ -1,7 +1,13 @@
 import type { Mode, Pipeline, Speaker } from "../session/protocol";
 import type { TurnMode } from "../session/transports/realtimeWebrtc";
 
+export type SwapOption = { name: string; ready: boolean; reason: string; model: string };
+export type Swaps = { mt: SwapOption[]; tts: SwapOption[] };
+
 type Props = {
+  swaps: Swaps | null;
+  chosen: Record<string, string>;
+  onProvider(kind: "mt" | "tts", name: string): void;
   mode: Mode;
   turnMode: TurnMode;
   onTurnMode(m: TurnMode): void;
@@ -66,6 +72,22 @@ export function Controls(p: Props) {
               <option value="loopback">Loopback (latency floor)</option>
             </select>
           </label>
+        )}
+        {p.mode === "cascade" && p.pipeline === "cascade" && p.swaps && (
+          <>
+            {(["mt", "tts"] as const).map((kind) => (
+              <label key={kind} title="Provider swap by config (FR-9)">
+                {kind === "mt" ? "Translator" : "Voice"}{" "}
+                <select value={p.chosen[kind] ?? p.swaps![kind][0]?.name} onChange={(e) => p.onProvider(kind, e.target.value)} data-testid={`swap-${kind}`}>
+                  {p.swaps![kind].map((o) => (
+                    <option key={o.name} value={o.name} disabled={!o.ready} title={o.reason}>
+                      {o.name} ({o.model}){o.ready ? "" : ` (unavailable: ${o.reason})`}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ))}
+          </>
         )}
         <span className="pair">
           Pair: {NAMES[p.pair.a]} ↔ {NAMES[p.pair.b]}

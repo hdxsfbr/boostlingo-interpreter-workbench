@@ -50,6 +50,8 @@ export type SessionConfig = {
   /** Realtime transport: WebRTC (default), WS relay, or WebRTC with relay fallback. */
   realtime?: RealtimeKind;
   silenceDurationMs?: number;
+  /** Cascade provider overrides per session (FR-9), e.g. {mt: "anthropic", tts: "elevenlabs"}. */
+  providers?: Record<string, string>;
   /** VAD mode: which speaker label/direction new turns get in the UI. */
   vadSpeaker?: Speaker;
 };
@@ -79,11 +81,13 @@ export class InterpreterSession implements InterpreterSessionApi {
   mode: Mode;
   pipeline: Pipeline;
   turnMode: TurnMode;
+  providers: Record<string, string>;
 
   constructor(private cfg: SessionConfig) {
     this.mode = cfg.mode;
     this.pipeline = cfg.pipeline;
     this.turnMode = cfg.turnMode ?? "ptt";
+    this.providers = { ...(cfg.providers ?? {}) };
     this.turns = new TurnController(cfg.pair, cfg.pauseCommitMs ?? 300);
     const hook = harnessHook();
     hook.diag = () => this.diag();
@@ -180,6 +184,7 @@ export class InterpreterSession implements InterpreterSessionApi {
       pipeline: this.pipeline,
       src: this.cfg.pair.a,
       tgt: this.cfg.pair.b,
+      providers: this.providers,
       emit: this.emit,
       onAudio: (turnId, pcm) => this.engine?.play(turnId, pcm),
     });
@@ -205,7 +210,8 @@ export class InterpreterSession implements InterpreterSessionApi {
       await this.transport?.close();
       for (const t of this.created) if (t !== this.transport) void t.close();
       this.transport = null;
-      this.emit({ type: "error", code: "connect_failed", stage: "transport", retryable: true, message: (e as Error).message });
+      if (!(e as Error & { reported?: boolean }).reported)
+        this.emit({ type: "error", code: "connect_failed", stage: "transport", retryable: true, message: (e as Error).message });
       this.emit({ type: "session.state", state: "error", mode: this.mode, detail: "connect_failed" });
     }
   }
@@ -232,6 +238,15 @@ export class InterpreterSession implements InterpreterSessionApi {
     this.mode = mode;
     this.emit({ type: "mode.switched", from, to: mode, at: performance.now() });
     if (this.engine) await this.connectTransport();
+  }
+
+  /** Swap cascade providers by config (FR-9): reconnects the cascade transport only. */
+  async setProviders(p: Record<string, string>): Promise<void> {
+    this.providers = { ...this.providers, ...p };
+    if (this.engine && this.mode === "cascade") {
+      await this.teardownTransport();
+      await this.connectTransport();
+    }
   }
 
   async setPipeline(p: Pipeline): Promise<void> {
