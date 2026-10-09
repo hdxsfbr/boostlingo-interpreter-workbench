@@ -380,3 +380,26 @@ async def test_uncommitted_turn_is_still_superseded():
     await s.turn_start(2, "en", "es")
     await asyncio.sleep(0.05)
     assert sink.of("turn.skipped")[0]["reason"] == "superseded"
+
+
+async def test_queued_turn_waits_for_the_previous_turns_stt_on_the_shared_socket():
+    class OneAtATimeSTT(FakeSTT):
+        active = 0
+        overlap = False
+
+        async def stream(self, audio, langs):
+            OneAtATimeSTT.active += 1
+            OneAtATimeSTT.overlap |= OneAtATimeSTT.active > 1
+            try:
+                async for ev in super().stream(audio, langs):
+                    yield ev
+            finally:
+                OneAtATimeSTT.active -= 1
+
+    s, sink = make(stt=OneAtATimeSTT(final_delay=0.1))
+    await speak(s, turn_id=1)
+    await speak(s, turn_id=2)
+    await finish(s, 1)
+    await finish(s, 2)
+    assert not OneAtATimeSTT.overlap
+    assert {e["turn_id"] for e in sink.of("turn.done")} == {1, 2}

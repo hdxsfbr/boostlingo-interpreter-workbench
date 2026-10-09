@@ -155,6 +155,8 @@ class Turn:
     fail: ProviderError | None = None
     watchdogs: list[asyncio.Task] = field(default_factory=list)
     after: asyncio.Task | None = None  # previous turn still translating: play after it (VAD back-to-back turns)
+    stt_after: asyncio.Event | None = None  # ... and start STT only once its STT is finished (one socket)
+    stt_done: asyncio.Event = field(default_factory=asyncio.Event)
     source_text: list[str] = field(default_factory=list)
     target_text: dict[int, str] = field(default_factory=dict)
     audio_bytes: int = 0
@@ -200,15 +202,17 @@ class CascadeSession:
     async def turn_start(self, turn_id: int, src: str, tgt: str) -> None:
         prev = self.turn
         after = None
+        stt_after = None
         if prev is not None and prev.task and not prev.task.done():
             if prev.final_commit.is_set():
+                stt_after = prev.stt_done
                 # The previous turn is complete on the input side and still being
                 # translated (e.g. VAD ended it and the speaker went on). Keep it and
                 # queue this turn's audio behind it; barge-in sends an explicit cancel.
                 after = prev.task
             else:
                 await self._cancel_turn(prev, reason="superseded")
-        t = Turn(id=turn_id, src=src, tgt=tgt, after=after)
+        t = Turn(id=turn_id, src=src, tgt=tgt, after=after, stt_after=stt_after)
         self.turn = t
         self._turns[turn_id] = t
         await self.send_event(TurnStarted(turn_id=turn_id, src=src, tgt=tgt))
@@ -311,6 +315,11 @@ class CascadeSession:
             async with asyncio.TaskGroup() as tg:
                 t.tg = tg
                 tg.create_task(self._sender(t, segq_list))
+                if t.stt_after is not None:  # the STT socket serves one turn at a time; audio waits in t.queue
+                    try:
+                        await asyncio.wait_for(t.stt_after.wait(), self.timeouts.stt_final + 1)
+                    except TimeoutError:
+                        log.warning("turn %s: previous turn's STT did not finish; starting anyway", t.id)
                 async for ev in self.stt.stream(self._audio_iter(t), self.langs):
                     if not ev.final:
                         await self.send_event(TranscriptOut(type="transcript.partial", turn_id=t.id, seg=ev.seg,
@@ -345,6 +354,7 @@ class CascadeSession:
                     await segq_list.put(q)
                     tg.create_task(self._segment(t, ev.seg, ev.text.strip(), q))
                 self._mark(t, "stt_final")  # ensure present even if every final came early
+                t.stt_done.set()
                 await segq_list.put(None)
         except asyncio.CancelledError:
             if t.fail is None:
@@ -359,6 +369,7 @@ class CascadeSession:
             await self._fail(t, perr)
             return
         finally:
+            t.stt_done.set()
             t.tg = None
             for w in t.watchdogs:
                 w.cancel()
