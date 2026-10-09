@@ -26,22 +26,21 @@ async def main() -> None:
                               max_tokens=60, sort=cfg.get("sort"))
     body = tr.body("Good morning, doctor.", "en", "es", TurnContext(history=[], glossary={}))
     served, err = None, None
-    async with httpx.AsyncClient(timeout=30) as c:
-        async with c.stream("POST", tr.url, json=body,
-                            headers={"Authorization": f"Bearer {tr.api_key}", "X-Title": "AI Interpreter Workbench"}) as r:
-            status = r.status_code
-            if status == 200:
-                async for line in r.aiter_lines():
-                    if line.startswith("data: ") and line[6:].strip() != "[DONE]":
-                        ev = json.loads(line[6:])
-                        served = served or ev.get("model")
-                        if ev.get("error"):
-                            err = ev["error"].get("message")
-            else:
-                try:
-                    err = json.loads(await r.aread()).get("error", {}).get("message")
-                except ValueError:
-                    err = None
+    headers = {"Authorization": f"Bearer {tr.api_key}", "X-Title": "AI Interpreter Workbench"}
+    async with httpx.AsyncClient(timeout=30) as c, c.stream("POST", tr.url, json=body, headers=headers) as r:
+        status = r.status_code
+        if status == 200:
+            async for line in r.aiter_lines():
+                if line.startswith("data: ") and line[6:].strip() != "[DONE]":
+                    ev = json.loads(line[6:])
+                    served = served or ev.get("model")
+                    if ev.get("error"):
+                        err = ev["error"].get("message")
+        else:
+            try:
+                err = json.loads(await r.aread()).get("error", {}).get("message")
+            except ValueError:
+                err = None
     print(f"status={status} model_requested={cfg['model']} model_served={served}" + (f" error={err}" if err else ""))
 
 
