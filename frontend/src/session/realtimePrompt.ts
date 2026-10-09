@@ -8,7 +8,12 @@
  */
 import type { Lang } from "./protocol";
 
-const NAMES: Record<string, string> = { en: "English", es: "Spanish" };
+/** Language names from config/languages.yaml, set by the app once /api/languages loads (A14). */
+const NAMES: Record<string, string> = {};
+export function setLanguageNames(names: Record<string, string>): void {
+  for (const k of Object.keys(NAMES)) delete NAMES[k];
+  Object.assign(NAMES, names);
+}
 
 export function turnInstructions(src: Lang, tgt: Lang): string {
   const S = NAMES[src] ?? src;

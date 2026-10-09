@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import type { SessionEvent } from "../protocol";
 import { CALLS_URL, MintError, RealtimeTransport, mintSecret } from "./realtimeWebrtc";
+import { setLanguageNames } from "../realtimePrompt";
+
+setLanguageNames({ en: "English", es: "Spanish" }); // normally loaded from /api/languages (A14)
 
 class FakeTrack {
   enabled = true;

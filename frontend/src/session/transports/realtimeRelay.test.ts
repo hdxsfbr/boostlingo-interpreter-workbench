@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { SessionEvent } from "../protocol";
 import { RealtimeRelayTransport } from "./realtimeRelay";
+import { setLanguageNames } from "../realtimePrompt";
+
+setLanguageNames({ en: "English", es: "Spanish" }); // normally loaded from /api/languages (A14)
 
 class FakeWS {
   static OPEN = 1;
