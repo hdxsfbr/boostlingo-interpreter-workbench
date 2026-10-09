@@ -29,9 +29,14 @@ type Props = {
   onPipeline(p: Pipeline): void;
   onDown(s: Speaker): void;
   onUp(s: Speaker): void;
+  pairs?: PairInfo[];
+  canStart?: boolean;
+  onPair?(id: string): void;
 };
 
-const NAMES: Record<string, string> = { en: "EN", es: "ES" };
+import type { PairInfo } from "../languages";
+
+const NAMES = new Proxy({} as Record<string, string>, { get: (_t, k: string) => k.toUpperCase() });
 
 export function Controls(p: Props) {
   const ptt = (sp: Speaker, label: string, key: string) => (
@@ -95,9 +100,22 @@ export function Controls(p: Props) {
             ))}
           </>
         )}
-        <span className="pair">
-          Pair: {NAMES[p.pair.a]} ↔ {NAMES[p.pair.b]}
-        </span>
+        <label className="pair">
+          Pair:{" "}
+          <select
+            value={p.pairs?.find((x) => x.a === p.pair.a && x.b === p.pair.b)?.id ?? ""}
+            disabled={p.running || !p.pairs?.length}
+            onChange={(e) => p.onPair?.(e.target.value)}
+            title={p.running ? "Stop the session to change the pair" : "Language pairs come from config/languages.yaml"}
+            data-testid="pair-select"
+          >
+            {(p.pairs ?? []).map((x) => (
+              <option key={x.id} value={x.id}>
+                {x.label}{x.benchmarked ? "" : " (not benchmarked)"}
+              </option>
+            ))}
+          </select>
+        </label>
         {Object.keys(p.providers).length > 0 && (
           <span className="providers">{Object.entries(p.providers).map(([k, v]) => `${k}: ${v}`).join(" · ")}</span>
         )}
@@ -105,7 +123,7 @@ export function Controls(p: Props) {
         {p.running ? (
           <button onClick={p.onStop} data-testid="stop">Stop</button>
         ) : (
-          <button className="primary" onClick={p.onStart} data-testid="start">Start session</button>
+          <button className="primary" onClick={p.onStart} disabled={p.canStart === false} data-testid="start">Start session</button>
         )}
       </div>
       {p.recording && <RecordToggle {...p.recording} running={p.running} />}

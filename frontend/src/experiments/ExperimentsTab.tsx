@@ -93,10 +93,10 @@ function NewExperiment({ meta, busy, onStarted }: { meta: SetupsResponse; busy: 
       <div className="row">
         <label>
           Directions{" "}
-          <select value={cfg.directions} onChange={(e) => set({ directions: e.target.value as ExperimentConfig["directions"] })} data-testid="exp-directions">
-            <option value="both">Both (EN→ES and ES→EN)</option>
-            <option value="en">EN→ES only</option>
-            <option value="es">ES→EN only</option>
+          <select value={cfg.directions} onChange={(e) => set({ directions: e.target.value })} data-testid="exp-directions">
+            {meta.directions.map((d) => (
+              <option key={d.value} value={d.value}>{d.label}</option>
+            ))}
           </select>
         </label>
         <label>

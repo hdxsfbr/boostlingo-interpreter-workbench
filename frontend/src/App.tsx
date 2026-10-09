@@ -10,8 +10,9 @@ import { MetricsSummary } from "./ui/MetricsSummary";
 import { TranscriptPane } from "./ui/TranscriptPane";
 import { ReviewTab } from "./review/ReviewTab";
 import { ExperimentsTab } from "./experiments/ExperimentsTab";
+import { fetchLanguages, pickPair, type LanguagesConfig } from "./languages";
+import { setLanguageNames } from "./session/realtimePrompt";
 
-const PAIR = { a: "en", b: "es" };
 
 type Action = { kind: "ev"; ev: SessionEvent } | { kind: "dismiss"; id: number };
 const appReducer = (s: State, a: Action): State => (a.kind === "ev" ? reduce(s, a.ev) : dismissError(s, a.id));
@@ -45,12 +46,37 @@ export default function App() {
   const recording = recordWanted && !!recCfg?.enabled;
   type Tab = "interpreter" | "review" | "experiments";
   const [tab, setTab] = useState<Tab>((["review", "experiments"].includes(params.get("tab") ?? "") ? params.get("tab") : "interpreter") as Tab);
+  // A14: pairs come from config/languages.yaml; ?pair= picks one (id or "a-b"), else the default pair.
+  const [langs, setLangs] = useState<LanguagesConfig | null>(null);
+  const [pairId, setPairId] = useState<string | null>(null);
+  const [langErr, setLangErr] = useState<string | null>(null);
+  useEffect(() => {
+    fetchLanguages().then(
+      (c) => {
+        setLanguageNames(Object.fromEntries(Object.entries(c.languages).map(([k, v]) => [k, v.name])));
+        setLangs(c);
+        setPairId(pickPair(c, params.get("pair")).id);
+      },
+      (e) => setLangErr((e as Error).message),
+    );
+  }, []);
+  const pairInfo = langs && pairId ? langs.pairs.find((p) => p.id === pairId) ?? null : null;
+  const pair = pairInfo ? { a: pairInfo.a, b: pairInfo.b } : null;
+  const pairRef = useRef<{ a: string; b: string } | null>(null);
+  pairRef.current = pair;
+  const sessionPair = useRef<string | null>(null);
   const sessionRef = useRef<InterpreterSession | null>(null);
   const [active, setActive] = useState<Speaker | null>(null);
 
   const session = useCallback(() => {
+    const want = pairRef.current ?? { a: "", b: "" };
+    if (sessionRef.current && sessionPair.current !== `${want.a}-${want.b}`) {
+      void sessionRef.current.stop(); // the pair changed while idle: next session uses the new pair
+      sessionRef.current = null;
+    }
     if (!sessionRef.current) {
-      const s = new InterpreterSession({ pair: PAIR, mode: initialMode, pipeline, turnMode, realtime: realtimeKind, providers: initialProviders,
+      sessionPair.current = `${want.a}-${want.b}`;
+      const s = new InterpreterSession({ pair: want, mode: initialMode, pipeline, turnMode, realtime: realtimeKind, providers: initialProviders,
         source: params.get("source") === "file" ? "file" : "mic",
         silenceDurationMs: Number(params.get("vad_ms")) || undefined,
         pauseHintMs: Number(params.get("hint_ms")) || null, // off by default: no gain measured in M4
@@ -147,6 +173,7 @@ export default function App() {
         <ExperimentsTab />
       ) : (
         <>
+      {langErr ? <div className="error blocking" role="alert">Could not load language pairs ({langErr}); reload the page.</div> : null}
       <ErrorBanner errors={state.errors} onDismiss={(id) => dispatch({ kind: "dismiss", id })} onRetry={start} sessionState={state.sessionState} />
       <Controls
         mode={state.mode}
@@ -159,7 +186,10 @@ export default function App() {
         vadSpeaker={vadSpeaker}
         onVadSpeaker={setVadSpeaker}
         pipeline={pipeline}
-        pair={PAIR}
+        pair={pair ?? { a: "", b: "" }}
+        pairs={langs?.pairs}
+        canStart={!!pair}
+        onPair={(id) => setPairId(id)}
         running={running}
         ready={state.sessionState === "ready"}
         active={active}

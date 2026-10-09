@@ -1,8 +1,8 @@
 /** Typed client + pure helpers for /api/experiments (DESIGN A13). */
 export type SetupInfo = { name: string; label: string; mode: string; models: Record<string, string>; warning: string; unavailable: string; needs_confirmation_checkbox: boolean };
-export type Utterance = { id: string; lang: "en" | "es"; size: string; text: string };
-export type SetupsResponse = { setups: SetupInfo[]; default_setups: string[]; confirm_above_usd: number; utterances: Utterance[] };
-export type ExperimentConfig = { name: string; setups: string[]; utterances: "full" | "short" | "custom"; ids: string[]; directions: "both" | "en" | "es"; passes: number; allow_elevenlabs: boolean };
+export type Utterance = { id: string; lang: string; size: string; text: string };
+export type SetupsResponse = { setups: SetupInfo[]; default_setups: string[]; confirm_above_usd: number; utterances: Utterance[]; directions: { value: string; label: string }[] };
+export type ExperimentConfig = { name: string; setups: string[]; utterances: "full" | "short" | "custom"; ids: string[]; directions: string; passes: number; allow_elevenlabs: boolean };
 export type EstimateRow = { setup: string; utterances: number; source_min: number; usd_per_min: number | null; usd: number; duration_s: number; elevenlabs_chars?: number };
 export type Estimate = { turns: number; per_setup: EstimateRow[]; usd: number; duration_s: number; pricing_as_of?: string; basis: string; confirm_above_usd: number; needs_confirmation: boolean; utterance_ids: string[] };
 export type Stats = { n: number; p50: number | null; p90: number | null; p95?: number | null };
