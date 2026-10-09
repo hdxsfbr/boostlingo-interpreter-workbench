@@ -66,3 +66,16 @@ This repo is built by an agentic coding assistant (Grok Bot executor agents) dir
 - **Per-turn direction instructions stay ON for Realtime PTT** (DESIGN amendment A1). Evidence: 2 of 5 ES→EN turns were answered instead of translated without them; 20/20 correct afterwards.
 - **Benchmarks use a fixed 450 ms PTT release for every variant**, and every number is also reported with the release gap subtracted (DESIGN amendment A2). The harness already emits `release_lag_ms` and `H_minus_lag_ms` per turn.
 
+### M3 (provider swaps)
+- Direction: "Load the Anthropic workspace id the secret-safe way; send `anthropic-workspace-id` from the Haiku adapter; ONE validity check reporting only the status code (200 enables cascade-haiku, otherwise optional). Then M3 per DESIGN under the same constraints; optionally clean the lint warnings."
+- Before writing the Haiku adapter, the agent checked the current docs (not memory): the `anthropic-workspace-id` header is required for multi-workspace keys, and Haiku 5.5 accepts `thinking: disabled` only at effort ≤ high and rejects `temperature`/`top_p`/`top_k` and assistant prefill. The one check used the production request shape, built by the adapter itself. **Result: HTTP 400.** Offline format checks only, printing booleans: the workspace id has the `wrkspc_` prefix and the key has the `sk-ant-api` prefix. No second call was made, so cascade-haiku stays behind an enable gate. The Haiku contract test uses a clearly labelled synthetic fixture, because no real stream could be recorded.
+- ElevenLabs: adapter written against the documented stream-input protocol and tested only with a scripted fake socket. The credit guard (enable flag, session cap, persistent month ledger) refuses *before* the call, and the pipeline refuses `tts=elevenlabs` at session start unless `ELEVENLABS_ENABLED=1`. Zero ElevenLabs calls were made.
+- OpenRouter: the adapter (OpenAI-compatible chat stream, `provider.sort: latency`) is contract-tested. The key file exists on the lab but wasn't loaded, because its use wasn't authorised.
+- FR-9 (per-session provider selector) was added because every swap needed a way to be exercised in the real browser. Verified live: refusals for ElevenLabs / Haiku / OpenRouter show one clear banner each; a session-level swap to the fake translator ran a full turn.
+- Files touched per swap are recorded in `docs/provider-swaps.md`. The orchestrator and the UI were untouched by every swap.
+- Lint: ruff is now clean. That meant narrowing blind `except`s to the real exception types and moving the turn-sink write off the event loop.
+- **Agent mistakes caught and fixed:**
+  - A regex rewrite of `dict(...)` → literals mangled `ws_pipeline.py`. Caught on inspection before any test or commit; the file was reverted and edited by hand.
+  - A new config test would have depended on the host environment again (the M1 lesson), so the OpenRouter key is now pinned to `None` in the test.
+  - Commit order: the guard commit's test referenced pipeline wiring from the next commit, so one intermediate commit has a failing test (HEAD is green).
+
