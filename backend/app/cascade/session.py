@@ -422,7 +422,8 @@ class CascadeSession:
         if "tail_tts_first_byte" in marks:
             await self.send_event(LatencyMark(turn_id=t.id, mark="tail_tts_first_byte",
                                               ms=marks["tail_tts_first_byte"]))
-        await self.send_event(TurnDone(turn_id=t.id, marks=marks, usage=t.usage.as_dict()))
+        usage = {**t.usage.as_dict(), "tts_audio_s": round(t.audio_bytes / (2 * 24000), 2)}  # pcm16 @ 24 kHz
+        await self.send_event(TurnDone(turn_id=t.id, marks=marks, usage=usage))
 
     async def _fail(self, t: Turn, exc: ProviderError) -> None:
         stage = exc.stage or "pipeline"

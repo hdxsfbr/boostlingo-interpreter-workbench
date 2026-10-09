@@ -1,0 +1,22 @@
+# Unit prices used by backend/eval/metrics.py for cost per minute (DESIGN §9).
+# Source: docs/api-research.md §5 (OpenAI / Anthropic / ElevenLabs pricing pages).
+# Prices change: re-check before quoting. USD.
+as_of: 2026-10-08
+per_1m_tokens:
+  gpt-realtime:      {audio_in: 32.0, audio_cached_in: 0.40, audio_out: 64.0, text_in: 4.0, text_cached_in: 0.40, text_out: 16.0}
+  gpt-realtime-mini: {audio_in: 10.0, audio_cached_in: 0.30, audio_out: 20.0, text_in: 0.60, text_cached_in: 0.06, text_out: 2.40}
+  gpt-5.4-nano:      {text_in: 0.20, text_out: 1.25}
+  # OpenRouter is pass-through ("no markup on inference"); the credit-purchase fee is excluded.
+  anthropic/claude-haiku-5.5: {text_in: 0.10, text_out: 0.50}
+  gpt-4o-mini-tts:   {text_in: 0.60, audio_out: 12.0}
+per_minute:
+  gpt-live-transcribe: 0.017      # billed on streamed audio (stt_audio_s)
+  gpt-4o-transcribe: 0.006        # Realtime side transcription; estimate (token-priced)
+per_1k_chars:
+  elevenlabs-flash: 0.04          # list price; the free tier bills credits (1 char = 1 credit), not dollars
+assumptions:
+  # The TTS audio-token rate is not published; Realtime usage shows ~20 output
+  # audio tokens per second of speech, which we assume for gpt-4o-mini-tts too.
+  tts_audio_tokens_per_s: 20
+  # mini-tts text-input tokens ~ chars / 4
+  chars_per_token: 4
