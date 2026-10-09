@@ -130,7 +130,7 @@ Open the **Experiments** tab (or `http://localhost:8740/?tab=experiments`). It r
 4. **Results:** click an experiment in **History** to see the M5 summary columns (latency p50/p90 with and without the 450 ms release gap, tail, chrF, source WER, $/min, failures), a per-turn latency chart, the code version and model ids. You can download CSV or JSON. Tick two experiments and press **Compare** for a side-by-side view with deltas. **M5 baseline** (read-only) holds the final M5 numbers.
 - API: `POST /api/experiments/estimate` and `POST /api/experiments` take `{"name", "setups", "utterances": "full|short|custom", "ids", "directions": "both|en|es", "passes", "allow_elevenlabs", "confirm"}`.
 - Headless check (no provider calls): `docker exec -e HOME=/tmp -w /app/backend boostlingo-interpreter-workbench-app-1 python -m eval.experiments_check --chrome "" --exp <id>`.
-- Caveat: Chromium shares the container with the backend. Absolute latencies can differ from the M5 runs (driven from the host). Compare experiments run the same way.
+- Small samples are noisy. The first 6-utterance smoke read cascade H p50 at 2261 ms because of a slow spell at the TTS provider; reruns, in the app or from the CLI on the host or in the container, gave 1622–1781 ms, matching M5's 1690 ([`docs/benchmarks/results/inapp-slowdown/`](docs/benchmarks/results/inapp-slowdown/summary.md)). Use at least 12 turns per setup (more utterances or passes) before reading differences.
 
 ## Configuration and secrets
 
