@@ -204,3 +204,11 @@ Backend (Python 3.12, FastAPI)  [was: ASP.NET Core, C#; amended per D10]
 | M4 | Latency waterfall, mode switch mid-session, error states | 2 h |
 | M5 | Benchmarks (latency, WER, soak), cost model, `docs/comparison.md` | 2–3 h |
 | M6 | README and architecture, polish, optional deploy and demo video | 1–2 h |
+
+## Appendix: status as built (2026-10-09)
+
+The requirements above are kept as planned. Their status, with evidence for each ID, is in [`REQUIREMENTS_TRACE.md`](REQUIREMENTS_TRACE.md). In short:
+- **Met:** FR-1 to FR-4, FR-6 to FR-10, NFR-2 to NFR-5, CQ-1 to CQ-5 (except CQ-3.5), PROC-1 to PROC-4, DEL-1 to DEL-4.
+- **Partial:** FR-5 (English ↔ Spanish works both ways, but there is no pair selector and pairs aren't config-only), NFR-1 (cascade meets < 3 s, and < 2 s only at the median), CQ-3.5 (live checks are scripts, not opt-in tests).
+- **Not met:** FR-11 (no third pair; optional). The FR-5 config-driven pair list counts as Not met in the trace.
+- **Changed by later decisions:** the backend is Python, not .NET (D10); turn-taking defaults to push-to-talk (D2); Haiku runs via OpenRouter (A3); audio recording exists but is opt-in (A11); in-app ratings (A12) and experiments (A13) were added after M5. DEL-5 (portal submission) is Andre's.
