@@ -61,16 +61,17 @@ flowchart LR
 
 | Layer | What it does | Where (verified paths) |
 |---|---|---|
-| **UI** | Mode toggle, push-to-talk buttons for Speaker A/B, live transcripts, latency waterfall and summary, error banners, provider selectors, "Record session" toggle | `frontend/src/App.tsx`, `frontend/src/ui/Controls.tsx`, `TranscriptPane.tsx`, `LatencyWaterfall.tsx`, `MetricsSummary.tsx`, `ErrorBanner.tsx` |
+| **UI** | Mode toggle, push-to-talk buttons for Speaker A/B, live transcripts, latency waterfall and summary, error banners, provider selectors, "Record session" toggle; a **Review** tab for human quality ratings (A12) | `frontend/src/App.tsx`, `frontend/src/review/` (`ReviewTab.tsx`, `RateView.tsx`, `ResultsView.tsx`, `rateLogic.ts`, `api.ts`), `frontend/src/ui/Controls.tsx`, `TranscriptPane.tsx`, `LatencyWaterfall.tsx`, `MetricsSummary.tsx`, `ErrorBanner.tsx` |
 | **State** | Turns UI state into a pure function of session events; computes rolling p50/p90 and exports JSON/CSV | `frontend/src/store/reducer.ts`, `metrics.ts`, `turnSink.ts` (posts each finished turn to the server) |
 | **Session (mode-agnostic)** | `InterpreterSession` exposes one API (start, stop, setMode, pttDown/pttUp, …) and emits one set of events for both modes, so the UI never knows which mode is running | `frontend/src/session/InterpreterSession.ts`, `protocol.ts` (the **event contract**: the agreed list of event types and fields), `turnController.ts` (push-to-talk turn logic) |
 | **Mode-specific transports** | **Cascade:** a WebSocket to our server carrying audio and JSON events. **Realtime:** WebRTC straight to OpenAI. WebRTC is the browser's built-in standard for live audio between two endpoints. A WebSocket relay through our server is the fallback | `session/transports/cascadeWs.ts`, `realtimeWebrtc.ts`, `realtimeRelay.ts`; OpenAI event translation in `session/normalizers/oaiEvents.ts`; Realtime instructions in `session/realtimePrompt.ts` |
 | **Audio** | One audio context for both modes. Mic capture with voice detection; cascade playback; an **output monitor** (a small audio processor that notices the first audible sample of the translation) | `frontend/src/audio/engine.ts`, `capture.worklet.ts`, `playback.worklet.ts`, `outputTap.worklet.ts`, `clock.ts`; `fileSource.ts` plays test audio as the mic for benchmarks |
-| **Server API** | Short-lived key minting, the cascade gateway, the Realtime relay, the turn log, recordings, health | `backend/app/main.py`, `backend/app/api/*.py` |
+| **Server API** | Short-lived key minting, the cascade gateway, the Realtime relay, the turn log, recordings, review sets and ratings, health | `backend/app/main.py`, `backend/app/api/*.py` (`review.py` for `/api/review`) |
+| **Review (A12)** | Review sets, items and per-rater ratings in SQLite; blind-set import and preload; recorded-session import; results aggregation | `backend/app/review/store.py`, `sources.py`, `results.py` |
 | **Cascade orchestration** | Runs each turn as concurrent stages (STT → MT → sentence chunker → TTS) joined by queues. Handles cancellation, timing marks, the backup request for slow first output, early translation of partial transcripts, and merging of short fragments | `backend/app/cascade/session.py`, `ws_pipeline.py` (builds providers from config), `chunker.py`, `hedge.py` |
 | **Provider interfaces** | Three abstract interfaces, so the orchestrator never imports a vendor: `STTProvider`, `Translator`, `TTSProvider`. Adapters implement them; a registry maps config names to adapters | `backend/app/providers/base.py`, `registry.py`, `stt/openai_live.py`, `mt/openai.py`, `mt/openrouter.py`, `mt/anthropic.py`, `tts/openai.py`, `tts/elevenlabs.py`, `fakes.py` (for tests) |
 | **Shared core** | Server-side event models (mirroring the browser contract), normalised errors, the retry policy, the ElevenLabs credit guard, settings, audio helpers, recording store | `backend/app/core/events.py`, `errors.py`, `retry.py`, `budget.py`, `config.py`, `audio.py`, `recording.py` |
-| **Persistence** | Plain files under `data/` (gitignored): one JSONL log per session (one JSON record per line), recordings, the ElevenLabs credit ledger | `data/sessions/<session_id>.jsonl`, `data/recordings/<session_id>/turn-<n>-{source,target}.<ext>`, `data/elevenlabs_ledger.json` |
+| **Persistence** | Files under `data/` (gitignored): one JSONL log per session (one JSON record per line), recordings, the ElevenLabs credit ledger, and the Review tab's SQLite file | `data/sessions/<session_id>.jsonl`, `data/recordings/<session_id>/turn-<n>-{source,target}.<ext>`, `data/elevenlabs_ledger.json`, `data/review.sqlite3` |
 | **Evaluation harness** | Drives the real app in hidden Chrome (Playwright), plays test sentences as the mic, then computes metrics, the blind-rating kit and the error-state checks | `backend/eval/harness.py`, `metrics.py`, `blind.py`, `blind_results.py`, `error_pass.py`, plus tuning tools (`summarize.py`, `vad_table.py`, `soak_report.py`, `stt_wer.py`, `tts_ttfb.py`) |
 
 **The shared event contract is tested on both sides.**
@@ -152,7 +153,15 @@ sequenceDiagram
   - **Realtime:** captured in the browser as webm/opus and uploaded.
   - Each saved file adds an audit line to the session JSONL. A sweep at startup and every 6 h deletes files older than `retention_days` (30).
 - **The session id** is created in the browser (`session/sessionId.ts`) and validated by the server.
-- **There is no database.**
+- **The only database** is the Review tab's SQLite file (`data/review.sqlite3`, A12). Ratings are edited in place, so they need atomic updates. Everything else stays in plain files.
+
+### 5a. Review tab flow (A12)
+
+1. **Startup:** `get_review_store()` opens `data/review.sqlite3`. It imports the blind set from `BENCH_DIR/blind` (`rating_sheet.csv` + `key.csv`; the key's profile is kept as a hidden `variant`) and preloads Andre's sheet as rater `andre` if that rater has no ratings yet. Both steps are idempotent.
+2. **Pick a rater:** the browser keeps the name in `localStorage`. `GET /api/review/sets?rater=` lists sets with that rater's progress. `GET /api/review/sessions` lists recorded sessions; `POST /api/review/sessions/<sid>` turns one into a set (each turn's target audio plus its transcripts).
+3. **Rate:** `GET /api/review/sets/<id>?rater=` returns the items (without a variant while blind) and this rater's ratings. The view opens at the first incomplete item. Audio streams from `/api/review/sets/<id>/items/<item>/audio`. Each Save is a `PUT …/items/<item>/rating`, one SQLite transaction.
+4. **Results:** `GET …/results?rater=&raters=me|all` aggregates per variant × direction and adds M5 H and chrF from `results.json`. For blind sets it returns 403 until the rater presses Reveal (`POST …/reveal`) or completes the set. `results.csv` and `ratings.csv` export the same data.
+5. **Cleanup:** `DELETE …/ratings?rater=` removes one rater's ratings and their reveal.
 
 ## 6. Where latency is measured
 

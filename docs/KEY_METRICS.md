@@ -166,6 +166,7 @@ Details are in [comparison-details.md](comparison-details.md#cost-breakdown).
 
 **Target.** Reported, with an honest rater count (PRD §3).
 
+- **Ratings are now also collected in the product.** The Workbench's **Review** tab (DESIGN A12) plays the same blind clips one at a time and stores 1–5 ratings per named rater in `data/review.sqlite3`. Setup names stay hidden from the page and the API until the rater finishes or presses Reveal. It shows the same statistics next to M5 latency and chrF. Recorded sessions (A11) can be rated the same way. Andre's sheet is preloaded, and the in-app results match `results.md` exactly (`tests/unit/test_review.py`).
 - `cd backend && python -m eval.blind_results` joins the rating sheet with the key and writes [`benchmarks/blind/results.md`](benchmarks/blind/results.md) and `results.csv` (mean, median, spread, by direction, and chrF on the same sentences).
 
 **Measured.** One rater (Andre), 12 sentences per setup (6 per direction), 1–5 scale, with the source sentence and a reference translation shown on the sheet. Mean scores (median in brackets):

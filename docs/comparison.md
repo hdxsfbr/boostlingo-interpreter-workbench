@@ -38,6 +38,8 @@
 |---|---|---|---|---|
 | Accuracy / fluency / natural voice | 5.0 / 5.0 / 4.8 | 4.8 / 4.8 / 3.5 | 4.9 / 4.4 / 3.3 | 5.0 / 4.9 / 4.2 |
 
+More raters can now add blind ratings in the app's Review tab; the numbers above are unchanged.
+
 **Cost.**
 - **Realtime ($0.179/min) costs about 3.7× the cascade,** mostly for audio, partly because recent conversation is re-read and billed on every turn. `gpt-realtime-mini` costs $0.052/min.
 - **In the cascade,** speech-to-text is about 55% of the cost, the voice 43% and translation 3%, so a better translator costs almost nothing extra.

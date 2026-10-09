@@ -55,6 +55,7 @@ The key is mounted as a file secret, never put in `.env`. The guard refuses past
 4. Switch to **Realtime** mid-session. The history stays and a switch marker appears. Repeat both directions and compare H in the stats panel (p50/p90 per mode).
 5. Optional: change the translator to **OpenRouter (Haiku)** or the TTS to **ElevenLabs** in the provider selector. If a provider is disabled you get one clear banner.
 6. Press a speaker button while a translation plays to barge in. **Export JSON / CSV** downloads the session's turns and latencies.
+7. Open the **Review** tab, enter a name and rate a few blind clips with the keyboard, or open Results as `andre` (see "Review tab" below).
 
 URL options: `?mode=realtime`, `?rt=webrtc|relay|auto` (default `auto`: WebRTC, falling back to the relay), `?turn=vad` (VAD instead of PTT; `vad_ms=` sets the window), `?mt=openrouter`, `?tts=elevenlabs`.
 
@@ -99,6 +100,22 @@ Results of the last browser pass: [`docs/benchmarks/results/m5/error_pass.txt`](
 - **Retention:** `recording.retention_days` (default 30), swept at startup and every 6 h. Delete one session's audio now with `curl -X DELETE http://127.0.0.1:8740/api/recordings/<session_id>`.
 - **Turn boundaries in Realtime are approximate.** Source runs from turn start to the end of speech (+200 ms). Target runs from turn start to the end of playback (+500 ms tail), so it begins with the listener's silence while the speaker talks. A barge-in cuts the old turn's target short. In VAD mode the turn starts when OpenAI's VAD fires, so the first ~100–300 ms of speech can be missing from the source file.
 - **Local demo only.** `data/recordings/` is gitignored and never leaves the machine. **Production would need encryption at rest, access control on the recording endpoints (today anyone who can reach the port can upload or delete), access logging, and a per-participant consent record.**
+
+## Review tab: human quality ratings (DESIGN A12)
+
+Open the **Review** tab (or `http://localhost:8740/?tab=review`) and enter your name. There is no login; ratings are stored under that name in `data/review.sqlite3`.
+
+- **Blind benchmark set** (`M5 blind benchmark`, 48 clips):
+  - Press **Start/Resume**. Each clip shows the direction, what the speaker said and the reference translation. It autoplays.
+  - Score **Accuracy**, **Fluency** and **Voice** from 1 to 5, add optional notes, then **Save & next**.
+  - Keys: `1`–`5` score the highlighted row and move down, `Tab` cycles rows, `Space` plays or pauses, `Enter` saves and moves on.
+  - You resume at the first clip you haven't fully scored. If a save fails, a red message says so and your scores stay on screen.
+  - The setup names stay hidden from the page and the API until you finish every clip or press **Reveal variants** in Results. Ratings saved after a reveal are flagged.
+- **Recorded sessions:** sessions recorded with "Record session" on (see above) are listed under *Recorded sessions*. **Create review set** turns each turn's translated audio into a clip, shown with its source and target text.
+- **Results:** per setup, the mean / median (sd, range) for each scale, overall and per direction, next to that setup's M5 latency (H p50/p90) and chrF. You can show your ratings or pool all raters, and **Export results CSV** / **Export my ratings CSV**.
+- **Preloaded:** Andre's 48 completed blind ratings are loaded as rater `andre`. That set opens complete, and its Results match [`docs/benchmarks/blind/results.md`](docs/benchmarks/blind/results.md).
+- **Remove a rater's data:** `curl -X DELETE "http://127.0.0.1:8740/api/review/sets/<set_id>/ratings?rater=<name>"`.
+- **Headless check** (no provider calls): `cd backend && python -m eval.review_check --url http://127.0.0.1:8740`.
 
 ## Configuration and secrets
 

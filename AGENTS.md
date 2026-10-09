@@ -139,4 +139,14 @@ This repo is built by an agentic coding assistant (Grok Bot executor agents) dir
   - One live smoke per mode with `RECORDING_ENABLED=1` and `eval.harness --session-record` (2 short utterances each; cascade default, and gpt-realtime-mini over WebRTC). All 8 files appeared, decoded, had plausible durations and were non-silent (ffprobe/volumedetect).
   - Agent mistake caught: the first backend commit went in with two ruff findings in the new test, because `ruff … | tail` hid the exit code. Fixed in the next commit.
 - **Recording latency A/B (Butler):** default cascade, PTT 450 ms, 12 scored utterances (10 short) plus 2 unscored warm-ups, arms alternated off/on/off/on (n=24 per arm). Short H p50 was 1785 (off) vs 1781 ms (on), short tail p50 1733 vs 1720 ms: no measurable cost, so no fix was needed. Results are in `docs/benchmarks/results/recording-ab/`.
+- **Review tab (DESIGN A12, Andre via Butler, time-boxed 2–3 h):**
+  - What it is: an in-app human rating flow that reuses Butler's `rate.py` UX (one clip at a time, 1–5 adequacy/fluency/naturalness, notes, Back / Save & next, progress, resume, keys 1–5 / Tab / Space / Enter, visible save errors).
+  - Storage: SQLite `data/review.sqlite3` (atomic transactions, CHECK constraints, raters by name).
+  - Two sources: the blind M5 set (shipped in the image via `BENCH_DIR`) and recorded sessions.
+  - Results: per-variant mean/median/sd/range by direction, next to M5 H and chrF, with CSV export.
+  - Blindness is enforced server-side: no variant in any payload before Reveal or completion; results return 403.
+  - Andre's 48 ratings are preloaded as `andre`. A test asserts the in-app statistics equal `eval/blind_results.py` output (its `results.csv`, plus its own `load()`/`stats()`).
+  - Tests: 15 pytest, 6 Vitest. Headless check `eval/review_check.py`: preload complete, Results == results.md cell for cell, keyboard round trip, resume, a failed save, scratch-rater cleanup.
+  - `docs/comparison.md`: one added line only, conclusions untouched.
+  - Agent finding: the first headless run showed Back stored an empty rating for an untouched clip (as `rate.py` also did). Fixed so unchanged drafts aren't written.
 
