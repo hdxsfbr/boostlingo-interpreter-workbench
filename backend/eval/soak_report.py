@@ -1,4 +1,4 @@
-# ruff: noqa: SIM115, E701, E702 - small offline analysis script
+# ruff: noqa: SIM115 - small offline analysis script
 """Soak report: stability probes (heap, backend RSS, transports, errors) and latency drift.
 
     python -m eval.soak_report soak.jsonl [--ref same-config-run.jsonl]

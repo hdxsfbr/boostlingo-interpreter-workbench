@@ -1,4 +1,4 @@
-# ruff: noqa: SIM115, E701, E702 - small offline analysis script
+# ruff: noqa: SIM115 - small offline analysis script
 """VAD silence-window sweep table: python -m eval.vad_table <realtime prefix> <cascade prefix> (files <prefix>_<ms>.jsonl)."""
 import json
 import statistics

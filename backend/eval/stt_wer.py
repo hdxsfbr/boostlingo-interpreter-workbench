@@ -1,4 +1,4 @@
-# ruff: noqa: SIM115, E701, E702 - small offline analysis script
+# ruff: noqa: SIM115 - small offline analysis script
 """STT word error rate of harness runs: transcript (all segments) vs the fixture text.
 
     python -m eval.stt_wer run1.jsonl run2.jsonl
