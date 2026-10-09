@@ -118,6 +118,8 @@ describe("RealtimeTransport (WebRTC)", () => {
     expect(uplink.enabled).toBe(false);
     expect(mic.enabled).toBe(true); // local capture/VAD never gated
     expect(pc.dc.sent.map((m) => m.type)).toEqual(["input_audio_buffer.clear", "input_audio_buffer.commit", "response.create"]);
+    const create = pc.dc.sent[2] as { response?: { instructions?: string } };
+    expect(create.response?.instructions).toMatch(/in English\. Say ONLY the faithful Spanish translation/);
     t.cancel(1);
     expect(pc.dc.sent.slice(-2).map((m) => m.type)).toEqual(["response.cancel", "output_audio_buffer.clear"]);
   });

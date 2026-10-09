@@ -12,6 +12,7 @@
  */
 import type { Lang, SessionEvent, Transport } from "../protocol";
 import { HistoryPruner, OaiNormalizer, type OaiEvent } from "../normalizers/oaiEvents";
+import { turnInstructions } from "../realtimePrompt";
 
 export const CALLS_URL = "https://api.openai.com/v1/realtime/calls";
 
@@ -35,6 +36,8 @@ export type RealtimeOptions = RealtimeHooks & {
   micStream: MediaStream;
   turnMode?: TurnMode;
   silenceDurationMs?: number;
+  /** PTT: send per-turn direction instructions with response.create (default on). */
+  directionHint?: boolean;
   model?: string;
   mintUrl?: string;
   connectTimeoutMs?: number;
@@ -76,6 +79,7 @@ export class RealtimeTransport implements Transport {
   private dc: RTCDataChannel | null = null;
   private uplink: MediaStreamTrack | null = null;
   private normalizer: OaiNormalizer;
+  private direction: { src: Lang; tgt: Lang } | null = null;
   private pruner = new HistoryPruner(2);
   private activeTurn: number | null = null;
   private playing = false;
@@ -196,8 +200,9 @@ export class RealtimeTransport implements Transport {
     if (this.uplink && this.turnMode === "vad") this.uplink.enabled = on && !this.playing;
   }
 
-  turnStart(turnId: number, _src: Lang, _tgt: Lang): void {
+  turnStart(turnId: number, src: Lang, tgt: Lang): void {
     this.activeTurn = turnId;
+    this.direction = { src, tgt };
     if (this.turnMode === "ptt") this.send({ type: "input_audio_buffer.clear" });
     this.updateGate();
   }
@@ -213,7 +218,13 @@ export class RealtimeTransport implements Transport {
     this.updateGate();
     this.normalizer.turnCommitted(turnId);
     this.send({ type: "input_audio_buffer.commit" });
-    this.send({ type: "response.create" });
+    this.send(this.responseCreate());
+  }
+
+  private responseCreate(): Record<string, unknown> {
+    const d = this.direction;
+    if (!d || this.opts.directionHint === false) return { type: "response.create" };
+    return { type: "response.create", response: { instructions: turnInstructions(d.src, d.tgt) } };
   }
 
   cancel(turnId: number): void {
