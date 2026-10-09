@@ -9,6 +9,7 @@ import { ErrorBanner } from "./ui/ErrorBanner";
 import { MetricsSummary } from "./ui/MetricsSummary";
 import { TranscriptPane } from "./ui/TranscriptPane";
 import { ReviewTab } from "./review/ReviewTab";
+import { ExperimentsTab } from "./experiments/ExperimentsTab";
 
 const PAIR = { a: "en", b: "es" };
 
@@ -42,7 +43,8 @@ export default function App() {
       .catch(() => setRecCfg(null));
   }, []);
   const recording = recordWanted && !!recCfg?.enabled;
-  const [tab, setTab] = useState<"interpreter" | "review">(params.get("tab") === "review" ? "review" : "interpreter");
+  type Tab = "interpreter" | "review" | "experiments";
+  const [tab, setTab] = useState<Tab>((["review", "experiments"].includes(params.get("tab") ?? "") ? params.get("tab") : "interpreter") as Tab);
   const sessionRef = useRef<InterpreterSession | null>(null);
   const [active, setActive] = useState<Speaker | null>(null);
 
@@ -126,9 +128,9 @@ export default function App() {
       <header>
         <h1>AI Interpreter Workbench</h1>
         <nav className="toggle tabs" role="tablist" aria-label="Workbench">
-          {(["interpreter", "review"] as const).map((t) => (
+          {(["interpreter", "review", "experiments"] as const).map((t) => (
             <button key={t} role="tab" aria-selected={tab === t} className={tab === t ? "on" : ""} onClick={() => setTab(t)} data-testid={`tab-${t}`}>
-              {t === "interpreter" ? "Interpreter" : "Review"}
+              {t === "interpreter" ? "Interpreter" : t === "review" ? "Review" : "Experiments"}
             </button>
           ))}
         </nav>
@@ -141,6 +143,8 @@ export default function App() {
       </header>
       {tab === "review" ? (
         <ReviewTab />
+      ) : tab === "experiments" ? (
+        <ExperimentsTab />
       ) : (
         <>
       <ErrorBanner errors={state.errors} onDismiss={(id) => dispatch({ kind: "dismiss", id })} onRetry={start} sessionState={state.sessionState} />
