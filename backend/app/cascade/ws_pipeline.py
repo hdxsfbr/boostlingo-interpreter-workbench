@@ -8,7 +8,7 @@ import logging
 from app.api.cascade_ws import SessionIO
 from app.cascade.session import CascadeSession, Timeouts
 from app.core.config import Settings, get_settings
-from app.core.errors import ProviderError
+from app.core.errors import ConfigError, ProviderError
 from app.core.events import Commit, ErrorEvent, SessionStart, TurnStart
 from app.providers import registry
 
@@ -28,7 +28,17 @@ def build_providers(settings: Settings, overrides: dict[str, str] | None = None)
                                        reasoning_effort=p["openai"].get("reasoning_effort"),
                                        max_output_tokens=p["openai"].get("max_output_tokens", 400)),
         ("tts", "openai"): lambda: dict(api_key=key, model=p["openai_tts"]["model"]),
+        ("mt", "anthropic"): lambda: dict(
+            api_key=settings.anthropic_api_key.get_secret_value() if settings.anthropic_api_key else "",
+            workspace_id=(settings.anthropic_workspace_id.get_secret_value()
+                          if settings.anthropic_workspace_id else None),
+            model=p["anthropic"]["model"], max_tokens=p["anthropic"].get("max_tokens", 400),
+            effort=p["anthropic"].get("effort", "low")),
     }
+    if names["mt"] == "anthropic" and not settings.haiku_enabled():
+        raise ConfigError("cascade-haiku is disabled (Anthropic validity check failed); "
+                          "set providers.anthropic.enabled or ANTHROPIC_ENABLED=1 after a passing check",
+                          provider="anthropic", stage="mt")
     built = {kind: registry.create(kind, names[kind], **kwargs.get((kind, names[kind]), dict)())
              for kind in ("stt", "mt", "tts")}
     voices = p.get("openai_tts", {}).get("voices", {}) if names["tts"] == "openai" else {}

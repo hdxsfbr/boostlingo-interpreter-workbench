@@ -1,6 +1,8 @@
 """End-to-end through the WS gateway with fake providers (CASCADE_*=fake)."""
 import json
 
+import pytest
+
 from fastapi.testclient import TestClient
 
 from app.core.config import get_settings
@@ -61,3 +63,17 @@ def test_missing_openai_key_is_a_config_error(monkeypatch):
         ev = json.loads(ws.receive_text())
         assert ev["code"] == "config_error" and "OPENAI_API_KEY" in ev["message"]
     get_settings.cache_clear()
+
+
+def test_haiku_profile_is_gated_until_enabled(monkeypatch):
+    from app.cascade.ws_pipeline import build_providers
+    from app.core.config import Settings
+    from app.core.errors import ConfigError
+
+    s = Settings(openai_api_key="sk-x", anthropic_api_key="sk-ant-x", anthropic_workspace_id="wrkspc_x",
+                 anthropic_enabled=False)
+    with pytest.raises(ConfigError, match="cascade-haiku is disabled"):
+        build_providers(s, {"stt": "fake", "mt": "anthropic", "tts": "fake"})
+    s.anthropic_enabled = True
+    built, names, _, _ = build_providers(s, {"stt": "fake", "mt": "anthropic", "tts": "fake"})
+    assert names["mt"] == "anthropic" and built["mt"].headers()["anthropic-workspace-id"] == "wrkspc_x"

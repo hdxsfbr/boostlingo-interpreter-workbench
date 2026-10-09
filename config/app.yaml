@@ -24,6 +24,8 @@ providers:
   anthropic:
     model: claude-haiku-5-5
     max_tokens: 400
+    effort: low            # thinking disabled; allowed at effort <= high
+    enabled: false         # live validity check returned 400 (2026-10-08); profile stays optional
   openai_tts:
     model: gpt-4o-mini-tts
     voices: {en: marin, es: marin}
