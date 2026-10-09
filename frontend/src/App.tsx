@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
-import { harnessHook, InterpreterSession } from "./session/InterpreterSession";
+import { harnessHook, InterpreterSession, type RealtimeKind } from "./session/InterpreterSession";
+import type { TurnMode } from "./session/transports/realtimeWebrtc";
 import type { Mode, Pipeline, SessionEvent, Speaker } from "./session/protocol";
 import { dismissError, initialState, reduce, type State } from "./store/reducer";
 import { useTurnSink } from "./store/turnSink";
@@ -16,18 +17,21 @@ const appReducer = (s: State, a: Action): State => (a.kind === "ev" ? reduce(s, 
 export default function App() {
   const params = new URLSearchParams(location.search);
   const [pipeline, setPipelineState] = useState<Pipeline>((params.get("pipeline") as Pipeline) ?? "cascade");
-  const [state, dispatch] = useReducer(appReducer, initialState("cascade"));
+  const initialMode: Mode = params.get("mode") === "realtime" ? "realtime" : "cascade";
+  const realtimeKind = (params.get("rt") as RealtimeKind | null) ?? "auto";
+  const [turnMode, setTurnModeState] = useState<TurnMode>(params.get("turn") === "vad" ? "vad" : "ptt");
+  const [state, dispatch] = useReducer(appReducer, initialState(initialMode));
   const sessionRef = useRef<InterpreterSession | null>(null);
   const [active, setActive] = useState<Speaker | null>(null);
 
   const session = useCallback(() => {
     if (!sessionRef.current) {
-      const s = new InterpreterSession({ pair: PAIR, mode: "cascade", pipeline });
+      const s = new InterpreterSession({ pair: PAIR, mode: initialMode, pipeline, turnMode, realtime: realtimeKind });
       s.on((ev) => dispatch({ kind: "ev", ev }));
       sessionRef.current = s;
     }
     return sessionRef.current;
-  }, [pipeline]);
+  }, []);
 
   useTurnSink(state);
   useEffect(() => {
@@ -38,6 +42,10 @@ export default function App() {
   const start = () => void session().start();
   const stop = () => void session().stop();
   const setMode = (m: Mode) => void session().setMode(m);
+  const setTurnMode = (m: TurnMode) => {
+    setTurnModeState(m);
+    void session().setTurnMode(m);
+  };
   const setPipeline = (p: Pipeline) => {
     setPipelineState(p);
     void session().setPipeline(p);
@@ -81,6 +89,8 @@ export default function App() {
       <ErrorBanner errors={state.errors} onDismiss={(id) => dispatch({ kind: "dismiss", id })} onRetry={start} sessionState={state.sessionState} />
       <Controls
         mode={state.mode}
+        turnMode={turnMode}
+        onTurnMode={setTurnMode}
         pipeline={pipeline}
         pair={PAIR}
         running={running}

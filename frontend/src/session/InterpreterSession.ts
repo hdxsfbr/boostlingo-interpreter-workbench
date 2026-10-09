@@ -8,14 +8,28 @@ import { AudioEngine, MicError, requestMic } from "../audio/engine";
 import type { InterpreterSessionApi, Lang, Mode, Pipeline, SessionEvent, SessionListener, Speaker, Transport } from "./protocol";
 import { TurnController } from "./turnController";
 import { CascadeTransport } from "./transports/cascadeWs";
+import { RealtimeRelayTransport } from "./transports/realtimeRelay";
+import { RealtimeTransport, type TurnMode } from "./transports/realtimeWebrtc";
 
 export const GATE_TAIL_MS = 300;
 
 /** Read-only probe for the browser test harness (backend/eval). */
-export function harnessHook(): { lastVoiced?: number; state?: unknown } {
-  const w = globalThis as unknown as { __wb?: { lastVoiced?: number; state?: unknown } };
+export type HarnessHook = {
+  lastVoiced?: number;
+  state?: unknown;
+  /** Leak probe (FR-4): open transports + live engine nodes. */
+  diag?: () => Diag;
+  /** Raw OpenAI events of the current realtime transport (fixture capture). */
+  oaiEvents?: () => unknown[];
+};
+export type Diag = { transport: string | null; openTransports: number; created: number; engineNodes: number; micLive: boolean };
+
+export function harnessHook(): HarnessHook {
+  const w = globalThis as unknown as { __wb?: HarnessHook };
   return (w.__wb ??= {});
 }
+
+export type RealtimeKind = "webrtc" | "relay" | "auto";
 
 export type SessionConfig = {
   pair: { a: Lang; b: Lang };
@@ -23,14 +37,30 @@ export type SessionConfig = {
   pipeline: Pipeline;
   wsUrl?: string;
   pauseCommitMs?: number | null;
+  turnMode?: TurnMode;
+  /** Realtime transport: WebRTC (default), WS relay, or WebRTC with relay fallback. */
+  realtime?: RealtimeKind;
+  silenceDurationMs?: number;
+  /** VAD mode: which speaker label/direction new turns get in the UI. */
+  vadSpeaker?: Speaker;
 };
 
-type CascadeLike = Transport & { sendAudio?(pcm: Int16Array): void; isOpen?: boolean };
+type AnyTransport = Transport & {
+  kind?: string;
+  sendAudio?(pcm: Int16Array): void;
+  isOpen?: boolean;
+  vadTurn?(turnId: number): void;
+  setUplinkEnabled?(on: boolean): void;
+  liveResources?: Record<string, boolean>;
+  recorded?: unknown[];
+};
 
 export class InterpreterSession implements InterpreterSessionApi {
   private listeners = new Set<SessionListener>();
   private engine: AudioEngine | null = null;
-  private transport: CascadeLike | null = null;
+  private transport: AnyTransport | null = null;
+  private created: AnyTransport[] = [];
+  private gateTimer: ReturnType<typeof setTimeout> | undefined;
   private turns: TurnController;
   private speechEnd = new Map<number, number>();
   private playingTurn: number | null = null;
@@ -38,11 +68,27 @@ export class InterpreterSession implements InterpreterSessionApi {
   private lastCommittedTurn: number | null = null;
   mode: Mode;
   pipeline: Pipeline;
+  turnMode: TurnMode;
 
   constructor(private cfg: SessionConfig) {
     this.mode = cfg.mode;
     this.pipeline = cfg.pipeline;
+    this.turnMode = cfg.turnMode ?? "ptt";
     this.turns = new TurnController(cfg.pair, cfg.pauseCommitMs ?? 300);
+    const hook = harnessHook();
+    hook.diag = () => this.diag();
+    hook.oaiEvents = () => this.transport?.recorded ?? [];
+  }
+
+  diag(): Diag {
+    const open = (t: AnyTransport) => t.isOpen === true || Object.values(t.liveResources ?? {}).some(Boolean);
+    return {
+      transport: this.transport ? `${this.transport.mode}:${this.transport.kind ?? "ws"}` : null,
+      openTransports: this.created.filter(open).length,
+      created: this.created.length,
+      engineNodes: this.engine?.liveNodes ?? 0,
+      micLive: this.engine?.micStream.getAudioTracks().some((t) => t.readyState === "live") ?? false,
+    };
   }
 
   on(listener: SessionListener): () => void {
@@ -89,9 +135,34 @@ export class InterpreterSession implements InterpreterSessionApi {
     await this.connectTransport();
   }
 
-  private makeTransport(): CascadeLike {
-    if (this.mode === "realtime") throw new Error("Realtime mode is not wired yet (milestone M2).");
-    const url = this.cfg.wsUrl ?? `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws/cascade`;
+  private wsBase(): string {
+    return `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}`;
+  }
+
+  private realtimeHooks() {
+    return {
+      emit: this.emit,
+      speechEnd: (id: number) => this.speechEnd.get(id),
+      onSpeechStarted: () => this.vadSpeechStarted(),
+      onSpeechStopped: () => this.vadSpeechStopped(),
+    };
+  }
+
+  private makeTransport(kind: "webrtc" | "relay" | null = null): AnyTransport {
+    if (this.mode === "realtime") {
+      const common = { pair: this.cfg.pair, turnMode: this.turnMode, silenceDurationMs: this.cfg.silenceDurationMs ?? 400, ...this.realtimeHooks() };
+      if ((kind ?? this.cfg.realtime ?? "webrtc") === "relay") {
+        return new RealtimeRelayTransport({ ...common, url: `${this.wsBase()}/ws/realtime`, onAudio: (turnId, pcm) => this.engine?.play(turnId, pcm) });
+      }
+      return new RealtimeTransport({
+        ...common,
+        micStream: this.engine!.micStream,
+        onRemoteStream: (stream) => this.engine?.attachRemote(stream),
+        onRemoteGone: () => this.engine?.detachRemote(),
+        onPlaying: (turnId, playing) => this.onRemotePlaying(turnId, playing),
+      });
+    }
+    const url = this.cfg.wsUrl ?? `${this.wsBase()}/ws/cascade`;
     return new CascadeTransport({
       url,
       pipeline: this.pipeline,
@@ -104,15 +175,41 @@ export class InterpreterSession implements InterpreterSessionApi {
 
   private async connectTransport(): Promise<void> {
     this.emit({ type: "session.state", state: "connecting", mode: this.mode });
+    const auto = this.mode === "realtime" && this.cfg.realtime === "auto";
     try {
-      const t = this.makeTransport();
-      await t.connect();
+      let t = this.track(this.makeTransport(auto ? "webrtc" : null));
+      try {
+        await t.connect();
+      } catch (e) {
+        if (!auto) throw e;
+        await t.close();
+        this.emit({ type: "error", code: "webrtc_fallback", stage: "transport", retryable: false, message: `WebRTC failed (${(e as Error).message}); using the WebSocket relay.` });
+        t = this.track(this.makeTransport("relay"));
+        await t.connect();
+      }
       this.transport = t;
       this.emit({ type: "session.state", state: "ready", mode: this.mode });
     } catch (e) {
+      await this.transport?.close();
+      for (const t of this.created) if (t !== this.transport) void t.close();
       this.transport = null;
       this.emit({ type: "error", code: "connect_failed", stage: "transport", retryable: true, message: (e as Error).message });
       this.emit({ type: "session.state", state: "error", mode: this.mode, detail: "connect_failed" });
+    }
+  }
+
+  private track(t: AnyTransport): AnyTransport {
+    this.created.push(t);
+    if (this.created.length > 50) this.created.shift();
+    return t;
+  }
+
+  async setTurnMode(m: TurnMode): Promise<void> {
+    if (m === this.turnMode) return;
+    this.turnMode = m;
+    if (this.engine) {
+      await this.teardownTransport();
+      await this.connectTransport();
     }
   }
 
@@ -135,6 +232,10 @@ export class InterpreterSession implements InterpreterSessionApi {
   }
 
   private async teardownTransport(): Promise<void> {
+    clearTimeout(this.gateTimer);
+    this.playingTurn = null;
+    this.lastCommittedTurn = null;
+    this.turns.active = null;
     this.engine?.flush();
     this.engine?.disarmTap();
     this.engine?.detachRemote();
@@ -144,12 +245,14 @@ export class InterpreterSession implements InterpreterSessionApi {
   }
 
   pttDown(speaker: Speaker): void {
-    if (!this.engine || this.turns.active) return;
+    if (!this.engine || this.turns.active || this.turnMode === "vad") return;
     // Barge-in (FR-1.3): a press during playback flushes it and cancels that turn.
     if (this.playingTurn !== null || this.lastCommittedTurn !== null) {
       this.engine.flush();
       this.engine.disarmTap();
-      if (this.lastCommittedTurn !== null) this.transport?.cancel(this.lastCommittedTurn);
+      const victim = this.playingTurn ?? this.lastCommittedTurn;
+      if (victim !== null) this.transport?.cancel(victim);
+      this.lastCommittedTurn = null;
       this.playingTurn = null;
     }
     this.gateUntil = 0;
@@ -161,6 +264,7 @@ export class InterpreterSession implements InterpreterSessionApi {
   }
 
   pttUp(_speaker: Speaker): void {
+    if (this.turnMode === "vad") return;
     const end = this.turns.pttUp(performance.now());
     if (!end) return;
     const id = end.turn.id;
@@ -172,9 +276,52 @@ export class InterpreterSession implements InterpreterSessionApi {
     this.emit({ type: "latency.mark", turn_id: id, mark: "commit_sent", ms: performance.now() - end.tSpeechEnd, clock: "browser" });
   }
 
+  // ----- realtime VAD mode: the server detects turns; the browser still owns
+  // t_speech_end (last voiced capture frame, same detector as PTT).
+  private vadSpeechStarted(): void {
+    if (this.turnMode !== "vad" || !this.engine || this.turns.active) return;
+    const speaker = this.cfg.vadSpeaker ?? "A";
+    const now = performance.now();
+    const turn = this.turns.pttDown(speaker, now);
+    this.emit({ type: "turn.started", turn_id: turn.id, src: turn.src, tgt: turn.tgt, speaker, mode: this.mode, at: now });
+  }
+
+  private vadSpeechStopped(): void {
+    if (this.turnMode !== "vad") return;
+    const end = this.turns.pttUp(performance.now());
+    if (!end) return;
+    const id = end.turn.id;
+    this.speechEnd.set(id, end.tSpeechEnd);
+    this.emit({ type: "speech.ended", turn_id: id, t_speech_end: end.tSpeechEnd });
+    this.engine?.armTap(id);
+    this.transport?.vadTurn?.(id);
+    this.lastCommittedTurn = id;
+    this.emit({ type: "latency.mark", turn_id: id, mark: "server_vad_stop", ms: performance.now() - end.tSpeechEnd, clock: "browser" });
+  }
+
+  /** WebRTC output buffer started/stopped (server-side playback state). */
+  private onRemotePlaying(turnId: number, playing: boolean): void {
+    clearTimeout(this.gateTimer);
+    if (playing) {
+      this.playingTurn = turnId;
+      return;
+    }
+    if (this.playingTurn === turnId) this.playingTurn = null;
+    this.gateUntil = performance.now() + GATE_TAIL_MS;
+    const t = this.transport;
+    t?.setUplinkEnabled?.(false);
+    this.gateTimer = setTimeout(() => t?.setUplinkEnabled?.(true), GATE_TAIL_MS);
+  }
+
   private onFrame(pcm: Int16Array, voiced: boolean, tPerf: number): void {
     if (voiced) harnessHook().lastVoiced = tPerf;
     const gated = this.playingTurn !== null || performance.now() < this.gateUntil;
+    if (this.turnMode === "vad" && this.mode === "realtime") {
+      // Server VAD needs a continuous stream (relay); WebRTC sends the track itself.
+      if (voiced && !gated && this.turns.active) this.turns.frame(true, tPerf);
+      this.transport?.sendAudio?.(gated ? new Int16Array(pcm.length) : pcm);
+      return;
+    }
     const act = this.turns.frame(voiced && !gated, tPerf);
     if (!act.send || !this.transport) return;
     this.transport.sendAudio?.(gated ? new Int16Array(pcm.length) : pcm);
@@ -191,6 +338,7 @@ export class InterpreterSession implements InterpreterSessionApi {
 
   async stop(): Promise<void> {
     await this.teardownTransport();
+    await Promise.all(this.created.map((t) => t.close()));
     await this.engine?.close();
     this.engine = null;
     this.turns.active = null;

@@ -1,7 +1,10 @@
 import type { Mode, Pipeline, Speaker } from "../session/protocol";
+import type { TurnMode } from "../session/transports/realtimeWebrtc";
 
 type Props = {
   mode: Mode;
+  turnMode: TurnMode;
+  onTurnMode(m: TurnMode): void;
   pipeline: Pipeline;
   pair: { a: string; b: string };
   running: boolean;
@@ -46,6 +49,15 @@ export function Controls(p: Props) {
             </button>
           ))}
         </div>
+        {p.mode === "realtime" && (
+          <div className="toggle" role="group" aria-label="Turn taking">
+            {(["ptt", "vad"] as TurnMode[]).map((m) => (
+              <button key={m} className={p.turnMode === m ? "on" : ""} onClick={() => p.onTurnMode(m)} data-testid={`turn-${m}`}>
+                {m === "ptt" ? "Push-to-talk" : "Auto (VAD)"}
+              </button>
+            ))}
+          </div>
+        )}
         {p.mode === "cascade" && (
           <label>
             Pipeline{" "}
@@ -68,10 +80,18 @@ export function Controls(p: Props) {
           <button className="primary" onClick={p.onStart} data-testid="start">Start session</button>
         )}
       </div>
-      <div className="row ptts">
-        {ptt("A", `${NAMES[p.pair.a]} → ${NAMES[p.pair.b]}`, "F")}
-        {ptt("B", `${NAMES[p.pair.b]} → ${NAMES[p.pair.a]}`, "J")}
-      </div>
+      {p.mode === "realtime" && p.turnMode === "vad" ? (
+        <div className="row ptts">
+          <p className="vad-hint" data-testid="vad-listening">
+            {p.ready ? "Listening: speak in either language; the model detects the end of your turn (server VAD) and translates." : "Start the session to listen."}
+          </p>
+        </div>
+      ) : (
+        <div className="row ptts">
+          {ptt("A", `${NAMES[p.pair.a]} → ${NAMES[p.pair.b]}`, "F")}
+          {ptt("B", `${NAMES[p.pair.b]} → ${NAMES[p.pair.a]}`, "J")}
+        </div>
+      )}
       <p className="hint">Use headphones. The mic is muted while a translation plays; pressing a speaker button interrupts playback.</p>
     </section>
   );
