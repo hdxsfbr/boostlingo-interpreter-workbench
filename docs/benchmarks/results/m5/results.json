@@ -1,0 +1,691 @@
+{
+ "generated": "2026-10-08",
+ "profiles": [
+  {
+   "profile": "realtime",
+   "providers": {
+    "realtime": "gpt-realtime"
+   },
+   "n": 48,
+   "done": 48,
+   "H": {
+    "n": 48,
+    "p50": 1002,
+    "p90": 1355,
+    "p95": 1373
+   },
+   "H_minus_gap": {
+    "n": 48,
+    "p50": 548,
+    "p90": 898,
+    "p95": 918
+   },
+   "tail": {
+    "n": 0,
+    "p50": null,
+    "p90": null,
+    "p95": null
+   },
+   "by_size": {
+    "short": {
+     "H": {
+      "n": 16,
+      "p50": 1024,
+      "p90": 1360,
+      "p95": 1360
+     },
+     "H_minus_gap": {
+      "n": 16,
+      "p50": 570,
+      "p90": 905,
+      "p95": 905
+     }
+    },
+    "medium": {
+     "H": {
+      "n": 20,
+      "p50": 1033,
+      "p90": 1366,
+      "p95": 1373
+     },
+     "H_minus_gap": {
+      "n": 20,
+      "p50": 578,
+      "p90": 912,
+      "p95": 918
+     }
+    },
+    "long": {
+     "H": {
+      "n": 12,
+      "p50": 990,
+      "p90": 1134,
+      "p95": 1134
+     },
+     "H_minus_gap": {
+      "n": 12,
+      "p50": 536,
+      "p90": 680,
+      "p95": 680
+     }
+    }
+   },
+   "quality": {
+    "en->es": {
+     "n": 24,
+     "chrF": 76.1,
+     "BLEU": 57.5,
+     "src_WER_corpus": 0.01,
+     "src_WER_mean": 0.009
+    },
+    "es->en": {
+     "n": 24,
+     "chrF": 81.2,
+     "BLEU": 67.7,
+     "src_WER_corpus": 0.011,
+     "src_WER_mean": 0.02
+    },
+    "all": {
+     "chrF": 78.6
+    },
+    "answered_rate": 0.0,
+    "judge_other": 0
+   },
+   "failures": {
+    "count": 0,
+    "rate": 0.0,
+    "reasons": {},
+    "split_turns": 0,
+    "hedges_fired": 0,
+    "hedges_won": 0
+   },
+   "roundtrip": {
+    "n": 48,
+    "wer_mean": 0.019,
+    "wer_max": 0.5,
+    "voiced_s_total": 174.1,
+    "max_db": -0.2
+   },
+   "cost": {
+    "usd_total": 0.6886,
+    "source_min": 3.84,
+    "usd_per_min": 0.1793,
+    "pricing_as_of": "2026-10-08",
+    "usd_per_min_first_1min": 0.227
+   }
+  },
+  {
+   "profile": "realtime-mini",
+   "providers": {
+    "realtime": "gpt-realtime-mini"
+   },
+   "n": 48,
+   "done": 48,
+   "H": {
+    "n": 48,
+    "p50": 1013,
+    "p90": 1367,
+    "p95": 1434
+   },
+   "H_minus_gap": {
+    "n": 48,
+    "p50": 560,
+    "p90": 911,
+    "p95": 981
+   },
+   "tail": {
+    "n": 0,
+    "p50": null,
+    "p90": null,
+    "p95": null
+   },
+   "by_size": {
+    "short": {
+     "H": {
+      "n": 16,
+      "p50": 1223,
+      "p90": 1367,
+      "p95": 1367
+     },
+     "H_minus_gap": {
+      "n": 16,
+      "p50": 768,
+      "p90": 911,
+      "p95": 911
+     }
+    },
+    "medium": {
+     "H": {
+      "n": 20,
+      "p50": 973,
+      "p90": 1006,
+      "p95": 1171
+     },
+     "H_minus_gap": {
+      "n": 20,
+      "p50": 518,
+      "p90": 549,
+      "p95": 716
+     }
+    },
+    "long": {
+     "H": {
+      "n": 12,
+      "p50": 1174,
+      "p90": 1434,
+      "p95": 1434
+     },
+     "H_minus_gap": {
+      "n": 12,
+      "p50": 716,
+      "p90": 981,
+      "p95": 981
+     }
+    }
+   },
+   "quality": {
+    "en->es": {
+     "n": 24,
+     "chrF": 73.3,
+     "BLEU": 47.9,
+     "src_WER_corpus": 0.006,
+     "src_WER_mean": 0.005
+    },
+    "es->en": {
+     "n": 24,
+     "chrF": 81.7,
+     "BLEU": 67.2,
+     "src_WER_corpus": 0.011,
+     "src_WER_mean": 0.02
+    },
+    "all": {
+     "chrF": 77.4
+    },
+    "answered_rate": 0.0,
+    "judge_other": 0
+   },
+   "failures": {
+    "count": 0,
+    "rate": 0.0,
+    "reasons": {},
+    "split_turns": 0,
+    "hedges_fired": 0,
+    "hedges_won": 0
+   },
+   "roundtrip": {
+    "n": 48,
+    "wer_mean": 0.011,
+    "wer_max": 0.125,
+    "voiced_s_total": 176.2,
+    "max_db": -4.1
+   },
+   "cost": {
+    "usd_total": 0.2,
+    "source_min": 3.84,
+    "usd_per_min": 0.0521,
+    "pricing_as_of": "2026-10-08",
+    "usd_per_min_first_1min": 0.0575
+   }
+  },
+  {
+   "profile": "cascade-openai",
+   "providers": {
+    "stt": "gpt-live-transcribe",
+    "mt": "gpt-5.4-nano",
+    "tts": "gpt-4o-mini-tts"
+   },
+   "n": 96,
+   "done": 96,
+   "H": {
+    "n": 96,
+    "p50": 545,
+    "p90": 2030,
+    "p95": 2175
+   },
+   "H_minus_gap": {
+    "n": 96,
+    "p50": 83,
+    "p90": 1572,
+    "p95": 1720
+   },
+   "tail": {
+    "n": 96,
+    "p50": 1715,
+    "p90": 2149,
+    "p95": 2200
+   },
+   "by_size": {
+    "short": {
+     "H": {
+      "n": 32,
+      "p50": 1791,
+      "p90": 2247,
+      "p95": 2270
+     },
+     "H_minus_gap": {
+      "n": 32,
+      "p50": 1334,
+      "p90": 1794,
+      "p95": 1817
+     }
+    },
+    "medium": {
+     "H": {
+      "n": 40,
+      "p50": 530,
+      "p90": 1985,
+      "p95": 2073
+     },
+     "H_minus_gap": {
+      "n": 40,
+      "p50": 76,
+      "p90": 1530,
+      "p95": 1618
+     }
+    },
+    "long": {
+     "H": {
+      "n": 24,
+      "p50": 525,
+      "p90": 535,
+      "p95": 543
+     },
+     "H_minus_gap": {
+      "n": 24,
+      "p50": 70,
+      "p90": 81,
+      "p95": 81
+     }
+    }
+   },
+   "quality": {
+    "en->es": {
+     "n": 48,
+     "chrF": 72.9,
+     "BLEU": 42.7,
+     "src_WER_corpus": 0.008,
+     "src_WER_mean": 0.011
+    },
+    "es->en": {
+     "n": 48,
+     "chrF": 78.4,
+     "BLEU": 53.5,
+     "src_WER_corpus": 0.032,
+     "src_WER_mean": 0.029
+    },
+    "all": {
+     "chrF": 75.6
+    },
+    "answered_rate": 0.01,
+    "judge_other": 1
+   },
+   "failures": {
+    "count": 0,
+    "rate": 0.0,
+    "reasons": {},
+    "split_turns": 0,
+    "hedges_fired": 2,
+    "hedges_won": 1
+   },
+   "roundtrip": {
+    "n": 96,
+    "wer_mean": 0.02,
+    "wer_max": 0.4,
+    "voiced_s_total": 505.5,
+    "max_db": -1.8
+   },
+   "cost": {
+    "usd_total": 0.3752,
+    "source_min": 7.68,
+    "usd_per_min": 0.0489,
+    "pricing_as_of": "2026-10-08",
+    "usd_per_min_first_1min": 0.0551
+   }
+  },
+  {
+   "profile": "cascade-openai-nomerge",
+   "providers": {
+    "stt": "gpt-live-transcribe",
+    "mt": "gpt-5.4-nano",
+    "tts": "gpt-4o-mini-tts"
+   },
+   "n": 96,
+   "done": 96,
+   "H": {
+    "n": 96,
+    "p50": 534,
+    "p90": 1943,
+    "p95": 2021
+   },
+   "H_minus_gap": {
+    "n": 96,
+    "p50": 77,
+    "p90": 1487,
+    "p95": 1565
+   },
+   "tail": {
+    "n": 96,
+    "p50": 1638,
+    "p90": 2114,
+    "p95": 2168
+   },
+   "by_size": {
+    "short": {
+     "H": {
+      "n": 32,
+      "p50": 1571,
+      "p90": 2021,
+      "p95": 2105
+     },
+     "H_minus_gap": {
+      "n": 32,
+      "p50": 1117,
+      "p90": 1565,
+      "p95": 1652
+     }
+    },
+    "medium": {
+     "H": {
+      "n": 40,
+      "p50": 529,
+      "p90": 1700,
+      "p95": 2006
+     },
+     "H_minus_gap": {
+      "n": 40,
+      "p50": 72,
+      "p90": 1245,
+      "p95": 1549
+     }
+    },
+    "long": {
+     "H": {
+      "n": 24,
+      "p50": 531,
+      "p90": 544,
+      "p95": 552
+     },
+     "H_minus_gap": {
+      "n": 24,
+      "p50": 75,
+      "p90": 86,
+      "p95": 88
+     }
+    }
+   },
+   "quality": {
+    "en->es": {
+     "n": 48,
+     "chrF": 69.8,
+     "BLEU": 36.2,
+     "src_WER_corpus": 0.019,
+     "src_WER_mean": 0.022
+    },
+    "es->en": {
+     "n": 48,
+     "chrF": 76.6,
+     "BLEU": 50.2,
+     "src_WER_corpus": 0.021,
+     "src_WER_mean": 0.025
+    },
+    "all": {
+     "chrF": 73.1
+    },
+    "answered_rate": 0.0,
+    "judge_other": 2
+   },
+   "failures": {
+    "count": 0,
+    "rate": 0.0,
+    "reasons": {},
+    "split_turns": 0,
+    "hedges_fired": 5,
+    "hedges_won": 2
+   },
+   "roundtrip": {
+    "n": 96,
+    "wer_mean": 0.032,
+    "wer_max": 0.75,
+    "voiced_s_total": 511.8,
+    "max_db": -2.3
+   },
+   "cost": {
+    "usd_total": 0.3819,
+    "source_min": 7.68,
+    "usd_per_min": 0.0497,
+    "pricing_as_of": "2026-10-08",
+    "usd_per_min_first_1min": 0.0573
+   }
+  },
+  {
+   "profile": "cascade-haiku",
+   "providers": {
+    "stt": "gpt-live-transcribe",
+    "mt": "anthropic/claude-haiku-5.5",
+    "tts": "gpt-4o-mini-tts"
+   },
+   "n": 48,
+   "done": 48,
+   "H": {
+    "n": 48,
+    "p50": 1654,
+    "p90": 2485,
+    "p95": 2844
+   },
+   "H_minus_gap": {
+    "n": 48,
+    "p50": 1198,
+    "p90": 2033,
+    "p95": 2390
+   },
+   "tail": {
+    "n": 48,
+    "p50": 2039,
+    "p90": 2671,
+    "p95": 2787
+   },
+   "by_size": {
+    "short": {
+     "H": {
+      "n": 16,
+      "p50": 2287,
+      "p90": 2844,
+      "p95": 2844
+     },
+     "H_minus_gap": {
+      "n": 16,
+      "p50": 1832,
+      "p90": 2390,
+      "p95": 2390
+     }
+    },
+    "medium": {
+     "H": {
+      "n": 20,
+      "p50": 819,
+      "p90": 2077,
+      "p95": 2250
+     },
+     "H_minus_gap": {
+      "n": 20,
+      "p50": 364,
+      "p90": 1623,
+      "p95": 1792
+     }
+    },
+    "long": {
+     "H": {
+      "n": 12,
+      "p50": 520,
+      "p90": 547,
+      "p95": 547
+     },
+     "H_minus_gap": {
+      "n": 12,
+      "p50": 64,
+      "p90": 90,
+      "p95": 90
+     }
+    }
+   },
+   "quality": {
+    "en->es": {
+     "n": 24,
+     "chrF": 81.3,
+     "BLEU": 58.4,
+     "src_WER_corpus": 0.01,
+     "src_WER_mean": 0.014
+    },
+    "es->en": {
+     "n": 24,
+     "chrF": 83.6,
+     "BLEU": 71.0,
+     "src_WER_corpus": 0.036,
+     "src_WER_mean": 0.037
+    },
+    "all": {
+     "chrF": 82.4
+    },
+    "answered_rate": 0.021,
+    "judge_other": 0
+   },
+   "failures": {
+    "count": 0,
+    "rate": 0.0,
+    "reasons": {},
+    "split_turns": 0,
+    "hedges_fired": 4,
+    "hedges_won": 0
+   },
+   "roundtrip": {
+    "n": 48,
+    "wer_mean": 0.05,
+    "wer_max": 0.667,
+    "voiced_s_total": 247.2,
+    "max_db": -0.5
+   },
+   "cost": {
+    "usd_total": 0.1841,
+    "source_min": 3.84,
+    "usd_per_min": 0.0479,
+    "pricing_as_of": "2026-10-08",
+    "usd_per_min_first_1min": 0.0545
+   }
+  },
+  {
+   "profile": "cascade-elevenlabs",
+   "providers": {
+    "stt": "gpt-live-transcribe",
+    "mt": "gpt-5.4-nano",
+    "tts": "elevenlabs-flash"
+   },
+   "n": 12,
+   "done": 12,
+   "H": {
+    "n": 12,
+    "p50": 528,
+    "p90": 1551,
+    "p95": 1551
+   },
+   "H_minus_gap": {
+    "n": 12,
+    "p50": 74,
+    "p90": 1098,
+    "p95": 1098
+   },
+   "tail": {
+    "n": 12,
+    "p50": 1430,
+    "p90": 1560,
+    "p95": 1560
+   },
+   "by_size": {
+    "short": {
+     "H": {
+      "n": 4,
+      "p50": 1461,
+      "p90": 1607,
+      "p95": 1607
+     },
+     "H_minus_gap": {
+      "n": 4,
+      "p50": 1006,
+      "p90": 1154,
+      "p95": 1154
+     }
+    },
+    "medium": {
+     "H": {
+      "n": 4,
+      "p50": 527,
+      "p90": 1332,
+      "p95": 1332
+     },
+     "H_minus_gap": {
+      "n": 4,
+      "p50": 71,
+      "p90": 874,
+      "p95": 874
+     }
+    },
+    "long": {
+     "H": {
+      "n": 4,
+      "p50": 526,
+      "p90": 528,
+      "p95": 528
+     },
+     "H_minus_gap": {
+      "n": 4,
+      "p50": 70,
+      "p90": 75,
+      "p95": 75
+     }
+    }
+   },
+   "quality": {
+    "en->es": {
+     "n": 6,
+     "chrF": 64.6,
+     "BLEU": 25.6,
+     "src_WER_corpus": 0.011,
+     "src_WER_mean": 0.005
+    },
+    "es->en": {
+     "n": 6,
+     "chrF": 80.7,
+     "BLEU": 61.7,
+     "src_WER_corpus": 0.013,
+     "src_WER_mean": 0.013
+    },
+    "all": {
+     "chrF": 72.5
+    },
+    "answered_rate": 0.0,
+    "judge_other": 0
+   },
+   "failures": {
+    "count": 0,
+    "rate": 0.0,
+    "reasons": {},
+    "split_turns": 0,
+    "hedges_fired": 0,
+    "hedges_won": 0
+   },
+   "roundtrip": {
+    "n": 12,
+    "wer_mean": 0.022,
+    "wer_max": 0.125,
+    "voiced_s_total": 59.9,
+    "max_db": -0.6
+   },
+   "cost": {
+    "usd_total": 0.0657,
+    "source_min": 1.11,
+    "usd_per_min": 0.0594,
+    "pricing_as_of": "2026-10-08",
+    "usd_per_min_first_1min": 0.0594
+   }
+  }
+ ]
+}
