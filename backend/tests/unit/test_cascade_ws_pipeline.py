@@ -41,10 +41,23 @@ def test_cascade_over_websocket_with_fake_providers(monkeypatch):
 
 
 def test_unknown_provider_reports_config_error(monkeypatch):
+    monkeypatch.setenv("CASCADE_STT", "fake")
+    monkeypatch.setenv("CASCADE_MT", "fake")
     monkeypatch.setenv("CASCADE_TTS", "nope")
     get_settings.cache_clear()
     with TestClient(create_app()).websocket_connect("/ws/cascade") as ws:
         ws.send_text(json.dumps({"type": "session.start", "pipeline": "cascade"}))
         ev = json.loads(ws.receive_text())
         assert ev["type"] == "error" and ev["code"] == "config_error" and "nope" in ev["message"]
+    get_settings.cache_clear()
+
+
+def test_missing_openai_key_is_a_config_error(monkeypatch):
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("CASCADE_STT", raising=False)
+    get_settings.cache_clear()
+    with TestClient(create_app()).websocket_connect("/ws/cascade") as ws:
+        ws.send_text(json.dumps({"type": "session.start", "pipeline": "cascade"}))
+        ev = json.loads(ws.receive_text())
+        assert ev["code"] == "config_error" and "OPENAI_API_KEY" in ev["message"]
     get_settings.cache_clear()
