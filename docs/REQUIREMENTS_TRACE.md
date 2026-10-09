@@ -19,10 +19,12 @@ Checked against the code at commit `fd48fa1` plus the docs fixes of 9 Oct 2026.
 
 | Source | Met | Partial | Not met | N/A | Total |
 |---|---|---|---|---|---|
-| Brief | 34 | 3 | 0 | 2 | 39 |
+| Brief | 36 | 1 | 0 | 2 | 39 |
 | Portal | 5 | 0 | 0 | 6 | 11 |
-| PRD | 47 | 3 | 2 | 2 | 54 |
-| **All** | **86** | **6** | **2** | **10** | **104** |
+| PRD | 51 | 1 | 0 | 2 | 54 |
+| **All** | **92** | **2** | **0** | **10** | **104** |
+
+Updated 9 Oct 2026 after DESIGN A14 (config-driven pairs + EN↔FR, live provider tests, default `gpt-realtime`). The two remaining Partial rows are both the cascade < 2 s p90 target (B-PERF2b, NFR-1).
 
 **Gaps** (all Partial and Not met rows, and what closing each would take) are listed at the end.
 
@@ -31,10 +33,10 @@ Checked against the code at commit `fd48fa1` plus the docs fixes of 9 Oct 2026.
 | ID | Requirement (quoted) | Status | Evidence |
 |---|---|---|---|
 | B-FR1 | "Browser-based SPA with microphone capture and audio playback" | Met | `frontend/src/audio/engine.ts`, `capture.worklet.ts`, `playback.worklet.ts`; mic denial handled (`benchmarks/results/m5/error_pass.txt` "mic_denied: PASS") |
-| B-FR2 | "Realtime mode using OpenAI Realtime API (gpt-realtime) - voice in, voice out" | Met | `session/transports/realtimeWebrtc.ts`, `backend/app/api/realtime_session.py`; benchmarked with `gpt-realtime` in [`m5/summary.md`](benchmarks/results/m5/summary.md). Note: the config default for development is `gpt-realtime-mini`; `REALTIME_MODEL=gpt-realtime make up` or `?rt_model=gpt-realtime` selects the required model |
+| B-FR2 | "Realtime mode using OpenAI Realtime API (gpt-realtime) - voice in, voice out" | Met | `session/transports/realtimeWebrtc.ts`, `backend/app/api/realtime_session.py`; benchmarked with `gpt-realtime` in [`m5/summary.md`](benchmarks/results/m5/summary.md). `config/app.yaml` defaults to `gpt-realtime` since A14 (plain `make up`); `?rt_model=gpt-realtime-mini` selects mini |
 | B-FR3 | "Cascade mode using a composed STT → Translation → TTS pipeline with streaming" | Met | `backend/app/cascade/session.py`; `tests/unit/test_cascade_session.py::test_chunks_pipeline_into_tts_before_translation_finishes`, `::test_segments_pipeline_but_audio_stays_in_segment_order` |
 | B-FR4 | "UI toggle to switch between modes mid-session or pre-session" | Met | Pre-session: mode buttons and `?mode=`. Mid-session: `InterpreterSession.setMode` tears down and reconnects with the mic live. Leak check: 6 switches, 1 open transport ([`m2-realtime-smoke.md`](benchmarks/m2-realtime-smoke.md)). **Live check on 9 Oct 2026:** one session, one PTT turn each in cascade → realtime → cascade; all three turns done, timeline `turn, switch, turn, switch, turn`, 1 open transport, no errors. Switch marker: `store/reducer.test.ts` |
-| B-FR5 | "Language pair selection (minimum: English ↔ Spanish)" | Partial | English ↔ Spanish works in both directions (Speaker A = EN→ES, Speaker B = ES→EN; M5 covers both). There is **no pair selector**: the pair is fixed in `frontend/src/App.tsx` (`PAIR = { a: "en", b: "es" }`), and only one pair exists |
+| B-FR5 | "Language pair selection (minimum: English ↔ Spanish)" | Met | Pair selector in the Interpreter controls (`ui/Controls.tsx`, `data-testid=pair-select`), fed by `GET /api/languages` from `config/languages.yaml` (validated by `backend/app/core/languages.py`); `?pair=` preselects. English ↔ Spanish is the default and benchmarked pair; English ↔ French is configured and smoke-tested ([`en-fr-smoke`](benchmarks/results/en-fr-smoke/README.md)). Tests: `tests/unit/test_languages.py`, `src/languages.test.ts` (DESIGN A14) |
 | B-FR6 | "Live transcripts showing both source and target text as they're produced" | Met | `ui/TranscriptPane.tsx` (partials in grey italics, then final text); `transcript.partial` events in `core/events.py`; `store/reducer.test.ts` (partial → final) |
 | B-FR7 | "Per-stage latency display visible to the user" | Met | `ui/LatencyWaterfall.tsx` (STT final → MT first token → TTS first byte → first audible sample; Realtime event times), `ui/MetricsSummary.tsx` (p50/p90 per mode) |
 | B-FR8 | "Comparison write-up (1–2 pages) covering latency, quality, cost, controllability, and a recommendation" | Met | [`comparison.md`](comparison.md), 2 pages at 11pt with 0.75in margins (re-checked 9 Oct); depth in [`comparison-details.md`](comparison-details.md) |
@@ -83,7 +85,7 @@ Checked against the code at commit `fd48fa1` plus the docs fixes of 9 Oct 2026.
 | B-KM2 | Impact metric: "cost per minute" | Met | [`KEY_METRICS.md`](KEY_METRICS.md) §2 ($0.179 Realtime, $0.052 mini, $0.048–0.059 cascade) |
 | B-KM3 | Impact metric: "interpretation quality (subjective + WER)" | Met | WER and chrF in M5; blind ratings with 1 rater ([`blind/results.md`](benchmarks/blind/results.md)); in-app ratings via the Review tab (A12) |
 | B-KM4 | Impact metric: "provider flexibility" | Met | [`provider-swaps.md`](provider-swaps.md); KEY_METRICS §4 |
-| B-KM5 | Impact metric: "time-to-onboard a new language pair" | Partial | Steps listed in KEY_METRICS §5; **not demonstrated or timed** (no third pair) |
+| B-KM5 | Impact metric: "time-to-onboard a new language pair" | Met | English ↔ French onboarded config-only and smoke-tested in 1 min 15 s of wall time, steps in KEY_METRICS §5. No quality claims for the new pair |
 
 ## 5. Portal
 
@@ -122,15 +124,15 @@ The portal repeats the brief's functional list in short form (mic SPA, both mode
 | FR-3.4 | Stages joined by backpressure-aware queues | Met | `cascade/session.py` (asyncio TaskGroup + bounded queues); `::test_cancel_tears_down_all_tasks` |
 | FR-4 | Mode toggle pre/mid-session; clean teardown; history kept with a marker | Met | As B-FR4 |
 | FR-5 | EN ↔ ES at minimum, bidirectional | Met | Speaker A/B buttons (D2), both directions benchmarked |
-| FR-5 (selector) | "explicit source-language selector with a swap button" | Partial | Superseded by D2's Speaker A/B buttons, which choose the direction per turn. No pair selector (see B-FR5) |
-| FR-5 (config) | "The pair list is config-driven, so new pairs are configuration, not code" | Not met | `config/languages.yaml` exists, but the UI pair and language-name maps are in code (KEY_METRICS §5) |
+| FR-5 (selector) | "explicit source-language selector with a swap button" | Met | Pair selector (B-FR5) plus D2's Speaker A/B buttons, which choose the direction per turn (they replace the swap button) |
+| FR-5 (config) | "The pair list is config-driven, so new pairs are configuration, not code" | Met | `config/languages.yaml` is the only source of language names, pairs, default pair and per-language voices; the hard-coded EN/ES maps and defaults were removed (A14). Adding EN↔FR changed no code |
 | FR-6 | Live transcripts, interim styled differently, then final | Met | As B-FR6 |
 | FR-7 | Per-turn waterfall per mode | Met | As B-FR7 |
 | FR-7 (stats) | Rolling median and p90; JSON/CSV export | Met | `store/metrics.ts`, `ui/MetricsSummary.tsx` (Export JSON / CSV) |
 | FR-8 | Comparison write-up | Met | As B-FR8 |
 | FR-9 | Should-have: provider selector per cascade stage | Met | Translator / Voice selectors (`ui/Controls.tsx`), `?mt=` / `?tts=`; STT has one adapter so no selector |
 | FR-10 | Should-have: session recording of metrics, no audio by default | Met | Turn records in `data/sessions/*.jsonl`; audio recording is opt-in and off by default (A11) |
-| FR-11 | Should-have: a third language pair | Not met | Not built (optional) |
+| FR-11 | Should-have: a third language pair | Met | English ↔ French (config + smoke test: Realtime both directions, one cascade turn). Not benchmarked; no quality claims |
 | NFR-1 | Latency targets | Partial | As B-PERF1, B-PERF2a (met) and B-PERF2b (< 2 s met at p50, not p90) |
 | NFR-2 | 5-minute stability, soak with memory snapshots | Met | As B-PERF3 |
 | NFR-3 | Sample-rate handling; no playback drift | Met | `capture.worklet.ts` resamples to 24 kHz PCM16; soak drift ≤ 42 ms |
@@ -142,7 +144,7 @@ The portal repeats the brief's functional list in short form (mic SPA, both mode
 | CQ-3.2 | Adapter contract tests, no live keys | Met | `tests/contract/` (6 files) |
 | CQ-3.3 | Error-path tests | Met | `test_retry_errors.py`, `test_hedge.py`, `test_budget.py`, error tests in `test_cascade_session.py` |
 | CQ-3.4 | Frontend transcript state and metrics aggregation | Met | `store/reducer.test.ts`, `audio/clock.test.ts`, transport and normaliser tests |
-| CQ-3.5 | "One opt-in live smoke test per provider, skipped without keys" | Partial | `backend/tests/live/` is empty. Live checks exist as scripts instead: `eval/openrouter_check.py`, `eval/anthropic_check.py`, `eval/browser_smoke.py`, and the M5 harness runs |
+| CQ-3.5 | "One opt-in live smoke test per provider, skipped without keys" | Met | `backend/tests/live/test_live_providers.py`: OpenAI STT, MT, TTS, Realtime mint, OpenRouter MT, ElevenLabs (5 chars through `ElevenLabsBudget` and the real ledger). Skipped unless `LIVE_TESTS=1` and the key is set; not collected otherwise (`tests/conftest.py`). Run 9 Oct 2026: 6/6 passed (README "Live provider tests") |
 | CQ-4 (429) | Rate limits: back off and report | Met | As B-CQ4a |
 | CQ-4 (timeouts) | Timeouts | Met | As B-CQ4b |
 | CQ-4 (empty) | Empty results | Met | As B-CQ4c |
@@ -166,16 +168,14 @@ The portal repeats the brief's functional list in short form (mic SPA, both mode
 
 **Docs-only gaps:** none open. The stale statements found in this review were fixed in the same series of commits (README, ARCHITECTURE, DESIGN, SCALING, KEY_METRICS, comparison).
 
-**Needs code (for the CTO):**
-1. **Language pair selector and config-driven pairs** (B-FR5, FR-5 selector, FR-5 config; also unblocks B-KM5).
-   - Replace `PAIR = { a: "en", b: "es" }` in `frontend/src/App.tsx` with a selector fed by `config/languages.yaml` (served from an endpoint or `/healthz`).
-   - Move the language-name maps out of `providers/mt/openai.py`, `providers/tts/openai.py`, `realtime/session_config.py` and `frontend/src/session/realtimePrompt.ts` into that config.
-   - Remove the `"en"`/`"es"` defaults in `api/realtime_session.py`, `api/realtime_relay.py`, `core/events.py`, `cascade/session.py`, `providers/stt/openai_live.py`.
-   - Rough size: small to medium. With EN↔ES as the only entry, the visible change is a dropdown with one option.
-2. **Third language pair, timed** (FR-11, B-KM5). After item 1: add sentences and fixtures for the pair, extend `eval/harness.py`'s speaker map and `experiments/config.py`'s `directions`, run an Experiments run and a Review set, and record the wall-clock time. Optional in the brief.
-3. **Cascade < 2 s at p90** (B-PERF2b, NFR-1). Short-sentence p90 is 2247 ms. The cost split (TTS first byte ≈ 0.6 s; STT final after release) points at TTS first-byte time and the 450 ms release. Options already measured: `STT_DELAY=minimal` (≈ −0.2 s, worse WER) and ElevenLabs Flash (short p90 1607 ms on 4 turns). This is a tuning or provider decision, not a bug.
-4. **Opt-in live smoke tests per provider** (CQ-3.5). Add `backend/tests/live/test_<provider>.py`, each skipped unless its key is set (and ElevenLabs only with `ELEVENLABS_LIVE_TEST=1`), as DESIGN §8 planned. Small.
+**Closed on 9 Oct 2026 (DESIGN A14):**
+- Language pair selector and config-driven pairs (B-FR5, FR-5 selector, FR-5 config).
+- Third language pair, timed (FR-11, B-KM5): English ↔ French, smoke-tested only.
+- Opt-in live provider tests (CQ-3.5).
+
+**Still open (needs a tuning or provider decision):**
+1. **Cascade < 2 s at p90** (B-PERF2b, NFR-1). Short-sentence p90 is 2247 ms. The cost split (TTS first byte ≈ 0.6 s; STT final after release) points at TTS first-byte time and the 450 ms release. Options already measured: `STT_DELAY=minimal` (≈ −0.2 s, worse WER) and ElevenLabs Flash (short p90 1607 ms on 4 turns). This is a tuning or provider decision, not a bug.
 
 **Recommendations (not requirement gaps):**
-- **Default Realtime model.** `config/app.yaml` defaults to `gpt-realtime-mini`, so a grader running plain `make up` gets mini, not the brief's `gpt-realtime`. Consider `realtime.model: gpt-realtime` for the submission (one config line), or say it on the first screen of the README run section (it is said further down today).
+- ~~Default Realtime model~~: done in A14. `config/app.yaml` now defaults to `gpt-realtime`.
 - **Demo video** (P-SUB6, optional): a 3–5 minute screen recording of the README demo steps would help reviewers who don't run the app.

@@ -216,7 +216,7 @@ DESIGN §6 has the full table. In short:
 
 - **`config/app.yaml`:** active providers and model ids. Model ids live only here, not in code. It also holds cascade switches (early translation, fragment merging, chunk sizes), timeouts, ElevenLabs caps and recording settings.
 - **Environment variables** override it: `CASCADE_STT`, `CASCADE_MT`, `CASCADE_TTS`, `REALTIME_MODEL`, `MT_MODEL`, `RECORDING_ENABLED`, `ELEVENLABS_ENABLED` and others.
-- **`config/languages.yaml`:** language pairs and an optional glossary per pair.
+- **`config/languages.yaml`:** languages (names, optional per-language voices), pairs (with `benchmarked` and an optional glossary) and the default pair (A14). `app/core/languages.py` validates it and is the only place language names live. It is served at `GET /api/languages` for the pair selector. An unconfigured pair is refused.
 - **`config/pricing.yaml`:** dated prices, used by the evaluation metrics and the Experiments tab's cost estimate.
 - **`experiments.*`** in `config/app.yaml`: `confirm_above_usd` (default $1; a larger estimated cost needs a confirmation) and `self_url` (the address the experiment job drives).
 - **Image settings:** `BENCH_DIR` (the blind set and M5 results shipped in the image, read by the Review and Experiments tabs) and `GIT_COMMIT` (stamped by `make up` so each experiment records the code version).

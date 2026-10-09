@@ -64,7 +64,9 @@ The key is mounted as a file secret, never put in `.env`. The guard refuses past
 6. Press a speaker button while a translation plays to barge in. **Export JSON / CSV** downloads the session's turns and latencies.
 7. Open the **Review** tab, enter a name and rate a few blind clips with the keyboard, or open Results as `andre` (see "Review tab" below).
 
-URL options: `?tab=review|experiments`, `?mode=realtime`, `?rt_model=gpt-realtime|gpt-realtime-mini` (Realtime model for this session, from a server allowlist), `?rt=webrtc|relay|auto` (default `auto`: WebRTC, falling back to the relay), `?turn=vad` (VAD instead of PTT; `vad_ms=` sets the window), `?mt=openrouter`, `?tts=elevenlabs`.
+**Language pair:** pick it in the **Pair** dropdown before starting a session. English ↔ Spanish is the default and the only benchmarked pair; English ↔ French is configured and smoke-tested only. Pairs come from `config/languages.yaml`: to add one, add its languages and the pair there and rebuild (KEY_METRICS §5).
+
+URL options: `?pair=en-fr` (preselect a pair), `?tab=review|experiments`, `?mode=realtime`, `?rt_model=gpt-realtime|gpt-realtime-mini` (Realtime model for this session, from a server allowlist), `?rt=webrtc|relay|auto` (default `auto`: WebRTC, falling back to the relay), `?turn=vad` (VAD instead of PTT; `vad_ms=` sets the window), `?mt=openrouter`, `?tts=elevenlabs`.
 
 Other targets: `make test` (backend pytest + frontend Vitest/tsc, no keys or network needed), `make test-docker` (both suites inside Docker with `--network none`), `make logs`, `make down`, `make dev-backend` / `make dev-frontend` (Vite dev server with proxy on :5180), `make fixtures` (benchmark audio).
 

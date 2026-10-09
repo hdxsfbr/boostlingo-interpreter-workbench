@@ -136,6 +136,22 @@ Decided or recorded during M4 (2026-10-08):
   - **History, detail, compare.** History lists every experiment. Detail shows the M5-summary columns (H and H−gap p50/p90, tail, chrF per direction and overall, source WER, $/min, $ total, failures), a per-turn latency scatter with p50 lines, and CSV (summary or per turn) and JSON exports. Compare puts two experiments side by side with B−A deltas.
   - **M5 baseline.** `docs/benchmarks/results/m5/results.json` is imported once as the read-only experiment `m5-baseline` (summary verbatim, per-turn rows from `raw/`). A test asserts it equals `results.json`.
   - **Not done (time box):** a queue (runs are refused instead), "create review set from this experiment", judge/round-trip metrics in-app, and a per-experiment server config (e.g. playback policy). Runs use the container's current config, except the Realtime model and the MT/TTS choice.
+- **A14: Config-driven language pairs, a third pair, live provider tests, `gpt-realtime` default (Andre via Butler, closing REQUIREMENTS_TRACE gaps).**
+  - **Pairs are configuration.** `config/languages.yaml` holds `languages` (code → name, optional per-provider voices), `pairs` (id, a, b, `benchmarked`, glossary) and `default_pair`. `backend/app/core/languages.py` validates it: ISO codes, defined languages, a ≠ b, unique ids, an existing default. It is the only place language names live.
+  - **What reads it:**
+    - Realtime session and per-turn prompts.
+    - MT and TTS instructions.
+    - The live STT language hint, which now follows the session's pair; it used to be fixed in `app.yaml`.
+    - Default `src`/`tgt` for the mint, the relay, `session.start` and `CascadeSession`.
+    - The glossary and missing TTS voices.
+    - `GET /api/languages`, which feeds the UI.
+    - The Experiments `directions`, which are "both" or one language of the `benchmarked` pair.
+  - **Refusal.** An unconfigured pair is refused: 400 on the mint, `bad_request` on the relay, a config error at cascade `session.start`.
+  - **UI.** A pair selector sits in the Interpreter controls. It is disabled during a session, `?pair=` preselects a pair, and Start waits until the config has loaded. Speaker A speaks the pair's `a`.
+  - **Third pair.** English ↔ French was onboarded as config only, with a 4-sentence smoke set (`docs/benchmarks/pairs/en-fr.yaml`) and a smoke run: Realtime mini in both directions plus one cascade turn. It took 1 min 15 s, timed separately (KEY_METRICS §5). It is not benchmarked, and we make no quality claims. The harness gained `--pair/--utterances/--fixtures`, and `make_fixtures.py` gained `--utterances`.
+  - **Live provider tests (PRD CQ-3.5).** `backend/tests/live/` has one minimal call each for OpenAI STT, MT, TTS, the Realtime mint, OpenRouter MT, and ElevenLabs (5 characters, through `ElevenLabsBudget` and the real ledger). Each skips unless `LIVE_TESTS=1` and its key is set. `tests/conftest.py` keeps them out of collection otherwise, so `pytest`, `make test` and `make test-docker` never reach them.
+  - **Default Realtime model.** The default is now `gpt-realtime`, the brief's model, superseding the dev default of D5. Mini stays one URL flag away (`?rt_model=gpt-realtime-mini`) or `REALTIME_MODEL=gpt-realtime-mini`. The Experiments tab still defaults to the `realtime-mini` setup for cost.
+  - **Still EN/ES-specific (benchmark tooling only):** `docs/benchmarks/utterances.yaml` and `eval/metrics.py`'s WER normalisers.
 
 ## 1. Transport per mode
 

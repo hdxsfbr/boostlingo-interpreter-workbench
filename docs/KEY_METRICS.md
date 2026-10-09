@@ -218,36 +218,20 @@ Details are in [comparison-details.md](comparison-details.md#cost-breakdown).
 
 **Definition.** How long, and how much work, it takes to add a new pair (for example English↔Portuguese) to the app, including checking that it works.
 
-**What is needed today** (from the code, 9 Oct 2026). Adding a pair is **not yet config only**: several files still assume English and Spanish.
+**How a pair is added now** (since DESIGN A14, 9 Oct 2026). A pair is **configuration only**. Language names, pairs, the default pair and optional per-language voices live in [`config/languages.yaml`](../config/languages.yaml). Prompts, provider instructions, the STT language hint, session defaults, the Interpreter's pair selector and the Experiments directions all read it, and unconfigured pairs are refused.
 
-1. **Config.**
-   - Add the pair to [`config/languages.yaml`](../config/languages.yaml), with an optional glossary.
-   - Add the language code to `providers.openai_live.languages`, and a voice per language under `openai_tts.voices` and `elevenlabs.voices` in `config/app.yaml`.
-2. **Code** (small, mechanical edits).
-   - Add the language's display name to the name maps in `backend/app/providers/mt/openai.py`, `backend/app/providers/tts/openai.py`, `backend/app/realtime/session_config.py` and `frontend/src/session/realtimePrompt.ts`.
-   - Replace the fixed pair in `frontend/src/App.tsx` (`PAIR = { a: "en", b: "es" }`) with a selector. The PRD requires one, but the app does not have it yet.
-   - Several defaults also say `"en"`/`"es"` (`api/realtime_session.py`, `api/realtime_relay.py`, `core/events.py`, `cascade/session.py`). They are overridden per session, but should be cleaned up.
-3. **Evaluation data.**
-   - Write test sentences and reference translations for both directions in `benchmarks/utterances.yaml`.
-   - Generate test audio (`scripts/make_fixtures.py` has per-language voice and accent settings).
-   - Extend the test robot (`eval/harness.py` assumes `en`/`es` speakers) and the WER text clean-up for the new language.
-   - Then run the benchmarks and a native-speaker review.
-4. **Vendor coverage check.**
-   - Each vendor must support the language. ElevenLabs Flash v2.5 lists 32 languages ([`api-research.md`](api-research.md) §4.2).
-   - OpenAI notes its voices are "optimized for English".
-   - We found no published language list for `gpt-realtime`.
+**Measured: English ↔ French, onboarded 9 Oct 2026.** The steps below took **1 min 15 s of wall-clock time** (16:03:17–16:04:32 PT), timed separately from the refactor that made pairs configurable. The work was done by the coding agent, so a person editing by hand would take longer.
+1. **Config.** Add `fr: {name: French}` and an `en-fr` pair (`benchmarked: false`) to `config/languages.yaml`. No code was changed for the pair. The OpenAI voice (`marin`) is used for French because no per-language voice was set. ElevenLabs would need a French voice id under `languages.fr.voices.elevenlabs` (not done; ElevenLabs was not used).
+2. **Smoke sentences.** Write [`docs/benchmarks/pairs/en-fr.yaml`](benchmarks/pairs/en-fr.yaml): 2 short sentences per direction with reference translations.
+3. **Test audio.** `python scripts/make_fixtures.py --utterances docs/benchmarks/pairs/en-fr.yaml --out data/fixtures-en-fr`. The time includes adding the `--utterances` option to that script, a one-off tooling change that later pairs won't need.
+4. **Rebuild and check.** `make up`, then the harness with `--pair en,fr --dirs en,fr --utterances … --fixtures …`:
+   - Realtime (`gpt-realtime-mini`, WebRTC): one sentence in each direction.
+   - Cascade: one French → English turn.
+   - All three turns completed with a plausible translation ([`results/en-fr-smoke/`](benchmarks/results/en-fr-smoke/README.md)). The cost was under $0.01.
 
-**How it would be measured now.** The two newer tabs cover the evaluation step, but only for English and Spanish today:
-- **Experiments tab (A13):** once a pair's sentences and audio exist, one run gives its latency, source WER, chrF and cost per minute next to the M5 baseline. Today the runner's directions are fixed to `both`, `en` or `es`, and the sentence list (`utterances.yaml`) has only English and Spanish (`backend/app/experiments/config.py`, `runner.py`).
-- **Review tab (A12):** a native speaker can rate recorded sessions of the new pair (record a session, then **Create review set**). Nothing in the Review tab is tied to a language pair.
-- **Onboarding time** itself would be the wall-clock time from the first config edit to a passing Experiments run plus a Review set; nobody has timed it.
+**Not included in that time, and not done:** a real benchmark set for the pair, its latency/WER/chrF measurements, and a native-speaker review. **We make no quality claims for English ↔ French.** English ↔ Spanish remains the default and the only benchmarked pair. The Experiments tab runs only the benchmarked pair (its utterance set is English/Spanish), and `eval/metrics.py`'s WER normalisers cover English and Spanish only. The Review tab works for any recorded session.
 
-**Measured.** **Not demonstrated.** The optional third pair (PRD FR-11) was not built, so we have no measured onboarding time. We give no hour estimate, because nothing here would ground one.
-- **What can be said:** the code changes are a handful of small edits in about ten files.
-- **The longer job is evaluation:** writing reference translations, plus native-speaker review.
-
-**Status.** **Pending (untested).**
-- **Next step:** make the language names and the pair selector config-driven, then time a real third pair end to end.
+**Status.** **Done (reported).** Onboarding is config-only and timed at about a minute for a smoke-tested pair. Evaluation remains the long step.
 
 ## Summary
 
@@ -260,4 +244,4 @@ Details are in [comparison-details.md](comparison-details.md#cost-breakdown).
 | WER | Reported | 0.006–0.011 English; 0.011–0.036 Spanish | Met (reported) |
 | Subjective quality | Reported | 1 rater, 12 sentences per setup: composite 4.92 Realtime, 4.70 ElevenLabs, 4.36 OpenAI cascade, 4.22 Haiku | Done (smoke test) |
 | Provider flexibility | One adapter + config | 6 adapters; swapping is config only; 3 swaps with no orchestrator or UI change | Met (cascade) |
-| Language-pair onboarding | Reported | Steps listed; not demonstrated | Pending |
+| Language-pair onboarding | Reported | Config only; EN↔FR onboarded and smoke-tested in 1 min 15 s (no quality claims) | Done |
