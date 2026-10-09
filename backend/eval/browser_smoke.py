@@ -177,7 +177,7 @@ def main() -> None:
     ap.add_argument("--turns", type=int, default=3)
     ap.add_argument("--min-speech-ms", type=int, default=1500,
                     help="release only after voice was heard at least this long after the press")
-    ap.add_argument("--release-silence-ms", type=int, default=700)
+    ap.add_argument("--release-silence-ms", type=int, default=450, help="PTT release after the last voiced frame (fixed 450 ms for benchmarks, DESIGN A2)")
     ap.add_argument("--press-silence-ms", type=int, default=700)
     ap.add_argument("--gap-ms", type=int, default=500)
     ap.add_argument("--turn-timeout", type=int, default=30)
