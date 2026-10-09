@@ -89,6 +89,16 @@ The harness drives the real SPA in headless Chrome and plays each fixture as the
 
 Results of the last browser pass: [`docs/benchmarks/results/m5/error_pass.txt`](docs/benchmarks/results/m5/error_pass.txt).
 
+## Session recording (opt-in, for audit; DESIGN A11)
+
+- **Off by default.** Enable it on the server with `recording.enabled: true` in `config/app.yaml` or `RECORDING_ENABLED=1` in `.env`, then `make up`. Then tick **Record session** before starting a session. The UI shows a consent notice and a red "● Recording" indicator while the session runs. With the server flag off, the toggle is disabled and the server refuses recordings: the cascade gets a `recording_refused` banner and Realtime uploads get 403.
+- **What is saved:** both sides of every turn, in both modes, at `data/recordings/<session_id>/turn-<n>-{source,target}.<ext>`, next to `data/sessions/<session_id>.jsonl`. The turn records reference the paths, and each saved file adds an audit line.
+  - Cascade: WAV (24 kHz mono), captured on the server: inbound mic PCM and the TTS output.
+  - Realtime (WebRTC or relay): webm/opus recorded in the browser (mic track, and the output the listener hears), uploaded per turn to `POST /api/recordings/<sid>/turns/<n>/{source|target}`.
+- **Retention:** `recording.retention_days` (default 30), swept at startup and every 6 h. Delete one session's audio now with `curl -X DELETE http://127.0.0.1:8740/api/recordings/<session_id>`.
+- **Turn boundaries in Realtime are approximate.** Source runs from turn start to the end of speech (+200 ms). Target runs from turn start to the end of playback (+500 ms tail), so it begins with the listener's silence while the speaker talks. A barge-in cuts the old turn's target short. In VAD mode the turn starts when OpenAI's VAD fires, so the first ~100–300 ms of speech can be missing from the source file.
+- **Local demo only.** `data/recordings/` is gitignored and never leaves the machine. **Production would need encryption at rest, access control on the recording endpoints (today anyone who can reach the port can upload or delete), access logging, and a per-participant consent record.**
+
 ## Configuration and secrets
 
 - `.env` (gitignored, mode 600) holds `OPENAI_API_KEY` and `OPENROUTER_API_KEY` (Haiku runs via OpenRouter). The direct Anthropic adapter is disabled and its key is no longer loaded. `.env.example` lists the variables without values. `scripts/setup_env.py` fills them from key files and prints only "set"/"missing".

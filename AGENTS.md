@@ -131,3 +131,11 @@ This repo is built by an agentic coding assistant (Grok Bot executor agents) dir
 - **After M5 (Andre):**
   - Speculative MT/TTS is off by default when ElevenLabs is the TTS, so cancelled speculative chunks don't spend demo credits (DESIGN A9; `cascade.speculative_with_elevenlabs` opts back in; covered by unit tests with mocked providers).
   - Recorded decisions (DESIGN A10): nano stays the cascade default for the latency target, Haiku via OpenRouter is the quality option, and fragment merging stays on.
+- **Session recording (DESIGN A11, Andre, time-boxed ~1.5 h):**
+  - Opt-in audit recording, off by default (config flag plus a per-session UI toggle with a consent notice and a "● Recording" indicator). With the flag off, the server refuses: cascade `recording_refused`, uploads 403.
+  - Cascade is captured server-side as WAV (inbound PCM and TTS PCM). Realtime is captured in the browser with MediaRecorder (mic track and output tap) and uploaded per turn to a validated endpoint (id regex, turn, side, content type, size, path-traversal checks, atomic write).
+  - Files go to `data/recordings/<sid>/turn-<n>-{source,target}.<ext>`, with an audit line per file in the session JSONL and the paths in the turn records. Retention defaults to 30 days, swept at startup and every 6 h; `DELETE /api/recordings/<sid>` removes a session.
+  - Tests: 8 backend tests (off by default, files when on, nothing without the toggle, server refusal, upload 403/validation/traversal, retention, delete) and 7 Vitest tests (per-turn MediaRecorder lifecycle, barge-in, flush on close, toggle disabled/consent, turn-record paths). All mocked.
+  - One live smoke per mode with `RECORDING_ENABLED=1` and `eval.harness --session-record` (2 short utterances each; cascade default, and gpt-realtime-mini over WebRTC). All 8 files appeared, decoded, had plausible durations and were non-silent (ffprobe/volumedetect).
+  - Agent mistake caught: the first backend commit went in with two ruff findings in the new test, because `ruff … | tail` hid the exit code. Fixed in the next commit.
+
