@@ -75,6 +75,8 @@ async def run(a: argparse.Namespace) -> list[dict]:
             print(json.dumps(row, ensure_ascii=False))
             results.append(row)
             await page.wait_for_timeout(a.gap_ms)
+        if a.barge_in and a.turn_mode == "ptt":
+            await barge_in_probe(page, a)
         if a.dump_events:
             events = await page.evaluate("window.__wb.oaiEvents()")
             Path(a.dump_events).write_text(json.dumps(events, ensure_ascii=False, indent=1))
@@ -93,6 +95,41 @@ async def run(a: argparse.Namespace) -> list[dict]:
             print("UI errors:", json.dumps(errors, ensure_ascii=False))
         await browser.close()
         return results
+
+
+async def barge_in_probe(page, a: argparse.Namespace) -> None:
+    """FR-1.3: press again while a translation is playing; the playing turn must
+    be cancelled and playback must stop."""
+    n = await page.evaluate("Object.values(window.__wb.state.turns).length") + 1
+    btn = await page.query_selector("[data-testid=ptt-A]")
+    box = await btn.bounding_box()
+    await page.mouse.move(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
+    await page.wait_for_function(f"performance.now() - (window.__wb.lastVoiced ?? -1e9) > {a.press_silence_ms}",
+                                 timeout=30000, polling=10)
+    await page.mouse.down()
+    t_down = await page.evaluate("performance.now()")
+    await page.wait_for_function(f"(window.__wb.lastVoiced ?? 0) > {t_down} + {a.min_speech_ms}", timeout=30000)
+    await page.wait_for_function(f"performance.now() - window.__wb.lastVoiced > {a.release_silence_ms}",
+                                 timeout=30000, polling=10)
+    await page.mouse.up()
+    await page.wait_for_function("window.__wb.diag().playing", timeout=10000, polling=10)
+    await page.wait_for_timeout(400)  # let it speak a little
+    t_barge = await page.evaluate("performance.now()")
+    await page.mouse.down()
+    # audio.ended for the interrupted turn: output_audio_buffer.cleared (WebRTC) or
+    # the playback worklet draining after the flush (relay/cascade)
+    await page.wait_for_function(
+        f"(() => {{ const t = Object.values(window.__wb.state.turns).find(t => t.id === {n}); return t && "
+        "['done','skipped','failed'].includes(t.status); })()", timeout=5000, polling=10)
+    stop_ms = await page.evaluate("performance.now()") - t_barge
+    await page.wait_for_timeout(300)
+    await page.mouse.up()
+    t = await page.evaluate(f"Object.values(window.__wb.state.turns).find(t => t.id === {n})")
+    # The response may already be fully generated (faster than real time), so the
+    # turn can end "done" with its playback cut; the requirement is that audio stops.
+    ok = stop_ms < 1000
+    print(f"BARGE-IN {'PASS' if ok else 'FAIL'}: turn {n} -> {t['status']} ({t.get('reason')}); "
+          f"playback stopped {stop_ms:.0f} ms after the press")
 
 
 def _row(n: int, turn: dict, lag: float | None) -> dict:
@@ -133,6 +170,7 @@ def main() -> None:
     ap.add_argument("--rt", default="auto", choices=["webrtc", "relay", "auto"])
     ap.add_argument("--turn-mode", default="ptt", choices=["ptt", "vad"])
     ap.add_argument("--block-webrtc", action="store_true", help="abort the SDP POST to test the relay fallback")
+    ap.add_argument("--barge-in", action="store_true", help="probe interrupting a playing translation")
     ap.add_argument("--switches", type=int, default=0, help="mode switches for the leak check")
     ap.add_argument("--dump-events", help="write raw realtime events to this JSON file")
     ap.add_argument("--speaker", default="A", choices=["A", "B", "AB"])
