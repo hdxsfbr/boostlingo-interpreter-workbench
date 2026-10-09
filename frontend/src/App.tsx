@@ -4,7 +4,7 @@ import type { TurnMode } from "./session/transports/realtimeWebrtc";
 import type { Mode, Pipeline, SessionEvent, Speaker } from "./session/protocol";
 import { dismissError, initialState, reduce, type State } from "./store/reducer";
 import { useTurnSink } from "./store/turnSink";
-import { Controls, type Swaps } from "./ui/Controls";
+import { Controls, type RecordingConfig, type Swaps } from "./ui/Controls";
 import { ErrorBanner } from "./ui/ErrorBanner";
 import { MetricsSummary } from "./ui/MetricsSummary";
 import { TranscriptPane } from "./ui/TranscriptPane";
@@ -31,6 +31,16 @@ export default function App() {
       .then((h) => setSwaps(h.swaps ?? null))
       .catch(() => setSwaps(null));
   }, []);
+  // A11: opt-in recording; the server flag gates the toggle (and the server refuses on its own).
+  const [recCfg, setRecCfg] = useState<RecordingConfig | null>(null);
+  const [recordWanted, setRecordWanted] = useState(params.get("record") === "1");
+  useEffect(() => {
+    fetch("/api/recordings/config")
+      .then((r) => r.json())
+      .then((c) => setRecCfg(c))
+      .catch(() => setRecCfg(null));
+  }, []);
+  const recording = recordWanted && !!recCfg?.enabled;
   const sessionRef = useRef<InterpreterSession | null>(null);
   const [active, setActive] = useState<Speaker | null>(null);
 
@@ -54,7 +64,10 @@ export default function App() {
   }, [state]);
 
   const running = state.sessionState === "ready" || state.sessionState === "connecting";
-  const start = () => void session().start();
+  const start = () => {
+    session().setRecording(recording);
+    void session().start();
+  };
   const stop = () => void session().stop();
   const setMode = (m: Mode) => void session().setMode(m);
   const setProvider = (kind: "mt" | "tts", name: string) => {
@@ -108,6 +121,11 @@ export default function App() {
     <div className="app">
       <header>
         <h1>AI Interpreter Workbench</h1>
+        {running && recording && (
+          <span className="rec-indicator" data-testid="rec-indicator" title="Both sides of every turn are being saved on this server">
+            ● Recording
+          </span>
+        )}
         <span className={`state state-${state.sessionState}`}>{state.sessionState}</span>
       </header>
       <ErrorBanner errors={state.errors} onDismiss={(id) => dispatch({ kind: "dismiss", id })} onRetry={start} sessionState={state.sessionState} />
@@ -117,6 +135,7 @@ export default function App() {
         swaps={swaps}
         chosen={chosen}
         onProvider={setProvider}
+        recording={{ config: recCfg, on: recording, onToggle: setRecordWanted }}
         onTurnMode={setTurnMode}
         vadSpeaker={vadSpeaker}
         onVadSpeaker={setVadSpeaker}

@@ -50,3 +50,10 @@ main { display: grid; grid-template-columns: 1fr 340px; gap: 16px; }
 .error { display: flex; align-items: center; gap: 10px; background: #fdecec; border: 1px solid #f2b8b8; padding: 8px 12px; border-radius: 8px; font-size: 13px; }
 .error.blocking { background: #fff4e0; border-color: #f0c674; font-size: 15px; padding: 14px; }
 .error span { flex: 1; } .error .x { border: none; background: transparent; font-size: 16px; }
+
+/* A11 session recording */
+.record { gap: 0.6rem; align-items: center; font-size: 0.9rem; }
+.record-note { color: #667; }
+.record.on .consent { color: #8a2b06; }
+.rec-indicator { color: #c0182b; font-weight: 600; margin-left: auto; margin-right: 0.8rem; animation: recblink 1.4s ease-in-out infinite; }
+@keyframes recblink { 50% { opacity: 0.45; } }

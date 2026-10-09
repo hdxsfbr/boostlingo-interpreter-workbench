@@ -3,11 +3,14 @@ import type { TurnMode } from "../session/transports/realtimeWebrtc";
 
 export type SwapOption = { name: string; ready: boolean; reason: string; model: string };
 export type Swaps = { mt: SwapOption[]; tts: SwapOption[] };
+export type RecordingConfig = { enabled: boolean; retention_days: number; max_upload_mb: number };
 
 type Props = {
   swaps: Swaps | null;
   chosen: Record<string, string>;
   onProvider(kind: "mt" | "tts", name: string): void;
+  /** A11: per-session "Record session" toggle (disabled unless the server enables it). */
+  recording?: { config: RecordingConfig | null; on: boolean; onToggle(on: boolean): void };
   mode: Mode;
   turnMode: TurnMode;
   onTurnMode(m: TurnMode): void;
@@ -105,6 +108,7 @@ export function Controls(p: Props) {
           <button className="primary" onClick={p.onStart} data-testid="start">Start session</button>
         )}
       </div>
+      {p.recording && <RecordToggle {...p.recording} running={p.running} />}
       {p.turnMode === "vad" ? (
         <div className="row ptts">
           <p className="vad-hint" data-testid="vad-listening">
@@ -130,5 +134,34 @@ export function Controls(p: Props) {
       )}
       <p className="hint">Use headphones. The mic is muted while a translation plays; pressing a speaker button interrupts playback.</p>
     </section>
+  );
+}
+
+export function RecordToggle(p: { config: RecordingConfig | null; on: boolean; onToggle(on: boolean): void; running: boolean }) {
+  const allowed = !!p.config?.enabled;
+  const days = p.config?.retention_days ?? 30;
+  return (
+    <div className={`row record ${p.on ? "on" : ""}`}>
+      <label title={allowed ? "Save both sides of every turn for audit" : "Recording is disabled in the server config (recording.enabled=false)"}>
+        <input
+          type="checkbox"
+          checked={p.on}
+          disabled={!allowed || p.running}
+          onChange={(e) => p.onToggle(e.target.checked)}
+          data-testid="record-toggle"
+        />{" "}
+        Record session
+      </label>
+      {!allowed ? (
+        <span className="record-note" data-testid="record-disabled">Disabled by server config.</span>
+      ) : p.on ? (
+        <span className="record-note consent" data-testid="record-consent">
+          Both speakers&apos; audio (original and translation) is saved on this server for {days} days for audit. Tell everyone on
+          the call and get their consent before starting.
+        </span>
+      ) : (
+        <span className="record-note">Off: nothing is recorded. Set it before starting the session.</span>
+      )}
+    </div>
   );
 }
