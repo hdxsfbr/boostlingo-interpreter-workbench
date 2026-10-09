@@ -14,6 +14,7 @@ _REGISTRY: dict[tuple[str, str], Callable[..., Any]] = {}
 _MODULES = {
     ("stt", "openai_live"): "app.providers.stt.openai_live",
     ("mt", "openai"): "app.providers.mt.openai",
+    ("mt", "anthropic"): "app.providers.mt.anthropic",
     ("tts", "openai"): "app.providers.tts.openai",
     ("stt", "fake"): "app.providers.fakes",
     ("mt", "fake"): "app.providers.fakes",
