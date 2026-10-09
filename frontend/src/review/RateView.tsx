@@ -33,6 +33,9 @@ export function RateView({ set, rater, onChanged, onDone }: Props) {
 
   const save = useCallback(async (): Promise<boolean> => {
     if (!item) return false;
+    // nothing new to store (e.g. Back from an untouched clip): don't write an empty rating
+    const prev = { ...EMPTY, ...set.ratings[item.item_id] };
+    if (DIMS.every((d) => prev[d] === draft.cur[d]) && prev.notes === draft.cur.notes) return true;
     setBusy(true);
     try {
       const r = await reviewApi.save(set.id, item.item_id, rater, draft.cur);
