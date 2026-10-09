@@ -92,8 +92,11 @@ class CascadePipeline:
         langs = settings.languages()
         glossary = next((pr.get("glossary") or {} for pr in langs.get("pairs", [])
                          if {pr.get("a"), pr.get("b")} == {start.src, start.tgt}), {})
+        ccfg = settings.app_config()["cascade"]
         session = CascadeSession(prov["stt"], prov["mt"], prov["tts"], send_event=io.event, send_audio=io.audio,
-                                 voices=voices, langs=[start.src, start.tgt], timeouts=timeouts, glossary=glossary)
+                                 voices=voices, langs=[start.src, start.tgt], timeouts=timeouts, glossary=glossary,
+                                 speculative=bool(ccfg.get("speculative_mt", False)),
+                                 chunker=ccfg.get("chunker") or {})
         pipe = cls(session, names, [prov["mt"], prov["tts"]])
         pipe._opened = asyncio.get_running_loop().create_task(pipe._open(io))
         return pipe

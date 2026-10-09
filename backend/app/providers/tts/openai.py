@@ -38,6 +38,22 @@ class OpenAITTS:
         self.speed = speed
         self.client = client
 
+    async def warm(self, connections: int = 4) -> None:
+        """Pre-open keep-alive TLS connections (M4). A turn runs MT streaming plus
+        up to two TTS requests (lookahead) at once, each needing its own HTTP/1.1
+        connection; without this the first TTS request of a session pays a TLS
+        handshake. Concurrent cheap GETs force distinct pooled connections."""
+        client = self.client or shared_client()
+
+        async def one() -> None:
+            try:
+                await client.get(f"https://api.openai.com/v1/models/{self.model}",
+                                 headers={"Authorization": f"Bearer {self.api_key}"})
+            except httpx.HTTPError:
+                pass
+
+        await asyncio.gather(*(one() for _ in range(connections)))
+
     def _body(self, text: str, lang: str, voice: str) -> dict:
         body = {"model": self.model, "voice": voice or "marin", "input": text, "response_format": "pcm",
                 "stream_format": "audio",

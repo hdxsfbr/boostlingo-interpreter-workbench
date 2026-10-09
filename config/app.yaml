@@ -11,6 +11,9 @@ cascade:
   mt: openai
   tts: openai
   playback_policy: after_speech_end   # D8
+  speculative_mt: false   # M4: MT/TTS on the committed segment's partial transcript (env CASCADE_SPECULATIVE)
+  chunker:                # SentenceChunker kwargs (env CHUNK_FIRST_CLAUSE_MIN / CHUNK_FIRST_WORD_MIN)
+    first_clause_min: 25
 
 providers:
   openai_live:

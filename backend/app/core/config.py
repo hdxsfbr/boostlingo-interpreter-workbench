@@ -42,6 +42,11 @@ class Settings(BaseSettings):
     cascade_tts: str | None = None
     realtime_model: str | None = None
     mt_model: str | None = None
+    # M4 latency-tuning overrides (A/B runs without editing app.yaml)
+    stt_delay: str | None = None
+    cascade_speculative: bool | None = None
+    chunk_first_clause_min: int | None = None
+    chunk_first_word_min: int | None = None
 
     def app_config(self) -> dict[str, Any]:
         cfg = yaml.safe_load((self.config_dir / "app.yaml").read_text())
@@ -55,6 +60,15 @@ class Settings(BaseSettings):
             cfg["realtime"]["model"] = self.realtime_model
         if self.mt_model:
             cfg["providers"][cfg["cascade"]["mt"]]["model"] = self.mt_model
+        if self.stt_delay:
+            cfg["providers"]["openai_live"]["delay"] = None if self.stt_delay == "none" else self.stt_delay
+        if self.cascade_speculative is not None:
+            cfg["cascade"]["speculative_mt"] = self.cascade_speculative
+        chunker = cfg["cascade"].setdefault("chunker", {})
+        if self.chunk_first_clause_min is not None:
+            chunker["first_clause_min"] = self.chunk_first_clause_min
+        if self.chunk_first_word_min is not None:
+            chunker["first_word_min"] = self.chunk_first_word_min or None
         return cfg
 
     def haiku_enabled(self) -> bool:
