@@ -95,6 +95,13 @@ Decided or recorded during M4 (2026-10-08):
   - What: a non-final in-turn segment that is short (< 6 words) and has no sentence-final punctuation ("Do you have") is not translated alone; it is prepended to the next segment (speculation included). The last segment is never held. Toggle with `cascade.merge_fragments` / `CASCADE_MERGE_FRAGMENTS`.
   - Why: 300 ms pause commits produced fragment translations ("¿Tienes? / ¿Alguna alergia?"). In the A/B (2×48 each), merging raised chrF from 69.8 to 72.9 (EN→ES) and from 76.6 to 78.4 (ES→EN). The cost is about 0.2 s on short turns (H p50 1571 → 1791 ms); medium and long turns are unchanged.
   - Rejected alternative: gating pause commits in the browser on ≥ 1 s of speech. It pushed short-turn H to about 2.1–2.4 s, because the early pause commit is what lets speculative MT start before the PTT release. It is still available as `?min_seg_ms=` for A/B runs and is off by default.
+- **A9: no speculative MT/TTS with ElevenLabs by default (M5, Andre).**
+  - What: when the TTS is ElevenLabs, speculation is off unless `cascade.speculative_with_elevenlabs: true`. Other TTS providers keep it on.
+  - Why: chunks from cancelled speculative runs still count against the free-tier budget. In M5 the guard's ledger charged 883 chars for a subset that ElevenLabs billed at 403–445. Turning speculation off saves demo credits; the cost is the M4 speculation gain on those turns.
+- **A10: provider defaults after M5 (Andre).**
+  - `gpt-5.4-nano` stays the cascade MT default because of the latency target (H p50 545 ms vs 1654 ms for Haiku).
+  - Haiku via OpenRouter is the quality option (chrF about 81/84 vs 73/78).
+  - Fragment merging (A8) stays on.
 
 ## 1. Transport per mode
 
