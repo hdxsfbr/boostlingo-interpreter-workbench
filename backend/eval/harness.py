@@ -10,6 +10,12 @@ voiced frame; every row also carries H minus that release gap.
     python -m eval.harness --mode realtime --rt webrtc --dirs en,es
     python -m eval.harness --mode realtime --turn-mode vad --vad-ms 300
     python -m eval.harness --mode cascade --soak-s 300          # NFR-2 soak
+    python -m eval.harness --profile cascade-openai --record ../data/m5/audio   # M5 final
+
+ElevenLabs (DESIGN §9): `--tts elevenlabs` refuses to run without
+`--allow-elevenlabs`, pre-computes sum(len(reference_translation)) x 1.25 for
+the selected set and aborts if that exceeds `--el-char-cap` (default 2,500) or
+the month allowance left in data/elevenlabs_ledger.json.
 
 Fixtures come from `make fixtures` (data/fixtures/*.wav) and are served to the
 page by Playwright request interception, so the app needs no extra route.
@@ -74,6 +80,8 @@ async def wait_idle(page, n0: int, timeout_s: float) -> None:
 
 
 async def ptt_turn(page, a, u: dict) -> dict:
+    if a.record:
+        await page.evaluate("window.__wb.recStart()")
     n0 = await page.evaluate("Object.values(window.__wb.state.turns).length ? Math.max(...Object.keys(window.__wb.state.turns).map(Number)) : 0")
     btn = await page.query_selector(f"[data-testid=ptt-{SPEAKER[u['lang']]}]")
     box = await btn.bounding_box()
@@ -96,7 +104,17 @@ async def ptt_turn(page, a, u: dict) -> dict:
     await wait_idle(page, n0, a.turn_timeout)
     await page.evaluate("window.__play")  # the file's trailing silence has finished too
     ts = await turns_after(page, n0)
-    return row(u, ts, t_up)
+    r = row(u, ts, t_up)
+    if a.record:
+        b64 = await page.evaluate("window.__wb.recStop()")
+        if b64:
+            import base64
+            d = Path(a.record)
+            d.mkdir(parents=True, exist_ok=True)
+            f = d / f"{u['id']}{'' if a.repeat == 1 else '_' + str(a._i)}.webm"
+            f.write_bytes(base64.b64decode(b64))
+            r["audio_file"] = str(f)
+    return r
 
 
 async def vad_turn(page, a, u: dict) -> dict:
@@ -116,6 +134,14 @@ async def vad_turn(page, a, u: dict) -> dict:
 
 
 _END_CACHE: dict[str, float] = {}
+_START_CACHE: dict[str, float] = {}
+
+
+def speech_s(uid: str) -> float:
+    """Voiced span of the fixture in seconds (first..last voiced frame): the
+    source-audio minutes used for cost per minute."""
+    end = speech_end_ms(uid)
+    return round((end - _START_CACHE[uid]) / 1000, 2)
 
 
 def speech_end_ms(uid: str, threshold: float = 0.012, frame: int = 480) -> float:
@@ -128,18 +154,21 @@ def speech_end_ms(uid: str, threshold: float = 0.012, frame: int = 480) -> float
             rate = w.getframerate()
             pcm = array.array("h", w.readframes(w.getnframes()))
         step = frame * rate // 24000
-        last = 0
+        last, first = 0, None
         for i in range(0, len(pcm) - step + 1, step):
             seg = pcm[i:i + step]
             rms = math.sqrt(sum(x * x for x in seg) / step) / 32768
             if rms >= threshold:
                 last = i + step
+                first = i if first is None else first
         _END_CACHE[uid] = last * 1000 / rate
+        _START_CACHE[uid] = (first or 0) * 1000 / rate
     return _END_CACHE[uid]
 
 
 def base(u: dict) -> dict:
-    return {"id": u["id"], "lang": u["lang"], "size": u["size"], "domain": u["domain"]}
+    return {"id": u["id"], "lang": u["lang"], "size": u["size"], "domain": u["domain"],
+            "speech_s": speech_s(u["id"])}
 
 
 def row(u: dict, ts: list[dict], t_up: float | None) -> dict:
@@ -156,7 +185,9 @@ def row(u: dict, ts: list[dict], t_up: float | None) -> dict:
          "server_marks": last.get("serverMarks"), "browser_marks": last.get("browserMarks"),
          "source": " / ".join(" ".join(s["text"] for s in t["source"].values()) for t in ts),
          "target": " / ".join(" ".join(s["text"] for s in t["target"].values()) for t in ts),
-         "reference": u["reference_translation"]}
+         "reference": u["reference_translation"],
+         "usage": [t.get("usage") for t in ts],
+         "server_marks_all": [t.get("serverMarks") for t in ts]}
     return r
 
 
@@ -189,8 +220,31 @@ async def probe(page) -> dict:
     return d
 
 
+def elevenlabs_guard(a: argparse.Namespace, items: list[dict]) -> None:
+    """DESIGN §9 credit rules; runs before any browser/session is opened."""
+    if a.tts != "elevenlabs":
+        return
+    if not a.allow_elevenlabs:
+        raise SystemExit("--tts elevenlabs needs --allow-elevenlabs (scarce free-tier credits)")
+    est = round(sum(len(u["reference_translation"]) for u in items) * 1.25)
+    cfg = yaml.safe_load((ROOT / "config" / "app.yaml").read_text())["providers"]["elevenlabs"]
+    try:
+        ledger = json.loads((ROOT / "data" / "elevenlabs_ledger.json").read_text())
+    except FileNotFoundError:
+        ledger = {}
+    used = int(ledger.get(time.strftime("%Y-%m", time.gmtime()), 0))
+    left = int(cfg["month_char_cap"]) - used
+    print(f"ElevenLabs estimate: {est} chars for {len(items)} utterances (cap {a.el_char_cap}, "
+          f"ledger used {used}, month allowance left {left}, session cap {cfg['session_char_cap']})")
+    if est > a.el_char_cap or est > left:
+        raise SystemExit("ElevenLabs estimate exceeds the cap/allowance: aborting before any call")
+    if est > int(cfg["session_char_cap"]):
+        raise SystemExit("estimate exceeds the per-session cap: split the subset into several runs")
+
+
 async def run(a: argparse.Namespace) -> list[dict]:
     items = interleave(load_set(a)) * a.repeat
+    elevenlabs_guard(a, items)
     fixtures = ROOT / "data" / "fixtures"
     missing = [u["id"] for u in items if not (fixtures / f"{u['id']}.wav").exists()]
     if missing:
@@ -208,7 +262,8 @@ async def run(a: argparse.Namespace) -> list[dict]:
             await route.fulfill(body=(fixtures / name).read_bytes(), content_type="audio/wav")
         await page.route("**/fixtures/*.wav", serve)
         q = f"source=file&mode={a.mode}&rt={a.rt}&turn={a.turn_mode}&vad_ms={a.vad_ms}"
-        q += "".join(f"&{k}={v}" for k, v in (("mt", a.mt), ("tts", a.tts)) if v)
+        q += "".join(f"&{k}={v}" for k, v in (("mt", a.mt), ("tts", a.tts), ("min_seg_ms", a.min_seg_ms))
+                     if v is not None)
         await page.goto(f"{a.url}/?{q}")
         await page.click("[data-testid=start]")
         await page.wait_for_function("['ready','error'].includes(window.__wb?.state?.sessionState)", timeout=20000)
@@ -229,11 +284,14 @@ async def run(a: argparse.Namespace) -> list[dict]:
             else:
                 u = items[i]
             i += 1
+            a._i = (i - 1) // max(1, len(items) // a.repeat) + 1 if a.repeat > 1 else 1
             try:
                 r = await (vad_turn(page, a, u) if a.turn_mode == "vad" else ptt_turn(page, a, u))
             except Exception as e:  # noqa: BLE001 - keep going, record the failure
                 r = {**base(u), "status": "harness_error", "H_ms": None, "error": str(e)[:200]}
             r["n"] = i
+            if a.profile:
+                r["profile"] = a.profile
             r["t_s"] = round(time.monotonic() - t0, 1)
             if a.soak_s and (i == 1 or i % a.probe_every == 0):
                 r["probe"] = await probe(page)
@@ -300,6 +358,11 @@ def main() -> None:
     ap.add_argument("--release-silence-ms", type=int, default=450, help="DESIGN A2: fixed 450 ms PTT release")
     ap.add_argument("--gap-ms", type=int, default=600)
     ap.add_argument("--turn-timeout", type=int, default=40)
+    ap.add_argument("--min-seg-ms", type=int, default=None, help="cascade: min voiced ms per in-turn segment")
+    ap.add_argument("--profile", default="", help="label stored on every row (M5 results)")
+    ap.add_argument("--record", default="", help="directory for per-utterance output audio (webm/opus)")
+    ap.add_argument("--allow-elevenlabs", action="store_true")
+    ap.add_argument("--el-char-cap", type=int, default=2500)
     ap.add_argument("--out")
     ap.add_argument("--chrome", default="/usr/bin/google-chrome")
     a = ap.parse_args()
