@@ -16,7 +16,7 @@ This repo is built by an agentic coding assistant (Grok Bot executor agents) dir
 - **Turn-taking:** push-to-talk with Speaker A/B buttons; headphones; mic gated during playback.
 - **Secrets (strict):** keys live in `~/.config/agentforge/`; they are loaded into a gitignored chmod-600 `.env` (ElevenLabs as a file secret). Never print, echo, log or commit key values; validity checks print status codes only.
 - **ElevenLabs is free tier (10k credits/month):** never called in loops, tests or CI; always mocked; real use only for the final benchmark subset and the demo, behind a budget guard.
-- **Anthropic:** key unverified, so the Haiku variant is optional and skippable.
+- **Anthropic:** the direct key was dropped after M4 (no further calls); Haiku runs only via OpenRouter, for benchmarks and the demo, never in tests or loops.
 - **Git is graded:** small scoped commits with meaningful messages, pushed regularly; no dump commits.
 - **Tests:** cascade pipeline and provider boundaries with mocked providers; error paths for rate limits, timeouts, empty results, denied mic.
 - **Targets:** Realtime < 1.5 s, Cascade < 3 s (aim 2 s), measured in the browser from speech end to first audio; stable 5-minute session.
@@ -102,3 +102,29 @@ This repo is built by an agentic coding assistant (Grok Bot executor agents) dir
   - The sweep then exposed two real client/server bugs (turns stuck in "playing"; cascade VAD turns cancelling each other's translation). The first queueing fix introduced a third (two turns reading one STT socket → STT timeouts). It was caught in the next sweep and fixed with a regression test.
   - A chained shell command ran the realtime soak from the wrong directory (module not found), and one commit went in with 3 lint errors (fixed in the next commit). Both were noticed from logs and re-run or fixed.
   - The agent killed only processes and containers it had started, by PID or name.
+
+### M5 (hedge, fragment fix, final benchmarks, docs)
+- Direction: "Build the hedged first-output request with tests and measure whether it removes the 3/96 timeouts; fix fragment translations if cheap; then M5 per DESIGN including the FINAL runs: gpt-realtime (mini as a row), cascade-openai full set, cascade-haiku via OpenRouter, cascade-elevenlabs on a credit-guarded subset with a by-ear proxy check; WER + chrF; blind-rating materials; machine-readable results + summary for Butler (not the comparison doc); README/runbook and AGENTS.md." Decisions carried in: STT delay `low`, VAD 400 ms realtime / 500 ms cascade, PTT recommended for long turns.
+- **Hedge (DESIGN A7):** written test-first (`test_hedge.py`, 10 tests: no hedge on a fast primary, the backup wins and the loser is cancelled, the primary wins after a hedge, both slow → timeout, the backup errors → falls back, sole error propagates, TTS backup without duplicate audio, chars counted once). `ReplayableChunks` became multi-consumer so a TTS backup can replay chunks. Measured: **0/192 first-output timeouts** in the two cascade A/B arms (M4: 3/96); 7 hedges fired, 3 won by the backup.
+- **Fragment fix (DESIGN A8), decided by data:**
+  - First attempt: a browser rule (pause commit only after ≥ 1 s of speech). A smoke run showed short-turn H going from ~0.5–1.4 s to ~2.1–2.4 s, because the early pause commit is what lets speculative MT start before the release. The agent stopped the half-finished benchmark chain (its own PIDs only), kept the rule as an off-by-default A/B switch, and moved the fix server-side.
+  - Second attempt, server-side: a short unpunctuated non-final segment is merged into the next one.
+  - A/B on 2×48 per arm: chrF EN→ES 69.8 → 72.9 and ES→EN 76.6 → 78.4; short-turn H p50 1571 → 1791 ms; medium and long turns unchanged. Kept on by default. Andre can revisit (env `CASCADE_MERGE_FRAGMENTS=false`).
+- **Final runs** were serial, one container per profile, with output audio recorded in the browser (post-tap webm). The guard pre-check ran before any ElevenLabs call (estimate 1,111 chars ≤ cap 1,400, session cap 1,500). The subscription counter was read before (0) and after; it shows 445 chars used, while the local ledger, which is conservative, charged 883.
+- **Metrics** (`eval/metrics.py`):
+  - jiwer with Whisper normalisers; sacrebleu chrF/BLEU.
+  - a batched LLM judge for "answered instead of translated";
+  - a gpt-4o-transcribe round trip of the recorded output audio (the ElevenLabs by-ear proxy);
+  - cost/min from turn usage × the dated `config/pricing.yaml`;
+  - blind kit from `eval/blind.py`;
+  - `eval/error_pass.py` (all 4 browser checks pass).
+- **Agent mistakes / findings caught and fixed:**
+  - `ruff format` was run on the whole backend, which reformatted 52 files. It was caught before committing; the unrelated files were restored and the hedge edits re-applied in the project's style.
+  - The judge's first call returned 400 (the Responses `json_object` format requires the word "json" in the input). The round-trip WER counted ’ vs ' as an error. Both were fixed and the metrics recomputed from cache, with no new live calls.
+  - The run was interrupted twice (the user's session reset). Each time the agent first checked the ElevenLabs counter/ledger and container health before continuing, to avoid double-spending credits. Work was committed in small pieces so nothing was lost.
+- **Known limitations:**
+  - One reference per utterance, so chrF penalises valid paraphrases.
+  - Synthetic TTS fixtures (es-l04 is badly recognised by every STT).
+  - The ElevenLabs row is 12 utterances only.
+  - Hedge counts from marks collapse repeated hedges within one turn.
+  - With speculation, ElevenLabs is charged for chunks of cancelled speculative runs (ledger 883 vs 403–445 billed).
