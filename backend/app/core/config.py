@@ -22,6 +22,10 @@ class Settings(BaseSettings):
 
     openai_api_key: SecretStr | None = None
     anthropic_api_key: SecretStr | None = None
+    # Sent as `anthropic-workspace-id` (key is not workspace-scoped). Kept secret-like.
+    anthropic_workspace_id: SecretStr | None = None
+    # cascade-haiku gate; None = config/app.yaml providers.anthropic.enabled
+    anthropic_enabled: bool | None = None
     # ElevenLabs is scarce (free tier). Key is read from a file, never from .env (DESIGN §2).
     elevenlabs_api_key_file: Path | None = None
     elevenlabs_enabled: bool = False
@@ -51,6 +55,11 @@ class Settings(BaseSettings):
             cfg["providers"][cfg["cascade"]["mt"]]["model"] = self.mt_model
         return cfg
 
+    def haiku_enabled(self) -> bool:
+        if self.anthropic_enabled is not None:
+            return self.anthropic_enabled
+        return bool(self.app_config()["providers"].get("anthropic", {}).get("enabled", False))
+
     def languages(self) -> dict[str, Any]:
         return yaml.safe_load((self.config_dir / "languages.yaml").read_text())
 
@@ -59,7 +68,8 @@ class Settings(BaseSettings):
         el_file = self.elevenlabs_api_key_file
         return {
             "openai": bool(self.openai_api_key and self.openai_api_key.get_secret_value()),
-            "anthropic": bool(self.anthropic_api_key and self.anthropic_api_key.get_secret_value()),
+            "anthropic": bool(self.anthropic_api_key and self.anthropic_api_key.get_secret_value())
+            and self.haiku_enabled(),
             "elevenlabs": bool(self.elevenlabs_enabled and el_file and Path(el_file).is_file()),
         }
 

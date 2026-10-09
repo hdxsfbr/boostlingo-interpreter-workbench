@@ -10,7 +10,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 KEYDIR = Path(os.environ.get("AGENTFORGE_KEYS", Path.home() / ".config" / "agentforge"))
-FROM_FILES = {"OPENAI_API_KEY": "openai_api_key", "ANTHROPIC_API_KEY": "anthropic_api_key"}
+FROM_FILES = {"OPENAI_API_KEY": "openai_api_key", "ANTHROPIC_API_KEY": "anthropic_api_key",
+              "ANTHROPIC_WORKSPACE_ID": "anthropic_workspace_id"}
 REQUIRED = {"OPENAI_API_KEY"}
 
 
@@ -57,7 +58,7 @@ def main() -> int:
 
     final = parse(env)
     missing = []
-    for var in ["OPENAI_API_KEY", "ANTHROPIC_API_KEY", "ELEVENLABS_KEY_PATH"]:
+    for var in ["OPENAI_API_KEY", "ANTHROPIC_API_KEY", "ANTHROPIC_WORKSPACE_ID", "ELEVENLABS_KEY_PATH"]:
         ok = bool(final.get(var)) and final.get(var) != "/dev/null"
         print(f"  {var:22s} {'set' if ok else 'MISSING' + (' (required)' if var in REQUIRED else ' (optional)')}")
         if not ok and var in REQUIRED:
