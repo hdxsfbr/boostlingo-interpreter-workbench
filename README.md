@@ -12,7 +12,7 @@ Latency is measured **in the browser, on one clock**, from the last voiced micro
 |---|---|
 | M0 skeleton, audio I/O, contract, cascade WS loopback | done |
 | M1 cascade pipeline with OpenAI adapters, waterfall, stats, export | done |
-| M2 Realtime WebRTC mode | started: secret minting + session config done; transport next |
+| M2 Realtime mode: WebRTC (ephemeral secret) + WS relay fallback, PTT + server VAD, pruning, mode switch | done ([smoke results](docs/benchmarks/m2-realtime-smoke.md): PTT H p50 0.95–1.04 s, both directions) |
 | M3 provider swaps (Haiku, ElevenLabs + budget guard, OpenRouter) | planned |
 | M4 benchmark harness, soak, final `gpt-realtime` runs | planned |
 | M5 error pass, README, AGENTS.md, comparison write-up | planned |
@@ -32,7 +32,7 @@ open http://localhost:8740
 
 `http://localhost` is a secure context, so microphone access and WebRTC work without certificates. Use **headphones**; the mic is also muted while a translation plays.
 
-Using it: **Start session**, then hold **Speaker A** (EN→ES, key `F`) or **Speaker B** (ES→EN, key `J`) while talking and release when done. Pressing a speaker button during playback interrupts it. The *Loopback* pipeline echoes your turn back and shows the transport + playout floor.
+Using it: pick **Cascade** or **Realtime**, **Start session**, then hold **Speaker A** (EN→ES, key `F`) or **Speaker B** (ES→EN, key `J`) while talking and release when done. Pressing a speaker button during playback interrupts it. The *Loopback* pipeline echoes your turn back and shows the transport + playout floor. In Realtime, **Auto (VAD)** lets the model detect turns (no buttons). URL options: `?mode=realtime`, `?rt=webrtc|relay|auto` (default `auto`: WebRTC, falling back to the relay), `?turn=vad`.
 
 Other targets: `make test` (backend pytest + frontend Vitest/tsc, no keys or network needed), `make test-docker` (both suites inside Docker with `--network none`), `make logs`, `make down`, `make dev-backend` / `make dev-frontend` (Vite dev server with proxy on :5180).
 
@@ -51,10 +51,12 @@ Browser (React + TS)                              hdx-lab (Docker, FastAPI)
  InterpreterSession (one event contract) ──────┤
    CascadeTransport  ── WS /ws/cascade ────────┼──> CascadeSession: STT -> MT -> chunker -> TTS (streams)
    RealtimeTransport ── WebRTC ── OpenAI       │    POST /api/realtime/session (mint ephemeral secret)
+   RealtimeRelay     ── WS /ws/realtime ───────┼──> relay to OpenAI Realtime WS (fallback, key server-side)
  playback worklet / remote track -> output tap │    POST /api/turns -> data/sessions/*.jsonl
  UI: transcripts, waterfall, p50/p90, export   │
 ```
 
+- **Realtime:** OpenAI events from either transport go through one normaliser (`frontend/src/session/normalizers/oaiEvents.ts`). PTT sends `commit` + `response.create` with per-turn direction instructions; VAD uses `server_vad`. Older conversation items are deleted after each response. The uplink is a cloned mic track that is disabled while the model speaks.
 - **Mode-agnostic UI:** the UI only consumes `SessionEvent`s from `InterpreterSession`; transports are swappable (`frontend/src/session/`).
 - **Provider abstraction:** `STTProvider`, `Translator`, `TTSProvider` Protocols (`backend/app/providers/base.py`); the orchestrator imports only those. A swap is one adapter file + one config value + its contract test.
 - **Streaming end to end:** STT partials stream to the UI; translation starts on segment finals and streams tokens; a sentence/clause chunker feeds TTS per chunk; audio is forwarded as it arrives.
