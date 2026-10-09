@@ -19,6 +19,7 @@ from app.api.recordings import router as recordings_router
 from app.api.review import get_review_store
 from app.api.review import router as review_router
 from app.api.turns import router as turns_router
+from app.core.auth import AuthGate, credentials_from_env
 from app.core.config import get_settings
 from app.core.recording import get_store
 
@@ -44,6 +45,12 @@ def create_app() -> FastAPI:
 
     @app.get("/healthz")
     async def healthz() -> dict:
+        """Open (platform health check): status only, no model/provider/key details (A15)."""
+        return {"status": "ok"}
+
+    @app.get("/api/health")
+    async def health() -> dict:
+        """Details for the UI; behind the password gate like every other route."""
         cfg = settings.app_config()
         return {
             "status": "ok",
@@ -65,6 +72,10 @@ def create_app() -> FastAPI:
 
     if settings.static_dir and settings.static_dir.is_dir():
         app.mount("/", StaticFiles(directory=settings.static_dir, html=True), name="spa")
+    creds = credentials_from_env()
+    if creds:  # A15: app-wide gate, outermost, so it covers SPA, /api, WS and SSE alike
+        app.add_middleware(AuthGate, username=creds[0], password=creds[1])
+        logging.getLogger("app.auth").info("password gate on (user %s)", creds[0])
     return app
 
 
