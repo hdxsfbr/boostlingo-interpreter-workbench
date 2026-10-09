@@ -60,6 +60,8 @@ export type SessionConfig = {
   providers?: Record<string, string>;
   /** Cascade: in-turn silence that triggers a speculative-MT hint (ms; null = off). */
   pauseHintMs?: number | null;
+  /** min voiced ms before an in-turn pause commits (shorter stretches merge forward) */
+  minSegmentMs?: number;
   /** "file" = benchmark harness input (DESIGN §9); default "mic". */
   source?: "mic" | "file";
   /** VAD mode: which speaker label/direction new turns get in the UI. */
@@ -100,7 +102,7 @@ export class InterpreterSession implements InterpreterSessionApi {
     this.pipeline = cfg.pipeline;
     this.turnMode = cfg.turnMode ?? "ptt";
     this.providers = { ...(cfg.providers ?? {}) };
-    this.turns = new TurnController(cfg.pair, cfg.pauseCommitMs ?? 300, cfg.pauseHintMs ?? null);
+    this.turns = new TurnController(cfg.pair, cfg.pauseCommitMs ?? 300, cfg.pauseHintMs ?? null, cfg.minSegmentMs ?? 1000);
     this.vadSeg = new VadSegmenter(cfg.silenceDurationMs ?? 400);
     const hook = harnessHook();
     hook.setVadSpeaker = (sp) => this.setVadSpeaker(sp);

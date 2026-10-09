@@ -29,7 +29,7 @@ describe("TurnController", () => {
   });
 
   it("emits one pause commit per in-turn pause", () => {
-    const tc = new TurnController({ a: "en", b: "es" }, 300);
+    const tc = new TurnController({ a: "en", b: "es" }, 300, null, 0);
     tc.pttDown("A", 0);
     expect(tc.frame(false, 10).pauseCommit).toBe(false); // no speech yet
     tc.frame(true, 100);
@@ -38,6 +38,26 @@ describe("TurnController", () => {
     expect(tc.frame(false, 500).pauseCommit).toBe(false);
     tc.frame(true, 600);
     expect(tc.frame(false, 920).pauseCommit).toBe(true);
+  });
+
+  it("merges segments shorter than minSegmentMs into the next one", () => {
+    const tc = new TurnController({ a: "en", b: "es" }, 300, null, 1000);
+    tc.pttDown("A", 0);
+    let t = 0;
+    const voice = (ms: number) => {
+      for (let i = 0; i < ms / 20; i++) tc.frame(true, (t += 20));
+    };
+    const pause = (ms: number) => {
+      let n = 0;
+      for (let i = 0; i < ms / 20; i++) if (tc.frame(false, (t += 20)).pauseCommit) n++;
+      return n;
+    };
+    voice(500); // "Do you have..."
+    expect(pause(400)).toBe(0); // too short: no fragment commit
+    voice(600); // "...any allergies?" -> 1100 ms accumulated
+    expect(pause(400)).toBe(1);
+    voice(400);
+    expect(pause(400)).toBe(0); // counter reset after a commit
   });
 
   it("does not send frames outside a turn and numbers turns", () => {
@@ -73,7 +93,7 @@ describe("VadSegmenter (cascade VAD)", () => {
 
 describe("pause hint (speculative MT)", () => {
   it("fires once per pause, before the pause commit", () => {
-    const tc = new TurnController({ a: "en", b: "es" }, 300, 150);
+    const tc = new TurnController({ a: "en", b: "es" }, 300, 150, 0);
     tc.pttDown("A", 0);
     tc.frame(true, 20);
     const acts = [];

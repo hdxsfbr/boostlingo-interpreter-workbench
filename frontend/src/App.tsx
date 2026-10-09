@@ -40,6 +40,7 @@ export default function App() {
         source: params.get("source") === "file" ? "file" : "mic",
         silenceDurationMs: Number(params.get("vad_ms")) || undefined,
         pauseHintMs: Number(params.get("hint_ms")) || null, // off by default: no gain measured in M4
+        minSegmentMs: params.has("min_seg_ms") ? Number(params.get("min_seg_ms")) : 1000,
         vadSpeaker: params.get("vad_speaker") === "B" ? "B" : "A" });
       s.on((ev) => dispatch({ kind: "ev", ev }));
       sessionRef.current = s;

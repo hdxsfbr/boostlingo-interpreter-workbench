@@ -4,6 +4,9 @@
  *   late release counts against latency exactly as the user perceives it.
  * - Optional in-turn pause commits (cascade): a pause >= pauseCommitMs after
  *   speech yields one non-final commit, so long turns get segment finals.
+ *   A pause only commits once the segment holds >= minSegmentMs of voiced
+ *   audio (M5): shorter stretches ("Do you have... any allergies?") are
+ *   merged into the next segment instead of being translated as fragments.
  */
 import type { Lang, Speaker } from "./protocol";
 
@@ -17,6 +20,7 @@ export type ActiveTurn = {
   pauseCommitted: boolean;
   pauseHinted: boolean;
   voicedFrames: number;
+  segVoicedFrames: number;
 };
 
 export type FrameAction = { send: boolean; pauseCommit: boolean; pauseHint?: boolean };
@@ -30,6 +34,8 @@ export class TurnController {
     private readonly pair: { a: Lang; b: Lang },
     private readonly pauseCommitMs: number | null = 300,
     private readonly pauseHintMs: number | null = null,
+    private readonly minSegmentMs = 1000,
+    private readonly frameMs = 20,
   ) {}
 
   directionFor(speaker: Speaker): { src: Lang; tgt: Lang } {
@@ -38,7 +44,7 @@ export class TurnController {
 
   pttDown(speaker: Speaker, now: number): ActiveTurn {
     const { src, tgt } = this.directionFor(speaker);
-    this.active = { id: this.nextId++, speaker, src, tgt, startedAt: now, lastVoiced: null, pauseCommitted: true, pauseHinted: true, voicedFrames: 0 };
+    this.active = { id: this.nextId++, speaker, src, tgt, startedAt: now, lastVoiced: null, pauseCommitted: true, pauseHinted: true, voicedFrames: 0, segVoicedFrames: 0 };
     return this.active;
   }
 
@@ -48,6 +54,7 @@ export class TurnController {
     if (voiced) {
       t.lastVoiced = tPerf;
       t.voicedFrames++;
+      t.segVoicedFrames++;
       t.pauseCommitted = false;
       t.pauseHinted = false;
       return { send: true, pauseCommit: false };
@@ -58,6 +65,8 @@ export class TurnController {
     }
     if (this.pauseCommitMs !== null && !t.pauseCommitted && t.lastVoiced !== null && tPerf - t.lastVoiced >= this.pauseCommitMs) {
       t.pauseCommitted = true;
+      if (t.segVoicedFrames * this.frameMs < this.minSegmentMs) return { send: true, pauseCommit: false };
+      t.segVoicedFrames = 0;
       return { send: true, pauseCommit: true };
     }
     return { send: true, pauseCommit: false };
