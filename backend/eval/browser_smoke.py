@@ -36,6 +36,9 @@ async def run(a: argparse.Namespace) -> list[dict]:
             btn = await page.query_selector(f"[data-testid=ptt-{speaker}]")
             box = await btn.bounding_box()
             await page.mouse.move(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
+            # press during a silence gap so the turn captures a whole utterance of the looping file
+            await page.wait_for_function(
+                f"performance.now() - (window.__wb.lastVoiced ?? -1e9) > {a.press_silence_ms}", timeout=30000, polling=10)
             await page.mouse.down()
             t_down = await page.evaluate("performance.now()")
             # wait for speech, then for a silence gap after it
@@ -73,8 +76,10 @@ def main() -> None:
     ap.add_argument("--pipeline", default="cascade", choices=["cascade", "loopback"])
     ap.add_argument("--speaker", default="A", choices=["A", "B", "AB"])
     ap.add_argument("--turns", type=int, default=3)
-    ap.add_argument("--min-speech-ms", type=int, default=1500)
+    ap.add_argument("--min-speech-ms", type=int, default=1500,
+                    help="release only after voice was heard at least this long after the press")
     ap.add_argument("--release-silence-ms", type=int, default=700)
+    ap.add_argument("--press-silence-ms", type=int, default=700)
     ap.add_argument("--gap-ms", type=int, default=500)
     ap.add_argument("--turn-timeout", type=int, default=30)
     ap.add_argument("--chrome", default="/usr/bin/google-chrome")

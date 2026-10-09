@@ -162,3 +162,19 @@ async def test_socket_drop_raises_disconnected_and_reconnects_next_turn():
     assert evs[-1].text == "Back again."
     await stt.aclose()
     assert ws2.closed
+
+
+async def test_concurrent_open_connects_once():
+    n = []
+    ws = FakeWS(["One."])
+
+    async def connect(url, key):
+        n.append(1)
+        await asyncio.sleep(0.01)
+        return ws
+
+    stt = OpenAILiveSTT("sk-test", connect=connect)
+    await asyncio.gather(stt.open(), stt.open())
+    assert len(n) == 1
+    evs = await collect(stt, FRAME, Commit(final=True))
+    assert evs[-1].text == "One."

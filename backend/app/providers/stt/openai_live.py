@@ -82,6 +82,7 @@ class OpenAILiveSTT:
         self.events: asyncio.Queue = asyncio.Queue()
         self.reader: asyncio.Task | None = None
         self.seen_items: set[str] = set()
+        self._open_lock = asyncio.Lock()
 
     def _session_update(self, langs: list[str]) -> dict:
         tr: dict[str, Any] = {"model": self.model, "languages": langs}
@@ -93,6 +94,10 @@ class OpenAILiveSTT:
             "format": {"type": "audio/pcm", "rate": 24000}, "transcription": tr, "turn_detection": None}}}}
 
     async def open(self) -> None:
+        async with self._open_lock:  # warm-up and the first turn may race
+            await self._open_locked()
+
+    async def _open_locked(self) -> None:
         if self.ws is not None and self.reader is not None and not self.reader.done():
             return
         await self.aclose()
