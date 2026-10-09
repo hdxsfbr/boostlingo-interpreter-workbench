@@ -1,0 +1,8 @@
+# EN<->FR smoke set (A14 onboarding). Not a benchmark: 2 short utterances per
+# direction, used only to show the pair works end to end. No quality claims.
+en:
+  - {id: en-s01, size: short, domain: medical, text: "Do you have any allergies?", reference_translation: "Avez-vous des allergies ?"}
+  - {id: en-s02, size: short, domain: legal, text: "Please state your full name.", reference_translation: "Veuillez indiquer votre nom complet."}
+fr:
+  - {id: fr-s01, size: short, domain: medical, text: "J'ai mal à la tête depuis hier.", reference_translation: "I've had a headache since yesterday."}
+  - {id: fr-s02, size: short, domain: legal, text: "Je ne comprends pas cette question.", reference_translation: "I don't understand this question."}

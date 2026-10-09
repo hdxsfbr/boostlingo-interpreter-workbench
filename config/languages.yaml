@@ -6,10 +6,17 @@ languages:
     name: English
   es:
     name: Spanish
+  fr:
+    name: French      # onboarded 2026-10-09 (A14); smoke-tested only, no quality claims
 default_pair: en-es
 pairs:
   - id: en-es
     a: en           # Speaker A speaks this
     b: es           # Speaker B speaks this
     benchmarked: true   # the only pair with a benchmark set (docs/benchmarks/utterances.yaml)
+    glossary: {}
+  - id: en-fr
+    a: en
+    b: fr
+    benchmarked: false  # smoke-tested only (docs/benchmarks/pairs/en-fr.yaml)
     glossary: {}

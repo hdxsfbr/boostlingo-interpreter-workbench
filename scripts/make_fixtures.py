@@ -7,6 +7,7 @@ cost nothing. Needs OPENAI_API_KEY in the environment (`set -a; source .env`).
 Never prints the key.
 
     python scripts/make_fixtures.py [--only en-s01,es-m02] [--force]
+    python scripts/make_fixtures.py --utterances docs/benchmarks/pairs/en-fr.yaml --out data/fixtures-en-fr
 """
 
 from __future__ import annotations
@@ -33,7 +34,8 @@ RATE = 24000
 def synth(client: httpx.Client, text: str, voice: str, lang: str) -> bytes:
     r = client.post(
         "https://api.openai.com/v1/audio/speech",
-        json={"model": "gpt-4o-mini-tts", "voice": voice, "input": text, "instructions": STYLE[lang], "response_format": "pcm"},
+        json={"model": "gpt-4o-mini-tts", "voice": voice, "input": text, "response_format": "pcm",
+              "instructions": STYLE.get(lang, "Speak naturally at a normal conversational pace, like a person talking to an interpreter.")},
     )
     if r.status_code != 200:
         raise SystemExit(f"TTS failed for {text[:30]!r}: HTTP {r.status_code}")
@@ -45,6 +47,7 @@ def main() -> int:
     ap.add_argument("--only", default="")
     ap.add_argument("--force", action="store_true")
     ap.add_argument("--out", default=str(ROOT / "data" / "fixtures"))
+    ap.add_argument("--utterances", default=str(ROOT / "docs" / "benchmarks" / "utterances.yaml"))
     args = ap.parse_args()
     key = os.environ.get("OPENAI_API_KEY")
     if not key:
@@ -53,7 +56,7 @@ def main() -> int:
     only = {s for s in args.only.split(",") if s}
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
-    data = yaml.safe_load((ROOT / "docs" / "benchmarks" / "utterances.yaml").read_text())
+    data = yaml.safe_load(Path(args.utterances).read_text())
     made = 0
     with httpx.Client(headers={"Authorization": f"Bearer {key}"}, timeout=60) as client:
         for lang, items in data.items():
@@ -63,7 +66,8 @@ def main() -> int:
                 path = out / f"{u['id']}.wav"
                 if path.exists() and not args.force:
                     continue
-                pcm = synth(client, u["text"], VOICES[lang][i % 2], lang)
+                voices = VOICES.get(lang, ["ash", "sage"])
+                pcm = synth(client, u["text"], voices[i % 2], lang)
                 lead = b"\x00\x00" * (RATE * LEAD_SILENCE_MS // 1000)
                 with wave.open(str(path), "wb") as w:
                     w.setnchannels(1)
@@ -71,7 +75,7 @@ def main() -> int:
                     w.setframerate(RATE)
                     w.writeframes(lead + pcm)
                 made += 1
-                print(f"{u['id']}: {len(pcm) / 2 / RATE:.2f}s ({VOICES[lang][i % 2]})")
+                print(f"{u['id']}: {len(pcm) / 2 / RATE:.2f}s ({voices[i % 2]})")
     print(f"made {made} fixture(s) in {out}")
     return 0
 

@@ -35,6 +35,9 @@ def test_repo_config_loads_with_en_es_default():
     assert lc.default.id == "en-es" and lc.default.langs == ["en", "es"] and lc.default.benchmarked
     assert lc.name("es") == "Spanish" and lc.name("xx") == "xx"
     assert lc.benchmarked().id == "en-es"
+    fr = lc.pair("en-fr")  # onboarded in A14: configured, not benchmarked
+    assert fr.langs == ["en", "fr"] and not fr.benchmarked and lc.name("fr") == "French"
+    assert lc.resolve("fr", "en") == ("fr", "en")
 
 
 @pytest.mark.parametrize("patch,msg", [
