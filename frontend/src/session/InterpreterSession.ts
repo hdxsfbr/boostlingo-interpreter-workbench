@@ -27,6 +27,9 @@ export type HarnessHook = {
   fileStartedAt?: () => number | null;
   /** VAD mode: label/direction for the next detected turns (harness). */
   setVadSpeaker?: (s: Speaker) => void;
+  /** Record the output audio (what the listener hears); stop returns base64 webm. */
+  recStart?: () => void;
+  recStop?: () => Promise<string | null>;
 };
 export type Diag = {
   transport: string | null;
@@ -108,6 +111,17 @@ export class InterpreterSession implements InterpreterSessionApi {
     hook.setVadSpeaker = (sp) => this.setVadSpeaker(sp);
     hook.diag = () => this.diag();
     hook.oaiEvents = () => this.transport?.recorded ?? [];
+    hook.recStart = () => this.engine?.startRecording();
+    hook.recStop = async () => {
+      const blob = await this.engine?.stopRecording();
+      if (!blob) return null;
+      const url = await new Promise<string>((res) => {
+        const r = new FileReader();
+        r.onload = () => res(String(r.result));
+        r.readAsDataURL(blob);
+      });
+      return url.slice(url.indexOf(",") + 1);
+    };
   }
 
   diag(): Diag {

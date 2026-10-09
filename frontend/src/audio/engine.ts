@@ -57,6 +57,9 @@ export class AudioEngine {
   private playback!: AudioWorkletNode;
   private tap!: AudioWorkletNode;
   private nodes: AudioNode[] = [];
+  private recDest: MediaStreamAudioDestinationNode | null = null;
+  private recorder: MediaRecorder | null = null;
+  private recChunks: Blob[] = [];
   private remote: { src: MediaStreamAudioSourceNode; el: HTMLAudioElement } | null = null;
 
   onFrame: (f: Frame) => void = () => {};
@@ -153,7 +156,36 @@ export class AudioEngine {
     return this.nodes.length + (this.remote ? 1 : 0);
   }
 
+  /** Benchmark harness: record exactly what reaches the speakers (after the
+   * output tap) as webm/opus, for blind ratings and TTS round-trip checks. */
+  startRecording(): void {
+    if (!this.recDest) {
+      this.recDest = this.ctx.createMediaStreamDestination();
+      this.tap.connect(this.recDest);
+    }
+    this.recChunks = [];
+    const rec = new MediaRecorder(this.recDest.stream, { mimeType: "audio/webm;codecs=opus" });
+    rec.ondataavailable = (e) => {
+      if (e.data.size) this.recChunks.push(e.data);
+    };
+    rec.start();
+    this.recorder = rec;
+  }
+  async stopRecording(): Promise<Blob | null> {
+    const rec = this.recorder;
+    if (!rec) return null;
+    this.recorder = null;
+    await new Promise<void>((res) => {
+      rec.onstop = () => res();
+      rec.stop();
+    });
+    return new Blob(this.recChunks, { type: "audio/webm" });
+  }
+
   async close(): Promise<void> {
+    this.recorder?.stop();
+    this.recDest?.disconnect();
+    this.recDest = null;
     this.detachRemote();
     for (const n of this.nodes) n.disconnect();
     this.nodes = [];
