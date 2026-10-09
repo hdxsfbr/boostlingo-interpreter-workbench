@@ -12,7 +12,7 @@ Latency is measured **in the browser, on one clock**, from the last voiced micro
 |---|---|
 | M0 skeleton, audio I/O, contract, cascade WS loopback | done |
 | M1 cascade pipeline with OpenAI adapters, waterfall, stats, export | done |
-| M2 Realtime WebRTC mode | next |
+| M2 Realtime WebRTC mode | started: secret minting + session config done; transport next |
 | M3 provider swaps (Haiku, ElevenLabs + budget guard, OpenRouter) | planned |
 | M4 benchmark harness, soak, final `gpt-realtime` runs | planned |
 | M5 error pass, README, AGENTS.md, comparison write-up | planned |

@@ -41,4 +41,13 @@ This repo is built by an agentic coding assistant (Grok Bot executor agents) dir
   - An early attempt targeted Andre's Mac over SSH while `hdx-lab`'s agent connection was down; Andre redirected the work to run on the lab itself.
 
 ### M1 (cascade pipeline)
-See the M1 section below (filled in when M1 lands).
+- Order: tests first for the pure pieces (chunker, retry policy, error mapping), then provider Protocols + registry + scripted fakes, then the orchestrator with 16 fake-provider tests (ordering, pipelining, marks, watchdogs, retries, empty results, cancellation/no leaked tasks), then the three OpenAI adapters, each with contract tests against **recorded** responses (a real `gpt-live-transcribe` two-segment event stream and a real Responses SSE stream, captured once and committed to `contract/fixtures/openai/`, scrubbed of nothing secret since events carry no keys).
+- Before writing the STT adapter the agent probed the undocumented transcription WebSocket (`wss://api.openai.com/v1/realtime?intent=transcription`) with a 1-shot script outside the repo, printing only event types, to confirm the protocol instead of guessing.
+- MT model chosen by measurement (`docs/benchmarks/mt-ttft.md`): `gpt-5.4-nano`.
+- Verification: 83 backend tests + 14 frontend tests (also offline in Docker with `--network none`), live browser runs in both directions (`docs/benchmarks/m1-cascade-smoke.md`), `curl` of the secret-minting endpoint (status + `ek_` prefix only).
+- Realtime was progressed in parallel as allowed by DESIGN §10: secret minting + interpreter session config (M2's backend half). Only `gpt-realtime-mini` was used.
+- **Agent mistakes caught and fixed:**
+  - Turn 1 in the first live browser run timed out at STT: the session warm-up and the first turn both opened the transcription socket and the later one replaced the event queue. Fixed with a lock + a regression test.
+  - A test monkeypatched `asyncio.sleep` globally to speed up retries, which also short-circuited the watchdogs and made the turn time out. Replaced with a zero `Retry-After`.
+  - A config-error test passed on the lab only because the lab shell happened to export `OPENAI_API_KEY`; the offline Docker run exposed it. Tests now pin their environment.
+  - The smoke harness released PTT at in-sentence pauses of the looping fake-mic file, producing fragment turns ("Could morning." → "¿Buenas, ¿eh?"). It now presses only during silence and requires a minimum speech duration.
