@@ -30,7 +30,7 @@ providers:
     effort: low            # thinking disabled; allowed at effort <= high
     enabled: false         # live validity check returned 400 (2026-10-08); profile stays optional
   openrouter:             # OpenAI-compatible chat API, another base_url
-    model: anthropic/claude-haiku-5-5
+    model: anthropic/claude-haiku-5.5   # canonical OpenRouter id (the M4 check sent -5-5 and was served 5.5)
     max_tokens: 400
     sort: latency
   openai_tts:

@@ -11,7 +11,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 KEYDIR = Path(os.environ.get("AGENTFORGE_KEYS", Path.home() / ".config" / "agentforge"))
 FROM_FILES = {"OPENAI_API_KEY": "openai_api_key", "ANTHROPIC_API_KEY": "anthropic_api_key",
-              "ANTHROPIC_WORKSPACE_ID": "anthropic_workspace_id"}
+              "ANTHROPIC_WORKSPACE_ID": "anthropic_workspace_id", "OPENROUTER_API_KEY": "openrouter_api_key"}
 REQUIRED = {"OPENAI_API_KEY"}
 
 
