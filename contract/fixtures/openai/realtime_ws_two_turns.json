@@ -1,0 +1,784 @@
+[
+ {
+  "type": "session.created",
+  "session": {
+   "type": "realtime",
+   "note": "elided"
+  }
+ },
+ {
+  "type": "session.updated",
+  "session": {
+   "type": "realtime",
+   "note": "elided"
+  }
+ },
+ {
+  "type": "input_audio_buffer.cleared"
+ },
+ {
+  "type": "input_audio_buffer.committed",
+  "previous_item_id": null,
+  "item_id": "item_EWsX04pwqW1yp2vFEcB5M"
+ },
+ {
+  "type": "conversation.item.added",
+  "previous_item_id": null,
+  "item": {
+   "id": "item_EWsX04pwqW1yp2vFEcB5M",
+   "type": "message",
+   "status": "completed",
+   "role": "user",
+   "content": [
+    {
+     "type": "input_audio",
+     "transcript": null
+    }
+   ]
+  }
+ },
+ {
+  "type": "conversation.item.done",
+  "previous_item_id": null,
+  "item": {
+   "id": "item_EWsX04pwqW1yp2vFEcB5M",
+   "type": "message",
+   "status": "completed",
+   "role": "user",
+   "content": [
+    {
+     "type": "input_audio",
+     "transcript": null
+    }
+   ]
+  }
+ },
+ {
+  "type": "response.created",
+  "response": {
+   "object": "realtime.response",
+   "id": "resp_EWsX0Mr85Fvq9CPTR3Tiv",
+   "status": "in_progress",
+   "status_details": null,
+   "output": [],
+   "conversation_id": "conv_EWsWz5zXYk6iRO4YIk3Q9",
+   "output_modalities": [
+    "audio"
+   ],
+   "max_output_tokens": "inf",
+   "audio": {
+    "output": {
+     "format": {
+      "type": "audio/pcm",
+      "rate": 24000
+     },
+     "voice": "marin"
+    }
+   },
+   "usage": null,
+   "metadata": null
+  }
+ },
+ {
+  "type": "response.output_item.added",
+  "response_id": "resp_EWsX0Mr85Fvq9CPTR3Tiv",
+  "output_index": 0,
+  "item": {
+   "id": "item_EWsX0igt8p6WwcyV8T7Ob",
+   "type": "message",
+   "status": "in_progress",
+   "role": "assistant",
+   "content": []
+  }
+ },
+ {
+  "type": "conversation.item.added",
+  "previous_item_id": "item_EWsX04pwqW1yp2vFEcB5M",
+  "item": {
+   "id": "item_EWsX0igt8p6WwcyV8T7Ob",
+   "type": "message",
+   "status": "in_progress",
+   "role": "assistant",
+   "content": []
+  }
+ },
+ {
+  "type": "response.content_part.added",
+  "response_id": "resp_EWsX0Mr85Fvq9CPTR3Tiv",
+  "item_id": "item_EWsX0igt8p6WwcyV8T7Ob",
+  "output_index": 0,
+  "content_index": 0,
+  "part": {
+   "type": "audio",
+   "transcript": ""
+  }
+ },
+ {
+  "type": "response.output_audio_transcript.delta",
+  "response_id": "resp_EWsX0Mr85Fvq9CPTR3Tiv",
+  "item_id": "item_EWsX0igt8p6WwcyV8T7Ob",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": "He"
+ },
+ {
+  "type": "response.output_audio_transcript.delta",
+  "response_id": "resp_EWsX0Mr85Fvq9CPTR3Tiv",
+  "item_id": "item_EWsX0igt8p6WwcyV8T7Ob",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " tenido"
+ },
+ {
+  "type": "response.output_audio_transcript.delta",
+  "response_id": "resp_EWsX0Mr85Fvq9CPTR3Tiv",
+  "item_id": "item_EWsX0igt8p6WwcyV8T7Ob",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " un"
+ },
+ {
+  "type": "response.output_audio_transcript.delta",
+  "response_id": "resp_EWsX0Mr85Fvq9CPTR3Tiv",
+  "item_id": "item_EWsX0igt8p6WwcyV8T7Ob",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " dolor"
+ },
+ {
+  "type": "response.output_audio_transcript.delta",
+  "response_id": "resp_EWsX0Mr85Fvq9CPTR3Tiv",
+  "item_id": "item_EWsX0igt8p6WwcyV8T7Ob",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " de"
+ },
+ {
+  "type": "response.output_audio_transcript.delta",
+  "response_id": "resp_EWsX0Mr85Fvq9CPTR3Tiv",
+  "item_id": "item_EWsX0igt8p6WwcyV8T7Ob",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " cabeza"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_EWsX04pwqW1yp2vFEcB5M",
+  "content_index": 0,
+  "delta": "I"
+ },
+ {
+  "type": "response.output_audio.delta",
+  "response_id": "resp_EWsX0Mr85Fvq9CPTR3Tiv",
+  "item_id": "item_EWsX0igt8p6WwcyV8T7Ob",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": "AAAA"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_EWsX04pwqW1yp2vFEcB5M",
+  "content_index": 0,
+  "delta": " have"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_EWsX04pwqW1yp2vFEcB5M",
+  "content_index": 0,
+  "delta": " had"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_EWsX04pwqW1yp2vFEcB5M",
+  "content_index": 0,
+  "delta": " a"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_EWsX04pwqW1yp2vFEcB5M",
+  "content_index": 0,
+  "delta": " headache"
+ },
+ {
+  "type": "response.output_audio_transcript.delta",
+  "response_id": "resp_EWsX0Mr85Fvq9CPTR3Tiv",
+  "item_id": "item_EWsX0igt8p6WwcyV8T7Ob",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " durante"
+ },
+ {
+  "type": "response.output_audio_transcript.delta",
+  "response_id": "resp_EWsX0Mr85Fvq9CPTR3Tiv",
+  "item_id": "item_EWsX0igt8p6WwcyV8T7Ob",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " tres"
+ },
+ {
+  "type": "response.output_audio_transcript.delta",
+  "response_id": "resp_EWsX0Mr85Fvq9CPTR3Tiv",
+  "item_id": "item_EWsX0igt8p6WwcyV8T7Ob",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " días"
+ },
+ {
+  "type": "response.output_audio_transcript.delta",
+  "response_id": "resp_EWsX0Mr85Fvq9CPTR3Tiv",
+  "item_id": "item_EWsX0igt8p6WwcyV8T7Ob",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": "."
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_EWsX04pwqW1yp2vFEcB5M",
+  "content_index": 0,
+  "delta": " for"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_EWsX04pwqW1yp2vFEcB5M",
+  "content_index": 0,
+  "delta": " three"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_EWsX04pwqW1yp2vFEcB5M",
+  "content_index": 0,
+  "delta": " days"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_EWsX04pwqW1yp2vFEcB5M",
+  "content_index": 0,
+  "delta": "."
+ },
+ {
+  "type": "response.output_audio.delta",
+  "response_id": "resp_EWsX0Mr85Fvq9CPTR3Tiv",
+  "item_id": "item_EWsX0igt8p6WwcyV8T7Ob",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": "AAAA"
+ },
+ {
+  "type": "response.output_audio.done",
+  "response_id": "resp_EWsX0Mr85Fvq9CPTR3Tiv",
+  "item_id": "item_EWsX0igt8p6WwcyV8T7Ob",
+  "output_index": 0,
+  "content_index": 0
+ },
+ {
+  "type": "response.output_audio_transcript.done",
+  "response_id": "resp_EWsX0Mr85Fvq9CPTR3Tiv",
+  "item_id": "item_EWsX0igt8p6WwcyV8T7Ob",
+  "output_index": 0,
+  "content_index": 0,
+  "transcript": "He tenido un dolor de cabeza durante tres días."
+ },
+ {
+  "type": "response.content_part.done",
+  "response_id": "resp_EWsX0Mr85Fvq9CPTR3Tiv",
+  "item_id": "item_EWsX0igt8p6WwcyV8T7Ob",
+  "output_index": 0,
+  "content_index": 0,
+  "part": {
+   "type": "audio",
+   "transcript": "He tenido un dolor de cabeza durante tres días."
+  }
+ },
+ {
+  "type": "conversation.item.done",
+  "previous_item_id": null,
+  "item": {
+   "id": "item_EWsX0igt8p6WwcyV8T7Ob",
+   "type": "message",
+   "status": "completed",
+   "role": "assistant",
+   "content": [
+    {
+     "type": "output_audio",
+     "transcript": "He tenido un dolor de cabeza durante tres días."
+    }
+   ]
+  }
+ },
+ {
+  "type": "response.output_item.done",
+  "response_id": "resp_EWsX0Mr85Fvq9CPTR3Tiv",
+  "output_index": 0,
+  "item": {
+   "id": "item_EWsX0igt8p6WwcyV8T7Ob",
+   "type": "message",
+   "status": "completed",
+   "role": "assistant",
+   "content": [
+    {
+     "type": "output_audio",
+     "transcript": "He tenido un dolor de cabeza durante tres días."
+    }
+   ]
+  }
+ },
+ {
+  "type": "response.done",
+  "response": {
+   "object": "realtime.response",
+   "id": "resp_EWsX0Mr85Fvq9CPTR3Tiv",
+   "status": "completed",
+   "status_details": null,
+   "output": [
+    {
+     "id": "item_EWsX0igt8p6WwcyV8T7Ob",
+     "type": "message",
+     "status": "completed",
+     "role": "assistant",
+     "content": [
+      {
+       "type": "output_audio",
+       "transcript": "He tenido un dolor de cabeza durante tres días."
+      }
+     ]
+    }
+   ],
+   "conversation_id": "conv_EWsWz5zXYk6iRO4YIk3Q9",
+   "output_modalities": [
+    "audio"
+   ],
+   "max_output_tokens": "inf",
+   "audio": {
+    "output": {
+     "format": {
+      "type": "audio/pcm",
+      "rate": 24000
+     },
+     "voice": "marin"
+    }
+   },
+   "usage": {
+    "total_tokens": 254,
+    "input_tokens": 166,
+    "output_tokens": 88,
+    "input_token_details": {
+     "text_tokens": 123,
+     "audio_tokens": 43,
+     "image_tokens": 0,
+     "cached_tokens": 0,
+     "cached_tokens_details": {
+      "text_tokens": 0,
+      "audio_tokens": 0,
+      "image_tokens": 0
+     }
+    },
+    "output_token_details": {
+     "text_tokens": 22,
+     "audio_tokens": 66
+    }
+   },
+   "metadata": null
+  }
+ },
+ {
+  "type": "rate_limits.updated",
+  "rate_limits": []
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.completed",
+  "item_id": "item_EWsX04pwqW1yp2vFEcB5M",
+  "content_index": 0,
+  "transcript": "I have had a headache for three days.",
+  "usage": {
+   "type": "tokens",
+   "total_tokens": 54,
+   "input_tokens": 43,
+   "input_token_details": {
+    "text_tokens": 0,
+    "audio_tokens": 43
+   },
+   "output_tokens": 11
+  }
+ },
+ {
+  "type": "input_audio_buffer.cleared"
+ },
+ {
+  "type": "input_audio_buffer.committed",
+  "previous_item_id": "item_EWsX0igt8p6WwcyV8T7Ob",
+  "item_id": "item_EWsX1olc31IdJOMJ1gc7G"
+ },
+ {
+  "type": "conversation.item.added",
+  "previous_item_id": "item_EWsX0igt8p6WwcyV8T7Ob",
+  "item": {
+   "id": "item_EWsX1olc31IdJOMJ1gc7G",
+   "type": "message",
+   "status": "completed",
+   "role": "user",
+   "content": [
+    {
+     "type": "input_audio",
+     "transcript": null
+    }
+   ]
+  }
+ },
+ {
+  "type": "conversation.item.done",
+  "previous_item_id": "item_EWsX0igt8p6WwcyV8T7Ob",
+  "item": {
+   "id": "item_EWsX1olc31IdJOMJ1gc7G",
+   "type": "message",
+   "status": "completed",
+   "role": "user",
+   "content": [
+    {
+     "type": "input_audio",
+     "transcript": null
+    }
+   ]
+  }
+ },
+ {
+  "type": "response.created",
+  "response": {
+   "object": "realtime.response",
+   "id": "resp_EWsX1beMOIPJWhuHtLQ6f",
+   "status": "in_progress",
+   "status_details": null,
+   "output": [],
+   "conversation_id": "conv_EWsWz5zXYk6iRO4YIk3Q9",
+   "output_modalities": [
+    "audio"
+   ],
+   "max_output_tokens": "inf",
+   "audio": {
+    "output": {
+     "format": {
+      "type": "audio/pcm",
+      "rate": 24000
+     },
+     "voice": "marin"
+    }
+   },
+   "usage": null,
+   "metadata": null
+  }
+ },
+ {
+  "type": "response.output_item.added",
+  "response_id": "resp_EWsX1beMOIPJWhuHtLQ6f",
+  "output_index": 0,
+  "item": {
+   "id": "item_EWsX1e6m1MrYkQqjVWFDD",
+   "type": "message",
+   "status": "in_progress",
+   "role": "assistant",
+   "content": []
+  }
+ },
+ {
+  "type": "conversation.item.added",
+  "previous_item_id": "item_EWsX1olc31IdJOMJ1gc7G",
+  "item": {
+   "id": "item_EWsX1e6m1MrYkQqjVWFDD",
+   "type": "message",
+   "status": "in_progress",
+   "role": "assistant",
+   "content": []
+  }
+ },
+ {
+  "type": "response.content_part.added",
+  "response_id": "resp_EWsX1beMOIPJWhuHtLQ6f",
+  "item_id": "item_EWsX1e6m1MrYkQqjVWFDD",
+  "output_index": 0,
+  "content_index": 0,
+  "part": {
+   "type": "audio",
+   "transcript": ""
+  }
+ },
+ {
+  "type": "response.output_audio_transcript.delta",
+  "response_id": "resp_EWsX1beMOIPJWhuHtLQ6f",
+  "item_id": "item_EWsX1e6m1MrYkQqjVWFDD",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": "It"
+ },
+ {
+  "type": "response.output_audio_transcript.delta",
+  "response_id": "resp_EWsX1beMOIPJWhuHtLQ6f",
+  "item_id": "item_EWsX1e6m1MrYkQqjVWFDD",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " hurts"
+ },
+ {
+  "type": "response.output_audio_transcript.delta",
+  "response_id": "resp_EWsX1beMOIPJWhuHtLQ6f",
+  "item_id": "item_EWsX1e6m1MrYkQqjVWFDD",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " in"
+ },
+ {
+  "type": "response.output_audio_transcript.delta",
+  "response_id": "resp_EWsX1beMOIPJWhuHtLQ6f",
+  "item_id": "item_EWsX1e6m1MrYkQqjVWFDD",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " my"
+ },
+ {
+  "type": "response.output_audio_transcript.delta",
+  "response_id": "resp_EWsX1beMOIPJWhuHtLQ6f",
+  "item_id": "item_EWsX1e6m1MrYkQqjVWFDD",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " chest"
+ },
+ {
+  "type": "response.output_audio_transcript.delta",
+  "response_id": "resp_EWsX1beMOIPJWhuHtLQ6f",
+  "item_id": "item_EWsX1e6m1MrYkQqjVWFDD",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " when"
+ },
+ {
+  "type": "response.output_audio_transcript.delta",
+  "response_id": "resp_EWsX1beMOIPJWhuHtLQ6f",
+  "item_id": "item_EWsX1e6m1MrYkQqjVWFDD",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " I"
+ },
+ {
+  "type": "response.output_audio_transcript.delta",
+  "response_id": "resp_EWsX1beMOIPJWhuHtLQ6f",
+  "item_id": "item_EWsX1e6m1MrYkQqjVWFDD",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " take"
+ },
+ {
+  "type": "response.output_audio_transcript.delta",
+  "response_id": "resp_EWsX1beMOIPJWhuHtLQ6f",
+  "item_id": "item_EWsX1e6m1MrYkQqjVWFDD",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " a"
+ },
+ {
+  "type": "response.output_audio_transcript.delta",
+  "response_id": "resp_EWsX1beMOIPJWhuHtLQ6f",
+  "item_id": "item_EWsX1e6m1MrYkQqjVWFDD",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " deep"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_EWsX1olc31IdJOMJ1gc7G",
+  "content_index": 0,
+  "delta": "Me"
+ },
+ {
+  "type": "response.output_audio_transcript.delta",
+  "response_id": "resp_EWsX1beMOIPJWhuHtLQ6f",
+  "item_id": "item_EWsX1e6m1MrYkQqjVWFDD",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " breath"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_EWsX1olc31IdJOMJ1gc7G",
+  "content_index": 0,
+  "delta": " due"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_EWsX1olc31IdJOMJ1gc7G",
+  "content_index": 0,
+  "delta": "le"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_EWsX1olc31IdJOMJ1gc7G",
+  "content_index": 0,
+  "delta": " el"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_EWsX1olc31IdJOMJ1gc7G",
+  "content_index": 0,
+  "delta": " pecho"
+ },
+ {
+  "type": "response.output_audio_transcript.delta",
+  "response_id": "resp_EWsX1beMOIPJWhuHtLQ6f",
+  "item_id": "item_EWsX1e6m1MrYkQqjVWFDD",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": "."
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_EWsX1olc31IdJOMJ1gc7G",
+  "content_index": 0,
+  "delta": " cuando"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_EWsX1olc31IdJOMJ1gc7G",
+  "content_index": 0,
+  "delta": " res"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_EWsX1olc31IdJOMJ1gc7G",
+  "content_index": 0,
+  "delta": "piro"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_EWsX1olc31IdJOMJ1gc7G",
+  "content_index": 0,
+  "delta": " profundo"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_EWsX1olc31IdJOMJ1gc7G",
+  "content_index": 0,
+  "delta": "."
+ },
+ {
+  "type": "response.output_audio.delta",
+  "response_id": "resp_EWsX1beMOIPJWhuHtLQ6f",
+  "item_id": "item_EWsX1e6m1MrYkQqjVWFDD",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": "AAAA"
+ },
+ {
+  "type": "response.output_audio.done",
+  "response_id": "resp_EWsX1beMOIPJWhuHtLQ6f",
+  "item_id": "item_EWsX1e6m1MrYkQqjVWFDD",
+  "output_index": 0,
+  "content_index": 0
+ },
+ {
+  "type": "response.output_audio_transcript.done",
+  "response_id": "resp_EWsX1beMOIPJWhuHtLQ6f",
+  "item_id": "item_EWsX1e6m1MrYkQqjVWFDD",
+  "output_index": 0,
+  "content_index": 0,
+  "transcript": "It hurts in my chest when I take a deep breath."
+ },
+ {
+  "type": "response.content_part.done",
+  "response_id": "resp_EWsX1beMOIPJWhuHtLQ6f",
+  "item_id": "item_EWsX1e6m1MrYkQqjVWFDD",
+  "output_index": 0,
+  "content_index": 0,
+  "part": {
+   "type": "audio",
+   "transcript": "It hurts in my chest when I take a deep breath."
+  }
+ },
+ {
+  "type": "conversation.item.done",
+  "previous_item_id": "item_EWsX1olc31IdJOMJ1gc7G",
+  "item": {
+   "id": "item_EWsX1e6m1MrYkQqjVWFDD",
+   "type": "message",
+   "status": "completed",
+   "role": "assistant",
+   "content": [
+    {
+     "type": "output_audio",
+     "transcript": "It hurts in my chest when I take a deep breath."
+    }
+   ]
+  }
+ },
+ {
+  "type": "response.output_item.done",
+  "response_id": "resp_EWsX1beMOIPJWhuHtLQ6f",
+  "output_index": 0,
+  "item": {
+   "id": "item_EWsX1e6m1MrYkQqjVWFDD",
+   "type": "message",
+   "status": "completed",
+   "role": "assistant",
+   "content": [
+    {
+     "type": "output_audio",
+     "transcript": "It hurts in my chest when I take a deep breath."
+    }
+   ]
+  }
+ },
+ {
+  "type": "response.done",
+  "response": {
+   "object": "realtime.response",
+   "id": "resp_EWsX1beMOIPJWhuHtLQ6f",
+   "status": "completed",
+   "status_details": null,
+   "output": [
+    {
+     "id": "item_EWsX1e6m1MrYkQqjVWFDD",
+     "type": "message",
+     "status": "completed",
+     "role": "assistant",
+     "content": [
+      {
+       "type": "output_audio",
+       "transcript": "It hurts in my chest when I take a deep breath."
+      }
+     ]
+    }
+   ],
+   "conversation_id": "conv_EWsWz5zXYk6iRO4YIk3Q9",
+   "output_modalities": [
+    "audio"
+   ],
+   "max_output_tokens": "inf",
+   "audio": {
+    "output": {
+     "format": {
+      "type": "audio/pcm",
+      "rate": 24000
+     },
+     "voice": "marin"
+    }
+   },
+   "usage": {
+    "total_tokens": 406,
+    "input_tokens": 317,
+    "output_tokens": 89,
+    "input_token_details": {
+     "text_tokens": 155,
+     "audio_tokens": 162,
+     "image_tokens": 0,
+     "cached_tokens": 256,
+     "cached_tokens_details": {
+      "text_tokens": 128,
+      "audio_tokens": 128,
+      "image_tokens": 0
+     }
+    },
+    "output_token_details": {
+     "text_tokens": 24,
+     "audio_tokens": 65
+    }
+   },
+   "metadata": null
+  }
+ }
+]
