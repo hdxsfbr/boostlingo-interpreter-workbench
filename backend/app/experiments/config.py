@@ -3,10 +3,13 @@
 A setup is one of the M5 profiles, mapped to the *existing* harness flags
 (eval/harness.py) and to the cost makeup in eval/metrics.py PROFILES.
 
-Estimate = selected source minutes (voiced speech per utterance, measured in
-M5 and stored in the raw rows) x passes x that profile's M5 cost per minute
-(priced with config/pricing.yaml). Duration uses the M5 wall-clock / speech
-ratio per profile plus a fixed session start-up.
+Estimate per setup = for each selected utterance, that profile's measured M5
+cost for the same utterance (raw row usage priced with config/pricing.yaml via
+eval.metrics.row_cost), x passes. Utterances without an M5 row fall back to
+voiced minutes x the profile's M5 $/min. Per-utterance pricing matters: short
+turns carry fixed per-turn overhead, so a flat $/min under-estimates them by
+~35% (smoke run). Duration uses the M5 wall-clock / speech ratio per profile
+plus a fixed session start-up.
 """
 from __future__ import annotations
 
@@ -71,7 +74,11 @@ def utterances(root: Path = REPO_ROOT) -> dict[str, dict]:
 def m5_profile_stats(bench_dir: Path) -> dict:
     """Per profile: $/min (results.json) and wall/speech ratio; per id: voiced seconds (raw rows)."""
     res = json.loads((bench_dir / "results" / "m5" / "results.json").read_text())
-    out: dict = {"profiles": {}, "speech_s": {}}
+    out: dict = {"profiles": {}, "speech_s": {}, "cost": {}}
+    try:
+        from eval.metrics import PROFILES, row_cost
+    except ImportError:  # metrics deps missing: $/min fallback only
+        PROFILES, row_cost = {}, None
     for p in res["profiles"]:
         name = p["profile"]
         ratio = 2.6
@@ -81,9 +88,13 @@ def m5_profile_stats(bench_dir: Path) -> dict:
             sp = sum(r.get("speech_s") or 0 for r in rows)
             if sp and rows:
                 ratio = max(r.get("t_s") or 0 for r in rows) / sp
+            per: dict[str, list[float]] = {}
             for r in rows:
                 if r.get("speech_s"):
                     out["speech_s"].setdefault(r["id"], r["speech_s"])
+                if row_cost and name in PROFILES and r.get("usage") is not None:
+                    per.setdefault(r["id"], []).append(float(row_cost(r, PROFILES[name])))
+            out["cost"][name] = {k: sum(v) / len(v) for k, v in per.items()}
         out["profiles"][name] = {"usd_per_min": p["cost"]["usd_per_min"], "wall_per_speech_s": round(ratio, 2),
                                  "pricing_as_of": p["cost"].get("pricing_as_of")}
     return out
@@ -157,14 +168,24 @@ def estimate(cfg: ExperimentConfig, bench_dir: Path) -> dict:
     for s in cfg.setups:
         p = st["profiles"].get(s, {})
         mins = speech * cfg.passes / 60
-        usd = (p.get("usd_per_min") or 0) * mins
+        measured = st["cost"].get(s, {})
+        usd, n_meas = 0.0, 0
+        for i in ids:
+            if i in measured:
+                usd += measured[i]
+                n_meas += 1
+            else:
+                usd += (p.get("usd_per_min") or 0) * (st["speech_s"].get(i) or len(utt[i]["text"]) / 14) / 60
+        usd *= cfg.passes
         dur = STARTUP_S + speech * cfg.passes * p.get("wall_per_speech_s", 2.6)
         row = {"setup": s, "utterances": len(ids) * cfg.passes, "source_min": round(mins, 2),
-               "usd_per_min": p.get("usd_per_min"), "usd": round(usd, 4), "duration_s": round(dur)}
+               "usd_per_min": p.get("usd_per_min"), "usd": round(usd, 4), "duration_s": round(dur),
+               "measured_utterances": n_meas}
         if s == "cascade-elevenlabs":
             row["elevenlabs_chars"] = round(sum(len(utt[i]["reference_translation"]) for i in ids) * cfg.passes * 1.25)
         per.append(row)
     return {"turns": len(ids) * cfg.passes * len(cfg.setups), "per_setup": per,
             "usd": round(sum(r["usd"] for r in per), 4), "duration_s": sum(r["duration_s"] for r in per),
             "pricing_as_of": next(iter(st["profiles"].values()), {}).get("pricing_as_of"),
-            "basis": "M5 measured $/min (config/pricing.yaml) x selected voiced minutes x passes"}
+            "basis": "M5 measured cost of the same utterances (config/pricing.yaml) x passes; "
+                     "M5 $/min x voiced minutes where no M5 row exists"}

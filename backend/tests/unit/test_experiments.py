@@ -107,18 +107,28 @@ def test_selection_order_and_filters():
 
 
 # ----- estimate
-def test_estimate_uses_m5_rate_and_measured_minutes(env):
+def test_estimate_uses_m5_per_utterance_cost_with_rate_fallback(env):
+    from eval.metrics import PROFILES, row_cost
     c, _, _ = env
     st = m5_profile_stats(BENCH)
-    cfg = ExperimentConfig(name="x", setups=["realtime-mini", "cascade-openai"], utterances="short", passes=2)
+    cfg = ExperimentConfig(name="x", setups=["realtime-mini", "cascade-openai", "cascade-elevenlabs"],
+                           utterances="short", passes=2, allow_elevenlabs=True)
     est = estimate(cfg, BENCH)
-    speech = sum(st["speech_s"][i] for i in cfg.selected())
+    ids = cfg.selected()
+    speech = sum(st["speech_s"][i] for i in ids)
+    rate = {p["profile"]: p["cost"]["usd_per_min"] for p in json.loads((BENCH / "results/m5/results.json").read_text())["profiles"]}
     for row in est["per_setup"]:
-        rate = json.loads((BENCH / "results/m5/results.json").read_text())
-        usd_min = next(p["cost"]["usd_per_min"] for p in rate["profiles"] if p["profile"] == row["setup"])
-        assert row["usd"] == pytest.approx(usd_min * speech * 2 / 60, abs=1e-4)
+        raw = [json.loads(x) for x in (BENCH / f"results/m5/raw/{row['setup']}.jsonl").read_text().splitlines() if x.strip()]
+        per: dict[str, list[float]] = {}
+        for r in raw:
+            per.setdefault(r["id"], []).append(row_cost(r, PROFILES[row["setup"]]))
+        want = sum(sum(per[i]) / len(per[i]) if i in per else rate[row["setup"]] * st["speech_s"][i] / 60 for i in ids) * 2
+        assert row["usd"] == pytest.approx(want, abs=1e-4)
+        assert row["measured_utterances"] == sum(i in per for i in ids)
         assert row["utterances"] == 32 and row["duration_s"] > speech * 2
-    assert est["turns"] == 64 and est["usd"] == pytest.approx(sum(r["usd"] for r in est["per_setup"]), abs=1e-4)
+    assert est["per_setup"][0]["measured_utterances"] == 16 and est["per_setup"][2]["measured_utterances"] < 16
+    assert est["per_setup"][2]["elevenlabs_chars"] > 0
+    assert est["turns"] == 96 and est["usd"] == pytest.approx(sum(r["usd"] for r in est["per_setup"]), abs=1e-4)
     r = c.post("/api/experiments/estimate", json={"name": "x", "setups": ["realtime"], "utterances": "full", "passes": 3}).json()
     assert r["needs_confirmation"] is True and r["usd"] > r["confirm_above_usd"] == 1.0
 
