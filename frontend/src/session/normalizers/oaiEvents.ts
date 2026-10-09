@@ -36,6 +36,7 @@ export class OaiNormalizer {
   private tgt = new Map<number, string>();
   private marked = new Set<string>();
   private hadAudio = new Set<number>();
+  private audioOpen = new Set<number>();
   private lastTurn: number | null = null;
   private readonly now: () => number;
 
@@ -142,12 +143,21 @@ export class OaiNormalizer {
         this.hadAudio.add(turn);
         this.mark(turn, "output_audio_started");
         this.h.onOutputAudio?.(turn, true);
+        this.audioOpen.add(turn);
         return;
       }
       case "output_audio_buffer.stopped":
       case "output_audio_buffer.cleared": {
         const turn = this.turnForResponse(ev.response_id) ?? this.lastTurn;
         if (turn == null) return;
+        // The output buffer is one FIFO: when it stops for turn T, every earlier
+        // turn that was still open has finished too (VAD back-to-back responses
+        // get a single started/stopped pair; found in the M4 VAD sweep).
+        for (const t of [...this.audioOpen].filter((t) => t < turn).sort((x, y) => x - y)) {
+          this.audioOpen.delete(t);
+          emit({ type: "audio.ended", turn_id: t, at: this.now() });
+        }
+        this.audioOpen.delete(turn);
         this.h.onOutputAudio?.(turn, false);
         emit({ type: "audio.ended", turn_id: turn, at: this.now() });
         return;

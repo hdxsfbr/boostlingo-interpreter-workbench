@@ -55,6 +55,19 @@ describe("OaiNormalizer on a recorded two-turn session", () => {
     expect(out.at(-1)).toMatchObject({ type: "turn.done", turn_id: 1 });
   });
 
+  it("ends earlier turns when the shared output buffer stops for a later one (VAD back-to-back)", () => {
+    const { n, out } = setup();
+    n.turnCommitted(1);
+    n.handle({ type: "response.created", response: { id: "r1" } });
+    n.handle({ type: "output_audio_buffer.started", response_id: "r1" });
+    n.turnCommitted(2);
+    n.handle({ type: "response.created", response: { id: "r2" } });
+    n.handle({ type: "output_audio_buffer.started", response_id: "r2" });
+    n.handle({ type: "output_audio_buffer.stopped", response_id: "r2" });
+    const ended = out.filter((e) => e.type === "audio.ended").map((e) => e.turn_id);
+    expect(ended).toEqual([1, 2]);
+  });
+
   it("reports cancelled, failed, silent responses and empty commits", () => {
     const { n, out } = setup();
     n.turnCommitted(1);
