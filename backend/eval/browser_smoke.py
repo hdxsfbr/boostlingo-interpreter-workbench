@@ -15,8 +15,10 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import contextlib
 import json
 import statistics
+from pathlib import Path
 
 from playwright.async_api import async_playwright
 
@@ -57,17 +59,25 @@ async def run(a: argparse.Namespace) -> list[dict]:
             t_up = await page.evaluate("performance.now()")
             await page.mouse.up()
             n = i + 1
+            gate = None
+            if a.mode == "realtime":
+                # mic gating probe: sample the uplink state while the translation plays
+                with contextlib.suppress(Exception):
+                    await page.wait_for_function("window.__wb.diag().playing", timeout=5000, polling=20)
+                    gate = await page.evaluate("window.__wb.diag()")
             await page.wait_for_function(
                 f"(() => {{ const t = Object.values(window.__wb.state.turns).at(-1); return t && t.id === {n} && "
                 f"['done','skipped','failed'].includes(t.status); }})()", timeout=a.turn_timeout * 1000)
             turn = await page.evaluate("Object.values(window.__wb.state.turns).at(-1)")
             row = _row(n, turn, t_up - turn["tSpeechEnd"])
+            if gate is not None:
+                row["gate_during_playback"] = {"playing": gate["playing"], "uplink_live": gate["uplinkLive"]}
             print(json.dumps(row, ensure_ascii=False))
             results.append(row)
             await page.wait_for_timeout(a.gap_ms)
         if a.dump_events:
-            with open(a.dump_events, "w") as f:
-                json.dump(await page.evaluate("window.__wb.oaiEvents()"), f, ensure_ascii=False, indent=1)
+            events = await page.evaluate("window.__wb.oaiEvents()")
+            Path(a.dump_events).write_text(json.dumps(events, ensure_ascii=False, indent=1))
         print("diag after turns:", json.dumps(await page.evaluate("window.__wb.diag()")))
         if a.switches:
             modes = ["cascade", "realtime"] if a.mode == "realtime" else ["realtime", "cascade"]
@@ -97,11 +107,19 @@ def _row(n: int, turn: dict, lag: float | None) -> dict:
 
 async def vad_turn(page, a: argparse.Namespace, n: int) -> dict:
     """VAD mode: no button; the looping file provides speech + silence."""
+    gate = None
+    with contextlib.suppress(Exception):
+        await page.wait_for_function(
+            f"(() => {{ const t = Object.values(window.__wb.state.turns).find(t => t.id === {n}); return t && "
+            "window.__wb.diag().playing; })()", timeout=a.turn_timeout * 1000, polling=20)
+        gate = await page.evaluate("window.__wb.diag()")
     await page.wait_for_function(
         f"(() => {{ const t = Object.values(window.__wb.state.turns).find(t => t.id === {n}); return t && "
         f"['done','skipped','failed'].includes(t.status); }})()", timeout=a.turn_timeout * 1000)
     turn = await page.evaluate(f"Object.values(window.__wb.state.turns).find(t => t.id === {n})")
     row = _row(n, turn, None)
+    if gate is not None:
+        row["gate_during_playback"] = {"playing": gate["playing"], "uplink_live": gate["uplinkLive"]}
     print(json.dumps(row, ensure_ascii=False))
     return row
 
