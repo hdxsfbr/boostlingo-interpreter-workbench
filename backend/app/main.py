@@ -10,6 +10,8 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from app.api.cascade_ws import router as cascade_router
+from app.api.experiments import get_experiments
+from app.api.experiments import router as experiments_router
 from app.api.realtime_relay import router as relay_router
 from app.api.realtime_session import router as realtime_router
 from app.api.recordings import router as recordings_router
@@ -32,6 +34,8 @@ def create_app() -> FastAPI:
         task = asyncio.create_task(store.sweep_forever())
         with contextlib.suppress(OSError):  # A12: blind set import + preload (idempotent)
             await asyncio.to_thread(get_review_store)
+        with contextlib.suppress(OSError):  # A13: mark stale runs, import the M5 baseline (idempotent)
+            await asyncio.to_thread(get_experiments)
         yield
         task.cancel()
 
@@ -55,6 +59,7 @@ def create_app() -> FastAPI:
     app.include_router(relay_router)
     app.include_router(recordings_router)
     app.include_router(review_router)
+    app.include_router(experiments_router)
 
     if settings.static_dir and settings.static_dir.is_dir():
         app.mount("/", StaticFiles(directory=settings.static_dir, html=True), name="spa")
