@@ -96,6 +96,30 @@ The ElevenLabs quality figures rest on 6 sentences per direction, so treat them 
 - **Cascade at 500 ms:** 1524 / 1753 ms (p50 / p90). Shorter windows split sentences in the middle.
 - **Long monologues broke in both modes,** because the microphone is muted while the first part's translation plays. That is why we recommend push-to-talk, and why the final tests used it.
 
+**Blind human ratings.** One rater (Andre) listened to 48 anonymised, shuffled clips: the same 12 sentences (6 per direction) for each of 4 setups (`realtime-mini` was not rated). Each clip is the spoken output exactly as the listener heard it. He scored each from 1 (very poor) to 5 (excellent) on:
+- **adequacy (accuracy):** does it carry the full meaning, including numbers, names and negations?
+- **fluency:** is it grammatical, natural target-language speech?
+- **naturalness:** does the voice sound natural (rhythm, pronunciation, no glitches)?
+
+The rating sheet showed the source sentence and one reference translation (described as one acceptable rendering, not the only one), so scores are anchored on that reference. The key linking clips to setups is a separate file that the kit instructions say to open only after rating. Script: `backend/eval/blind_results.py`; full output, including the per-direction tables and every clip scored 3 or lower: [`benchmarks/blind/results.md`](benchmarks/blind/results.md) and `results.csv`.
+
+Each cell is mean / median, then standard deviation (sd, the typical spread around the mean) and range. "Composite" is the average of the three means.
+
+| Setup | Adequacy | Fluency | Naturalness | Composite | chrF, same 12 sentences | chrF, all M5 sentences |
+|---|---|---|---|---|---|---|
+| realtime | 5.00 / 5 (0.00, 5–5) | 5.00 / 5 (0.00, 5–5) | 4.75 / 5 (0.45, 4–5) | 4.92 | 71.9 | 78.6 |
+| cascade-openai | 4.83 / 5 (0.39, 4–5) | 4.75 / 5 (0.45, 4–5) | 3.50 / 3 (0.67, 3–5) | 4.36 | 70.9 | 75.6 |
+| cascade-haiku | 4.92 / 5 (0.29, 4–5) | 4.42 / 5 (0.79, 3–5) | 3.33 / 3 (0.65, 3–5) | 4.22 | 78.4 | 82.4 |
+| cascade-elevenlabs | 5.00 / 5 (0.00, 5–5) | 4.92 / 5 (0.29, 4–5) | 4.17 / 4 (0.58, 3–5) | 4.70 | 72.5 | 72.5 |
+
+By direction (composite, 6 clips each): EN→ES realtime 4.89, cascade-openai 4.28, cascade-haiku 4.22, cascade-elevenlabs 4.67; ES→EN 4.94, 4.44, 4.22, 4.72. The order is the same in both directions.
+
+- **Adequacy is near the ceiling for every setup** (4.83–5.00). Only 3 of 48 clips lost a point on meaning (2 cascade-openai, 1 cascade-haiku, all English→Spanish), so the ratings cannot separate the setups on accuracy.
+- **Naturalness drives the ranking.** Both OpenAI-voiced cascades (same `gpt-4o-mini-tts` voice) averaged 3.3–3.5, with a median of 3; ElevenLabs averaged 4.2 and Realtime 4.8. This is a judgment on the voice, not the translation.
+- **Fluency:** cascade-haiku was lowest (4.42), with two 3s on long English→Spanish sentences, although it has the highest chrF.
+- **Comparison with chrF:** the rankings **disagree**. On the same 12 sentences chrF ranks Haiku 1st, ElevenLabs 2nd, Realtime 3rd and cascade-openai 4th; the composite rating ranks Realtime 1st, ElevenLabs 2nd, cascade-openai 3rd and Haiku 4th. chrF scores text overlap with one reference; the listener judged the audio, where the voice dominates and valid rewordings are not penalised. With one rater and n = 12, differences of a few tenths are within noise; only the voice gap (about 1 point) is large.
+- **Effect on the recommendation:** none. Realtime rated best, which supports it for live conversations. The Haiku cascade is recommended for control and terminology, not for a better-sounding result, and its lower voice scores come from the OpenAI voice, which can be swapped (ElevenLabs rated 0.7–0.8 higher).
+
 ## What we learned building it
 
 1. **Stopping Realtime from answering instead of translating** (DESIGN A1).
@@ -180,4 +204,4 @@ The ElevenLabs quality figures rest on 6 sentences per direction, so treat them 
 - **One machine, one network and one day.** Vendor speed varies by time and region.
 - **Prices are from 8 Oct 2026,** and the voice token rate is assumed.
 - **The hands-free figures come from earlier tuning runs** with `gpt-realtime-mini`.
-- **Quality is automated-only** until the blind human ratings in [`benchmarks/blind/`](benchmarks/blind/README.md) are done. There are 48 shuffled clips: 12 sentences × 4 setups.
+- **Blind human ratings come from one rater** (Andre), 12 sentences per setup (6 per direction), with computer-voiced source audio. They are a sanity check, not a statistically meaningful result.

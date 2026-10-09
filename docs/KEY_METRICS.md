@@ -13,6 +13,7 @@ This page explains each one in plain terms. For each it covers how this repo mea
 - **Met:** measured, and the target is achieved.
 - **Partial:** some of the target is met, or it is met with caveats.
 - **Pending:** not measured yet.
+- **Done:** measured and reported where the target is only to report; caveats are listed with the result.
 
 **Where the numbers come from.**
 - **Main runs:** the final benchmark runs of 8 Oct 2026 ("M5"), in [`benchmarks/results/m5/`](benchmarks/results/m5/) ([`summary.md`](benchmarks/results/m5/summary.md), [`results.json`](benchmarks/results/m5/results.json) and one CSV spreadsheet per setup).
@@ -165,9 +166,23 @@ Details are in [comparison-details.md](comparison-details.md#cost-breakdown).
 
 **Target.** Reported, with an honest rater count (PRD §3).
 
-**Measured.** **Pending.** No ratings have been collected yet.
+- `cd backend && python -m eval.blind_results` joins the rating sheet with the key and writes [`benchmarks/blind/results.md`](benchmarks/blind/results.md) and `results.csv` (mean, median, spread, by direction, and chrF on the same sentences).
 
-**Status.** **Pending.**
+**Measured.** One rater (Andre), 12 sentences per setup (6 per direction), 1–5 scale, with the source sentence and a reference translation shown on the sheet. Mean scores (median in brackets):
+
+| Setup | Accuracy (adequacy) | Fluency | Natural voice | Composite (average of the three) |
+|---|---|---|---|---|
+| Realtime, `gpt-realtime` | 5.00 (5) | 5.00 (5) | 4.75 (5) | 4.92 |
+| Cascade, OpenAI translator | 4.83 (5) | 4.75 (5) | 3.50 (3) | 4.36 |
+| Cascade, Haiku translator | 4.92 (5) | 4.42 (5) | 3.33 (3) | 4.22 |
+| Cascade, ElevenLabs voice | 5.00 (5) | 4.92 (5) | 4.17 (4) | 4.70 |
+
+- **Accuracy is near the top score for every setup.** Only 3 of 48 clips lost a point on meaning.
+- **The voice separates them:** the OpenAI text-to-speech voice used by both OpenAI-voiced cascades scored about 1 point below ElevenLabs and Realtime.
+- **The ranking disagrees with chrF,** which puts Haiku first; the rating puts it last, mostly on voice. Details: [comparison-details.md](comparison-details.md).
+
+**Status.** **Done** (met: reported with an honest rater count).
+- **Caveats:** one rater, 12 sentences per setup, and computer-generated (synthetic) source audio. Treat it as a sanity check, not a statistically meaningful result.
 
 ## 4. Provider flexibility
 
@@ -236,6 +251,6 @@ Details are in [comparison-details.md](comparison-details.md#cost-breakdown).
 | Recording overhead | None measurable | Short-sentence p50 1785 → 1781 ms | Met |
 | Cost per minute | Reported | $0.179 Realtime; $0.052 mini; $0.048–0.059 cascade | Met (reported) |
 | WER | Reported | 0.006–0.011 English; 0.011–0.036 Spanish | Met (reported) |
-| Subjective quality | Reported | Kit ready; no ratings yet | Pending |
+| Subjective quality | Reported | 1 rater, 12 sentences per setup: composite 4.92 Realtime, 4.70 ElevenLabs, 4.36 OpenAI cascade, 4.22 Haiku | Done (smoke test) |
 | Provider flexibility | One adapter + config | 6 adapters; swapping is config only; 3 swaps with no orchestrator or UI change | Met (cascade) |
 | Language-pair onboarding | Reported | Steps listed; not demonstrated | Pending |

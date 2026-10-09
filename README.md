@@ -16,7 +16,7 @@ Latency is measured **in the browser, on one clock**, from the last voiced micro
 | M3 provider swaps: Haiku (via OpenRouter), ElevenLabs TTS + credit guard, per-session selector | done ([swaps](docs/provider-swaps.md)) |
 | M4 harness, fixtures, cascade tuning (speculative MT), VAD sweep, 5-min soak | done ([M4 results](docs/benchmarks/m4-tuning.md)) |
 | M5 hedged first output, fragment merge, error-state pass, final benchmark matrix, README, AGENTS.md | done ([summary](docs/benchmarks/results/m5/summary.md), [results.json](docs/benchmarks/results/m5/results.json)) |
-| Comparison write-up (must-have #8) | done: [`docs/comparison.md`](docs/comparison.md) (2-page write-up) + [`docs/comparison-details.md`](docs/comparison-details.md) (method, full numbers); blind human ratings pending |
+| Comparison write-up (must-have #8) | done: [`docs/comparison.md`](docs/comparison.md) (2-page write-up) + [`docs/comparison-details.md`](docs/comparison-details.md) (method, full numbers); blind human ratings done (1 rater): [`docs/benchmarks/blind/results.md`](docs/benchmarks/blind/results.md) |
 
 ## Run it (runbook)
 
@@ -68,6 +68,7 @@ python -m eval.harness --mode cascade --profile cascade-openai --record ../data/
 python -m eval.harness --mode realtime --profile realtime --out rt.jsonl        # app started with REALTIME_MODEL=gpt-realtime
 python -m eval.metrics --run cascade-openai=run.jsonl --run realtime=rt.jsonl --judge --roundtrip --out-dir out/
 python -m eval.blind --run ... --ids en-s01,... --out out/blind                  # blind-rating kit
+python -m eval.blind_results                                                      # analyse the filled rating sheet
 python -m eval.error_pass                                                         # error-state pass (no provider calls)
 ```
 

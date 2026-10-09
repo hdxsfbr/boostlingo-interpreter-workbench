@@ -7,7 +7,7 @@
 | Scenario | Use | Why |
 |---|---|---|
 | **Live medical or legal conversations** | **Realtime** (`gpt-realtime`) | Fastest on short sentences and steadiest (about 1.0 s, 1.4 s in slower cases); never answered instead of translating. Costs most: about 18¢ per minute of speech. |
-| **Terminology, an audit trail or keeping data in-house matter more than a second** | **Cascade** with Claude Haiku as the translator | Best translation scores; we see and control the text at every step. About 2.3 s on short sentences: within limits, but slower. |
+| **Terminology, an audit trail or keeping data in-house matter more than a second** | **Cascade** with Claude Haiku as the translator | Best automated translation scores; we see and control the text at every step. About 2.3 s on short sentences: within limits, but slower. |
 | **High volume at low cost** | **Realtime** with the smaller `gpt-realtime-mini` | Near `gpt-realtime` speed at about 5¢ per minute, like the cheapest cascade. Weaker English→Spanish, so lower-stakes calls. |
 | **Uncommon language pairs** | **Cascade** | Each step can use the best vendor for that language (only English–Spanish was tested). |
 
@@ -31,15 +31,15 @@
 **Quality.**
 - **Translation scores:** Haiku first, then `gpt-realtime`; the gaps are mostly in English→Spanish.
 - **Speech recognition** was accurate on our clear computer voices: word error rate (WER, the share of words written down wrong) about 0.01, or 1 in 100, in English; in Spanish 0.01 for Realtime and 0.01–0.04 for the cascade. Real callers will do worse.
-- **Realtime's main risk is answering instead of translating:** early on it replied to the speaker in 2 of 5 turns ("…seek medical attention"). Telling it every turn to "translate only, never answer" fixed this (0 of 96 since).
-- **Blind human ratings are pending,** so quality is automated-only for now:
+- **Realtime's main risk is answering instead of translating:** early on it replied to the speaker in 2 of 5 turns. Telling it every turn to "translate only, never answer" fixed it (0 of 96 since).
+- **Blind human ratings** (one listener, Andre, not told the setup; 12 sentences each; 1–5 against a reference translation). Meaning almost always came through; the OpenAI voice in both cascades scored lowest, so Haiku, best on chrF, rated last: the rankings disagree. One rater is a sanity check, not proof.
 
 | Average rating, 1–5 | Realtime | Cascade, OpenAI | Cascade, Haiku | Cascade, ElevenLabs |
 |---|---|---|---|---|
-| Accuracy / fluency / natural voice | _TBD_ | _TBD_ | _TBD_ | _TBD_ |
+| Accuracy / fluency / natural voice | 5.0 / 5.0 / 4.8 | 4.8 / 4.8 / 3.5 | 4.9 / 4.4 / 3.3 | 5.0 / 4.9 / 4.2 |
 
 **Cost.**
-- **Realtime ($0.179/min) costs about 3.7× the cascade,** mostly for audio, partly because the recent conversation is re-read and billed again on every turn. `gpt-realtime-mini` costs $0.052/min.
+- **Realtime ($0.179/min) costs about 3.7× the cascade,** mostly for audio, partly because recent conversation is re-read and billed on every turn. `gpt-realtime-mini` costs $0.052/min.
 - **In the cascade,** speech-to-text is about 55% of the cost, the voice 43% and translation 3%, so a better translator costs almost nothing extra.
 
 **Control.**
@@ -56,11 +56,11 @@
 ## Privacy and compliance
 
 *General background, not legal advice.*
-- **Where the data goes:** in the cascade, audio and text pass through our servers, so we decide what is logged, recorded and kept (each vendor still processes its step). Realtime sends audio straight to OpenAI.
+- **Where the data goes:** in the cascade, audio and text pass through our servers, so we decide what is logged, recorded and kept (each vendor still sees its step). Realtime sends audio straight to OpenAI.
 - **Health care:** HIPAA doesn't require keeping recordings, but any recording or transcript of a medical conversation is protected health information: it needs encryption, access control and a business associate agreement (BAA) with each vendor that handles it.
-- **SOC 2** is an audit framework that, among other things, checks that a company follows its own retention policy. **Legal settings vary:** some US states require every party to consent to a recording.
-- **The workbench** logs each turn's text and timings on our server. Audio recording is optional and opt-in: off unless enabled on the server and switched on for the session. Each saved file is logged, and files are deleted automatically after 30 days by default.
+- **SOC 2** is an audit framework that, among other things, checks that a company follows its own retention policy. **Legal settings vary:** some US states require all parties to consent to recording.
+- **The workbench** logs each turn's text and timings on our server. Audio recording is opt-in (enabled on the server and switched on per session); each saved file is logged and deleted automatically after 30 days by default.
 
 ## Limitations
 
-48 computer-voiced sentences per setup (12 for ElevenLabs), on one machine, network and day; one reference translation each; no human ratings yet. Prices are from 8 Oct 2026, and most models tested retire in early 2027.
+48 computer-voiced sentences per setup (12 for ElevenLabs); one machine, network and day; one reference translation each; one human rater. Prices from 8 Oct 2026; most models tested retire in early 2027.
