@@ -54,6 +54,10 @@ recording:                # A11: opt-in session audio recording (auditability); 
   sweep_interval_h: 6
   max_upload_mb: 20       # realtime per-turn browser uploads
 
+experiments:              # A13: in-product experiment runner (Experiments tab)
+  confirm_above_usd: 1.0  # estimated cost above this needs an explicit confirmation
+  self_url: http://127.0.0.1:8740   # the harness drives this app from inside the container
+
 timeouts_s:
   stt_final: 3
   mt_first_token: 3
