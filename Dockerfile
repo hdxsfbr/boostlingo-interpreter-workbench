@@ -27,6 +27,12 @@ CMD ["sh", "-c", "cd /app/backend && pytest -q && cd /app/frontend && node node_
 
 # ---- runtime ----
 FROM py AS runtime
+# A13 Experiments tab: the eval runner (Playwright + headless Chromium + metrics deps)
+# runs inside the app container, driving the app itself on 127.0.0.1.
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+RUN pip install "playwright>=1.45" "jiwer>=3" "sacrebleu>=2.4" "whisper-normalizer>=0.0.10" \
+ && python -m playwright install --with-deps --only-shell chromium \
+ && chmod -R a+rX /ms-playwright
 COPY backend/ /app/backend/
 RUN pip install --no-deps .
 COPY config/ /app/config/
@@ -34,7 +40,13 @@ COPY --from=web /web/dist /app/static
 # A12 Review tab: blind clips + sheet/key (key stays server-side) and M5 results
 COPY docs/benchmarks/blind/ /app/bench/blind/
 COPY docs/benchmarks/results/m5/results.json /app/bench/results/m5/results.json
-ENV CONFIG_DIR=/app/config STATIC_DIR=/app/static DATA_DIR=/data BENCH_DIR=/app/bench PYTHONUNBUFFERED=1
+COPY docs/benchmarks/results/m5/raw/ /app/bench/results/m5/raw/
+# eval/ resolves ROOT=/app: utterances under /app/docs, fixtures + ledger under /app/data -> /data
+COPY docs/benchmarks/utterances.yaml /app/docs/benchmarks/utterances.yaml
+RUN ln -s /data /app/data
+ARG GIT_COMMIT=unknown
+ENV CONFIG_DIR=/app/config STATIC_DIR=/app/static DATA_DIR=/data BENCH_DIR=/app/bench PYTHONUNBUFFERED=1 \
+    GIT_COMMIT=${GIT_COMMIT}
 EXPOSE 8740
 HEALTHCHECK --interval=10s --timeout=3s --start-period=5s --retries=3 \
   CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8740/healthz',timeout=2).status==200 else 1)"

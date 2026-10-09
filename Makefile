@@ -3,6 +3,8 @@ PORT ?= 8740
 COMPOSE := docker compose
 export UID := $(shell id -u)
 export GID := $(shell id -g)
+# A13: stamped into the image so experiments record the code they ran
+export GIT_COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
 
 .PHONY: up down logs env test test-docker dev-backend dev-frontend health fixtures
 

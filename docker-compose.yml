@@ -3,7 +3,7 @@
 # (http://localhost is a secure context, so mic + WebRTC work; DESIGN D7).
 services:
   app:
-    build: { context: ., target: runtime }
+    build: { context: ., target: runtime, args: { GIT_COMMIT: "${GIT_COMMIT:-unknown}" } }
     image: interpreter-workbench:local
     env_file: .env
     environment:
