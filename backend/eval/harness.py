@@ -264,6 +264,8 @@ async def run(a: argparse.Namespace) -> list[dict]:
         q = f"source=file&mode={a.mode}&rt={a.rt}&turn={a.turn_mode}&vad_ms={a.vad_ms}"
         q += "".join(f"&{k}={v}" for k, v in (("mt", a.mt), ("tts", a.tts), ("min_seg_ms", a.min_seg_ms))
                      if v is not None)
+        if a.session_record:
+            q += "&record=1"  # A11: tick "Record session" (server must have recording.enabled)
         await page.goto(f"{a.url}/?{q}")
         await page.click("[data-testid=start]")
         await page.wait_for_function("['ready','error'].includes(window.__wb?.state?.sessionState)", timeout=20000)
@@ -305,6 +307,13 @@ async def run(a: argparse.Namespace) -> list[dict]:
             await page.wait_for_timeout(a.gap_ms)
         end = await probe(page)
         print("END PROBE:", json.dumps(end))
+        if a.session_record:
+            print("REC indicator:", await page.locator("[data-testid=rec-indicator]").count() == 1)
+            await page.click("[data-testid=stop]")  # flushes in-flight realtime recordings
+            await page.wait_for_function("window.__wb?.state?.sessionState === 'closed'", timeout=10000)
+            await page.wait_for_timeout(1500)
+            recs = await page.evaluate("Object.values(window.__wb.state.turns).map(t => [t.id, t.recording ?? null])")
+            print("SESSION RECORDINGS:", json.dumps(recs))
         errs = await page.evaluate("window.__wb.state.errors")
         if errs:
             print("UI errors:", json.dumps(errs, ensure_ascii=False))
@@ -360,6 +369,8 @@ def main() -> None:
     ap.add_argument("--turn-timeout", type=int, default=40)
     ap.add_argument("--min-seg-ms", type=int, default=None, help="cascade: min voiced ms per in-turn segment")
     ap.add_argument("--profile", default="", help="label stored on every row (M5 results)")
+    ap.add_argument("--session-record", action="store_true",
+                    help="A11: enable the per-session 'Record session' toggle (?record=1)")
     ap.add_argument("--record", default="", help="directory for per-utterance output audio (webm/opus)")
     ap.add_argument("--allow-elevenlabs", action="store_true")
     ap.add_argument("--el-char-cap", type=int, default=2500)
