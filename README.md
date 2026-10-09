@@ -13,7 +13,7 @@ Latency is measured **in the browser, on one clock**, from the last voiced micro
 | M0 skeleton, audio I/O, contract, cascade WS loopback | done |
 | M1 cascade pipeline with OpenAI adapters, waterfall, stats, export | done |
 | M2 Realtime mode: WebRTC (ephemeral secret) + WS relay fallback, PTT + server VAD, pruning, mode switch | done ([smoke results](docs/benchmarks/m2-realtime-smoke.md): PTT H p50 0.95–1.04 s, both directions) |
-| M3 provider swaps (Haiku, ElevenLabs + budget guard, OpenRouter) | planned |
+| M3 provider swaps: Haiku MT, ElevenLabs TTS + credit guard, OpenRouter MT, per-session selector | done in code, all tested with mocks; live: Haiku disabled (validity check 400), ElevenLabs reserved, OpenRouter not authorised ([swaps](docs/provider-swaps.md)) |
 | M4 benchmark harness, soak, final `gpt-realtime` runs | planned |
 | M5 error pass, README, AGENTS.md, comparison write-up | planned |
 
@@ -38,9 +38,9 @@ Other targets: `make test` (backend pytest + frontend Vitest/tsc, no keys or net
 
 ## Configuration and secrets
 
-- `.env` (gitignored, mode 600) holds `OPENAI_API_KEY` and optional `ANTHROPIC_API_KEY`. `.env.example` lists the variables without values. `scripts/setup_env.py` fills them from key files and prints only "set"/"missing".
-- The ElevenLabs key is mounted as a Compose **file secret**, never put in `.env`, and only used when `ELEVENLABS_ENABLED=1` (free tier: tests always mock it).
-- Model ids and active providers live in `config/app.yaml` (env overrides `REALTIME_MODEL`, `MT_MODEL`, `CASCADE_STT|MT|TTS`). Language pairs live in `config/languages.yaml`.
+- `.env` (gitignored, mode 600) holds `OPENAI_API_KEY` and the optional `ANTHROPIC_API_KEY` + `ANTHROPIC_WORKSPACE_ID` (the key isn't workspace-scoped, so the Haiku adapter sends `anthropic-workspace-id`) and `OPENROUTER_API_KEY`. `.env.example` lists the variables without values. `scripts/setup_env.py` fills them from key files and prints only "set"/"missing".
+- The ElevenLabs key is mounted as a Compose **file secret**, never put in `.env`, and only used when `ELEVENLABS_ENABLED=1` (free tier: tests always mock it). Even then, `core/budget.py` refuses before the call past 1,500 chars/session or 8,000 chars/month (ledger in `data/elevenlabs_ledger.json`).
+- Model ids and active providers live in `config/app.yaml` (env overrides `REALTIME_MODEL`, `MT_MODEL`, `CASCADE_STT|MT|TTS`). Providers can also be swapped per session from the UI; see [`docs/provider-swaps.md`](docs/provider-swaps.md). Language pairs live in `config/languages.yaml`.
 - Keys never reach the browser: Realtime uses short-lived client secrets; the cascade runs server-side.
 
 ## Architecture (short; full design in [`docs/DESIGN.md`](docs/DESIGN.md))
