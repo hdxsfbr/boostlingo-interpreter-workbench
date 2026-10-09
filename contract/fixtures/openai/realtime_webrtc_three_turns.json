@@ -1,0 +1,994 @@
+[
+ {
+  "type": "session.created",
+  "session": {
+   "type": "realtime",
+   "note": "elided"
+  }
+ },
+ {
+  "type": "input_audio_buffer.cleared"
+ },
+ {
+  "type": "input_audio_buffer.committed",
+  "previous_item_id": null,
+  "item_id": "item_EWsaTnhpKlSE8iMMumoFt"
+ },
+ {
+  "type": "conversation.item.added",
+  "previous_item_id": null,
+  "item": {
+   "id": "item_EWsaTnhpKlSE8iMMumoFt",
+   "type": "message",
+   "role": "user",
+   "status": "completed"
+  }
+ },
+ {
+  "type": "conversation.item.done",
+  "previous_item_id": null,
+  "item": {
+   "id": "item_EWsaTnhpKlSE8iMMumoFt",
+   "type": "message",
+   "role": "user",
+   "status": "completed"
+  }
+ },
+ {
+  "type": "response.created",
+  "response": {
+   "object": "realtime.response",
+   "id": "resp_EWsaaabf5CqTINveB7tjl",
+   "status": "in_progress",
+   "status_details": null,
+   "output": [],
+   "conversation_id": "conv_EWsaQUJ3h1bFgw7CNnPYv",
+   "output_modalities": [
+    "audio"
+   ],
+   "max_output_tokens": "inf",
+   "audio": {
+    "output": {
+     "format": {
+      "type": "audio/pcm",
+      "rate": 24000
+     },
+     "voice": "marin"
+    }
+   },
+   "usage": null,
+   "metadata": null
+  }
+ },
+ {
+  "type": "response.output_item.added",
+  "response_id": "resp_EWsaaabf5CqTINveB7tjl",
+  "output_index": 0,
+  "item": {
+   "id": "item_EWsaadL7vo9Jgmzicbjzu",
+   "type": "message",
+   "role": "assistant",
+   "status": "in_progress"
+  }
+ },
+ {
+  "type": "conversation.item.added",
+  "previous_item_id": "item_EWsaTnhpKlSE8iMMumoFt",
+  "item": {
+   "id": "item_EWsaadL7vo9Jgmzicbjzu",
+   "type": "message",
+   "role": "assistant",
+   "status": "in_progress"
+  }
+ },
+ {
+  "type": "response.content_part.added",
+  "response_id": "resp_EWsaaabf5CqTINveB7tjl",
+  "item_id": "item_EWsaadL7vo9Jgmzicbjzu",
+  "output_index": 0,
+  "content_index": 0,
+  "part": {
+   "type": "audio",
+   "transcript": ""
+  }
+ },
+ {
+  "type": "response.output_audio_transcript.delta",
+  "response_id": "resp_EWsaaabf5CqTINveB7tjl",
+  "item_id": "item_EWsaadL7vo9Jgmzicbjzu",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": "He"
+ },
+ {
+  "type": "response.output_audio_transcript.delta",
+  "response_id": "resp_EWsaaabf5CqTINveB7tjl",
+  "item_id": "item_EWsaadL7vo9Jgmzicbjzu",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " tenido"
+ },
+ {
+  "type": "response.output_audio_transcript.delta",
+  "response_id": "resp_EWsaaabf5CqTINveB7tjl",
+  "item_id": "item_EWsaadL7vo9Jgmzicbjzu",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " un"
+ },
+ {
+  "type": "response.output_audio_transcript.delta",
+  "response_id": "resp_EWsaaabf5CqTINveB7tjl",
+  "item_id": "item_EWsaadL7vo9Jgmzicbjzu",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " dolor"
+ },
+ {
+  "type": "response.output_audio_transcript.delta",
+  "response_id": "resp_EWsaaabf5CqTINveB7tjl",
+  "item_id": "item_EWsaadL7vo9Jgmzicbjzu",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " de"
+ },
+ {
+  "type": "response.output_audio_transcript.delta",
+  "response_id": "resp_EWsaaabf5CqTINveB7tjl",
+  "item_id": "item_EWsaadL7vo9Jgmzicbjzu",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " cabeza"
+ },
+ {
+  "type": "response.output_audio_transcript.delta",
+  "response_id": "resp_EWsaaabf5CqTINveB7tjl",
+  "item_id": "item_EWsaadL7vo9Jgmzicbjzu",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " durante"
+ },
+ {
+  "type": "output_audio_buffer.started",
+  "response_id": "resp_EWsaaabf5CqTINveB7tjl"
+ },
+ {
+  "type": "response.output_audio_transcript.delta",
+  "response_id": "resp_EWsaaabf5CqTINveB7tjl",
+  "item_id": "item_EWsaadL7vo9Jgmzicbjzu",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " tres"
+ },
+ {
+  "type": "response.output_audio_transcript.delta",
+  "response_id": "resp_EWsaaabf5CqTINveB7tjl",
+  "item_id": "item_EWsaadL7vo9Jgmzicbjzu",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " días"
+ },
+ {
+  "type": "response.output_audio_transcript.delta",
+  "response_id": "resp_EWsaaabf5CqTINveB7tjl",
+  "item_id": "item_EWsaadL7vo9Jgmzicbjzu",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": "."
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_EWsaTnhpKlSE8iMMumoFt",
+  "content_index": 0,
+  "delta": "I"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_EWsaTnhpKlSE8iMMumoFt",
+  "content_index": 0,
+  "delta": " have"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_EWsaTnhpKlSE8iMMumoFt",
+  "content_index": 0,
+  "delta": " had"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_EWsaTnhpKlSE8iMMumoFt",
+  "content_index": 0,
+  "delta": " a"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_EWsaTnhpKlSE8iMMumoFt",
+  "content_index": 0,
+  "delta": " headache"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_EWsaTnhpKlSE8iMMumoFt",
+  "content_index": 0,
+  "delta": " for"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_EWsaTnhpKlSE8iMMumoFt",
+  "content_index": 0,
+  "delta": " three"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_EWsaTnhpKlSE8iMMumoFt",
+  "content_index": 0,
+  "delta": " days"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_EWsaTnhpKlSE8iMMumoFt",
+  "content_index": 0,
+  "delta": "."
+ },
+ {
+  "type": "response.output_audio.done",
+  "response_id": "resp_EWsaaabf5CqTINveB7tjl",
+  "item_id": "item_EWsaadL7vo9Jgmzicbjzu",
+  "output_index": 0,
+  "content_index": 0
+ },
+ {
+  "type": "response.output_audio_transcript.done",
+  "response_id": "resp_EWsaaabf5CqTINveB7tjl",
+  "item_id": "item_EWsaadL7vo9Jgmzicbjzu",
+  "output_index": 0,
+  "content_index": 0,
+  "transcript": "He tenido un dolor de cabeza durante tres días."
+ },
+ {
+  "type": "response.content_part.done",
+  "response_id": "resp_EWsaaabf5CqTINveB7tjl",
+  "item_id": "item_EWsaadL7vo9Jgmzicbjzu",
+  "output_index": 0,
+  "content_index": 0,
+  "part": {
+   "type": "audio",
+   "transcript": "He tenido un dolor de cabeza durante tres días."
+  }
+ },
+ {
+  "type": "conversation.item.done",
+  "previous_item_id": null,
+  "item": {
+   "id": "item_EWsaadL7vo9Jgmzicbjzu",
+   "type": "message",
+   "role": "assistant",
+   "status": "completed"
+  }
+ },
+ {
+  "type": "response.output_item.done",
+  "response_id": "resp_EWsaaabf5CqTINveB7tjl",
+  "output_index": 0,
+  "item": {
+   "id": "item_EWsaadL7vo9Jgmzicbjzu",
+   "type": "message",
+   "role": "assistant",
+   "status": "completed"
+  }
+ },
+ {
+  "type": "response.done",
+  "response": {
+   "id": "resp_EWsaaabf5CqTINveB7tjl",
+   "status": "completed",
+   "status_details": null,
+   "usage": {
+    "total_tokens": 276,
+    "input_tokens": 196,
+    "output_tokens": 80,
+    "input_token_details": {
+     "text_tokens": 123,
+     "audio_tokens": 73,
+     "image_tokens": 0,
+     "cached_tokens": 0,
+     "cached_tokens_details": {
+      "text_tokens": 0,
+      "audio_tokens": 0,
+      "image_tokens": 0
+     }
+    },
+    "output_token_details": {
+     "text_tokens": 22,
+     "audio_tokens": 58
+    }
+   }
+  }
+ },
+ {
+  "type": "rate_limits.updated",
+  "rate_limits": []
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.completed",
+  "item_id": "item_EWsaTnhpKlSE8iMMumoFt",
+  "content_index": 0,
+  "transcript": "I have had a headache for three days.",
+  "usage": {
+   "type": "tokens",
+   "total_tokens": 84,
+   "input_tokens": 73,
+   "input_token_details": {
+    "text_tokens": 0,
+    "audio_tokens": 73
+   },
+   "output_tokens": 11
+  }
+ },
+ {
+  "type": "output_audio_buffer.stopped",
+  "response_id": "resp_EWsaaabf5CqTINveB7tjl"
+ },
+ {
+  "type": "input_audio_buffer.cleared"
+ },
+ {
+  "type": "input_audio_buffer.committed",
+  "previous_item_id": "item_EWsaadL7vo9Jgmzicbjzu",
+  "item_id": "item_EWsaeQ9f1FdR9dSZeofgX"
+ },
+ {
+  "type": "conversation.item.added",
+  "previous_item_id": "item_EWsaadL7vo9Jgmzicbjzu",
+  "item": {
+   "id": "item_EWsaeQ9f1FdR9dSZeofgX",
+   "type": "message",
+   "role": "user",
+   "status": "completed"
+  }
+ },
+ {
+  "type": "conversation.item.done",
+  "previous_item_id": "item_EWsaadL7vo9Jgmzicbjzu",
+  "item": {
+   "id": "item_EWsaeQ9f1FdR9dSZeofgX",
+   "type": "message",
+   "role": "user",
+   "status": "completed"
+  }
+ },
+ {
+  "type": "response.created",
+  "response": {
+   "object": "realtime.response",
+   "id": "resp_EWsahBA0t3Qitv0qE7Uoq",
+   "status": "in_progress",
+   "status_details": null,
+   "output": [],
+   "conversation_id": "conv_EWsaQUJ3h1bFgw7CNnPYv",
+   "output_modalities": [
+    "audio"
+   ],
+   "max_output_tokens": "inf",
+   "audio": {
+    "output": {
+     "format": {
+      "type": "audio/pcm",
+      "rate": 24000
+     },
+     "voice": "marin"
+    }
+   },
+   "usage": null,
+   "metadata": null
+  }
+ },
+ {
+  "type": "response.output_item.added",
+  "response_id": "resp_EWsahBA0t3Qitv0qE7Uoq",
+  "output_index": 0,
+  "item": {
+   "id": "item_EWsah2bH0ML4DAFzcLNHa",
+   "type": "message",
+   "role": "assistant",
+   "status": "in_progress"
+  }
+ },
+ {
+  "type": "conversation.item.added",
+  "previous_item_id": "item_EWsaeQ9f1FdR9dSZeofgX",
+  "item": {
+   "id": "item_EWsah2bH0ML4DAFzcLNHa",
+   "type": "message",
+   "role": "assistant",
+   "status": "in_progress"
+  }
+ },
+ {
+  "type": "response.content_part.added",
+  "response_id": "resp_EWsahBA0t3Qitv0qE7Uoq",
+  "item_id": "item_EWsah2bH0ML4DAFzcLNHa",
+  "output_index": 0,
+  "content_index": 0,
+  "part": {
+   "type": "audio",
+   "transcript": ""
+  }
+ },
+ {
+  "type": "response.output_audio_transcript.delta",
+  "response_id": "resp_EWsahBA0t3Qitv0qE7Uoq",
+  "item_id": "item_EWsah2bH0ML4DAFzcLNHa",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": "He"
+ },
+ {
+  "type": "response.output_audio_transcript.delta",
+  "response_id": "resp_EWsahBA0t3Qitv0qE7Uoq",
+  "item_id": "item_EWsah2bH0ML4DAFzcLNHa",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " tenido"
+ },
+ {
+  "type": "response.output_audio_transcript.delta",
+  "response_id": "resp_EWsahBA0t3Qitv0qE7Uoq",
+  "item_id": "item_EWsah2bH0ML4DAFzcLNHa",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " un"
+ },
+ {
+  "type": "response.output_audio_transcript.delta",
+  "response_id": "resp_EWsahBA0t3Qitv0qE7Uoq",
+  "item_id": "item_EWsah2bH0ML4DAFzcLNHa",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " dolor"
+ },
+ {
+  "type": "response.output_audio_transcript.delta",
+  "response_id": "resp_EWsahBA0t3Qitv0qE7Uoq",
+  "item_id": "item_EWsah2bH0ML4DAFzcLNHa",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " de"
+ },
+ {
+  "type": "response.output_audio_transcript.delta",
+  "response_id": "resp_EWsahBA0t3Qitv0qE7Uoq",
+  "item_id": "item_EWsah2bH0ML4DAFzcLNHa",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " cabeza"
+ },
+ {
+  "type": "output_audio_buffer.started",
+  "response_id": "resp_EWsahBA0t3Qitv0qE7Uoq"
+ },
+ {
+  "type": "response.output_audio_transcript.delta",
+  "response_id": "resp_EWsahBA0t3Qitv0qE7Uoq",
+  "item_id": "item_EWsah2bH0ML4DAFzcLNHa",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " durante"
+ },
+ {
+  "type": "response.output_audio_transcript.delta",
+  "response_id": "resp_EWsahBA0t3Qitv0qE7Uoq",
+  "item_id": "item_EWsah2bH0ML4DAFzcLNHa",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " tres"
+ },
+ {
+  "type": "response.output_audio_transcript.delta",
+  "response_id": "resp_EWsahBA0t3Qitv0qE7Uoq",
+  "item_id": "item_EWsah2bH0ML4DAFzcLNHa",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " días"
+ },
+ {
+  "type": "response.output_audio_transcript.delta",
+  "response_id": "resp_EWsahBA0t3Qitv0qE7Uoq",
+  "item_id": "item_EWsah2bH0ML4DAFzcLNHa",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": "."
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_EWsaeQ9f1FdR9dSZeofgX",
+  "content_index": 0,
+  "delta": "I"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_EWsaeQ9f1FdR9dSZeofgX",
+  "content_index": 0,
+  "delta": " have"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_EWsaeQ9f1FdR9dSZeofgX",
+  "content_index": 0,
+  "delta": " had"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_EWsaeQ9f1FdR9dSZeofgX",
+  "content_index": 0,
+  "delta": " a"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_EWsaeQ9f1FdR9dSZeofgX",
+  "content_index": 0,
+  "delta": " headache"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_EWsaeQ9f1FdR9dSZeofgX",
+  "content_index": 0,
+  "delta": " for"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_EWsaeQ9f1FdR9dSZeofgX",
+  "content_index": 0,
+  "delta": " three"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_EWsaeQ9f1FdR9dSZeofgX",
+  "content_index": 0,
+  "delta": " days"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_EWsaeQ9f1FdR9dSZeofgX",
+  "content_index": 0,
+  "delta": "."
+ },
+ {
+  "type": "response.output_audio.done",
+  "response_id": "resp_EWsahBA0t3Qitv0qE7Uoq",
+  "item_id": "item_EWsah2bH0ML4DAFzcLNHa",
+  "output_index": 0,
+  "content_index": 0
+ },
+ {
+  "type": "response.output_audio_transcript.done",
+  "response_id": "resp_EWsahBA0t3Qitv0qE7Uoq",
+  "item_id": "item_EWsah2bH0ML4DAFzcLNHa",
+  "output_index": 0,
+  "content_index": 0,
+  "transcript": "He tenido un dolor de cabeza durante tres días."
+ },
+ {
+  "type": "response.content_part.done",
+  "response_id": "resp_EWsahBA0t3Qitv0qE7Uoq",
+  "item_id": "item_EWsah2bH0ML4DAFzcLNHa",
+  "output_index": 0,
+  "content_index": 0,
+  "part": {
+   "type": "audio",
+   "transcript": "He tenido un dolor de cabeza durante tres días."
+  }
+ },
+ {
+  "type": "conversation.item.done",
+  "previous_item_id": "item_EWsaeQ9f1FdR9dSZeofgX",
+  "item": {
+   "id": "item_EWsah2bH0ML4DAFzcLNHa",
+   "type": "message",
+   "role": "assistant",
+   "status": "completed"
+  }
+ },
+ {
+  "type": "response.output_item.done",
+  "response_id": "resp_EWsahBA0t3Qitv0qE7Uoq",
+  "output_index": 0,
+  "item": {
+   "id": "item_EWsah2bH0ML4DAFzcLNHa",
+   "type": "message",
+   "role": "assistant",
+   "status": "completed"
+  }
+ },
+ {
+  "type": "response.done",
+  "response": {
+   "id": "resp_EWsahBA0t3Qitv0qE7Uoq",
+   "status": "completed",
+   "status_details": null,
+   "usage": {
+    "total_tokens": 408,
+    "input_tokens": 321,
+    "output_tokens": 87,
+    "input_token_details": {
+     "text_tokens": 155,
+     "audio_tokens": 166,
+     "image_tokens": 0,
+     "cached_tokens": 256,
+     "cached_tokens_details": {
+      "text_tokens": 128,
+      "audio_tokens": 128,
+      "image_tokens": 0
+     }
+    },
+    "output_token_details": {
+     "text_tokens": 22,
+     "audio_tokens": 65
+    }
+   }
+  }
+ },
+ {
+  "type": "rate_limits.updated",
+  "rate_limits": []
+ },
+ {
+  "type": "conversation.item.deleted",
+  "item_id": "item_EWsaTnhpKlSE8iMMumoFt"
+ },
+ {
+  "type": "conversation.item.deleted",
+  "item_id": "item_EWsaadL7vo9Jgmzicbjzu"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.completed",
+  "item_id": "item_EWsaeQ9f1FdR9dSZeofgX",
+  "content_index": 0,
+  "transcript": "I have had a headache for three days.",
+  "usage": {
+   "type": "tokens",
+   "total_tokens": 46,
+   "input_tokens": 35,
+   "input_token_details": {
+    "text_tokens": 0,
+    "audio_tokens": 35
+   },
+   "output_tokens": 11
+  }
+ },
+ {
+  "type": "output_audio_buffer.stopped",
+  "response_id": "resp_EWsahBA0t3Qitv0qE7Uoq"
+ },
+ {
+  "type": "input_audio_buffer.cleared"
+ },
+ {
+  "type": "input_audio_buffer.committed",
+  "previous_item_id": "item_EWsah2bH0ML4DAFzcLNHa",
+  "item_id": "item_EWsamPeRW3GbOAj8KgFK2"
+ },
+ {
+  "type": "conversation.item.added",
+  "previous_item_id": "item_EWsah2bH0ML4DAFzcLNHa",
+  "item": {
+   "id": "item_EWsamPeRW3GbOAj8KgFK2",
+   "type": "message",
+   "role": "user",
+   "status": "completed"
+  }
+ },
+ {
+  "type": "conversation.item.done",
+  "previous_item_id": "item_EWsah2bH0ML4DAFzcLNHa",
+  "item": {
+   "id": "item_EWsamPeRW3GbOAj8KgFK2",
+   "type": "message",
+   "role": "user",
+   "status": "completed"
+  }
+ },
+ {
+  "type": "response.created",
+  "response": {
+   "object": "realtime.response",
+   "id": "resp_EWsapf5Dbk1i0Ou4pwX3I",
+   "status": "in_progress",
+   "status_details": null,
+   "output": [],
+   "conversation_id": "conv_EWsaQUJ3h1bFgw7CNnPYv",
+   "output_modalities": [
+    "audio"
+   ],
+   "max_output_tokens": "inf",
+   "audio": {
+    "output": {
+     "format": {
+      "type": "audio/pcm",
+      "rate": 24000
+     },
+     "voice": "marin"
+    }
+   },
+   "usage": null,
+   "metadata": null
+  }
+ },
+ {
+  "type": "response.output_item.added",
+  "response_id": "resp_EWsapf5Dbk1i0Ou4pwX3I",
+  "output_index": 0,
+  "item": {
+   "id": "item_EWsapPJyjFQjgGawUw1RR",
+   "type": "message",
+   "role": "assistant",
+   "status": "in_progress"
+  }
+ },
+ {
+  "type": "conversation.item.added",
+  "previous_item_id": "item_EWsamPeRW3GbOAj8KgFK2",
+  "item": {
+   "id": "item_EWsapPJyjFQjgGawUw1RR",
+   "type": "message",
+   "role": "assistant",
+   "status": "in_progress"
+  }
+ },
+ {
+  "type": "response.content_part.added",
+  "response_id": "resp_EWsapf5Dbk1i0Ou4pwX3I",
+  "item_id": "item_EWsapPJyjFQjgGawUw1RR",
+  "output_index": 0,
+  "content_index": 0,
+  "part": {
+   "type": "audio",
+   "transcript": ""
+  }
+ },
+ {
+  "type": "response.output_audio_transcript.delta",
+  "response_id": "resp_EWsapf5Dbk1i0Ou4pwX3I",
+  "item_id": "item_EWsapPJyjFQjgGawUw1RR",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": "He"
+ },
+ {
+  "type": "response.output_audio_transcript.delta",
+  "response_id": "resp_EWsapf5Dbk1i0Ou4pwX3I",
+  "item_id": "item_EWsapPJyjFQjgGawUw1RR",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " tenido"
+ },
+ {
+  "type": "response.output_audio_transcript.delta",
+  "response_id": "resp_EWsapf5Dbk1i0Ou4pwX3I",
+  "item_id": "item_EWsapPJyjFQjgGawUw1RR",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " un"
+ },
+ {
+  "type": "response.output_audio_transcript.delta",
+  "response_id": "resp_EWsapf5Dbk1i0Ou4pwX3I",
+  "item_id": "item_EWsapPJyjFQjgGawUw1RR",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " dolor"
+ },
+ {
+  "type": "response.output_audio_transcript.delta",
+  "response_id": "resp_EWsapf5Dbk1i0Ou4pwX3I",
+  "item_id": "item_EWsapPJyjFQjgGawUw1RR",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " de"
+ },
+ {
+  "type": "response.output_audio_transcript.delta",
+  "response_id": "resp_EWsapf5Dbk1i0Ou4pwX3I",
+  "item_id": "item_EWsapPJyjFQjgGawUw1RR",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " cabeza"
+ },
+ {
+  "type": "output_audio_buffer.started",
+  "response_id": "resp_EWsapf5Dbk1i0Ou4pwX3I"
+ },
+ {
+  "type": "response.output_audio_transcript.delta",
+  "response_id": "resp_EWsapf5Dbk1i0Ou4pwX3I",
+  "item_id": "item_EWsapPJyjFQjgGawUw1RR",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " durante"
+ },
+ {
+  "type": "response.output_audio_transcript.delta",
+  "response_id": "resp_EWsapf5Dbk1i0Ou4pwX3I",
+  "item_id": "item_EWsapPJyjFQjgGawUw1RR",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " tres"
+ },
+ {
+  "type": "response.output_audio_transcript.delta",
+  "response_id": "resp_EWsapf5Dbk1i0Ou4pwX3I",
+  "item_id": "item_EWsapPJyjFQjgGawUw1RR",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": " días"
+ },
+ {
+  "type": "response.output_audio_transcript.delta",
+  "response_id": "resp_EWsapf5Dbk1i0Ou4pwX3I",
+  "item_id": "item_EWsapPJyjFQjgGawUw1RR",
+  "output_index": 0,
+  "content_index": 0,
+  "delta": "."
+ },
+ {
+  "type": "response.output_audio.done",
+  "response_id": "resp_EWsapf5Dbk1i0Ou4pwX3I",
+  "item_id": "item_EWsapPJyjFQjgGawUw1RR",
+  "output_index": 0,
+  "content_index": 0
+ },
+ {
+  "type": "response.output_audio_transcript.done",
+  "response_id": "resp_EWsapf5Dbk1i0Ou4pwX3I",
+  "item_id": "item_EWsapPJyjFQjgGawUw1RR",
+  "output_index": 0,
+  "content_index": 0,
+  "transcript": "He tenido un dolor de cabeza durante tres días."
+ },
+ {
+  "type": "response.content_part.done",
+  "response_id": "resp_EWsapf5Dbk1i0Ou4pwX3I",
+  "item_id": "item_EWsapPJyjFQjgGawUw1RR",
+  "output_index": 0,
+  "content_index": 0,
+  "part": {
+   "type": "audio",
+   "transcript": "He tenido un dolor de cabeza durante tres días."
+  }
+ },
+ {
+  "type": "conversation.item.done",
+  "previous_item_id": "item_EWsamPeRW3GbOAj8KgFK2",
+  "item": {
+   "id": "item_EWsapPJyjFQjgGawUw1RR",
+   "type": "message",
+   "role": "assistant",
+   "status": "completed"
+  }
+ },
+ {
+  "type": "response.output_item.done",
+  "response_id": "resp_EWsapf5Dbk1i0Ou4pwX3I",
+  "output_index": 0,
+  "item": {
+   "id": "item_EWsapPJyjFQjgGawUw1RR",
+   "type": "message",
+   "role": "assistant",
+   "status": "completed"
+  }
+ },
+ {
+  "type": "response.done",
+  "response": {
+   "id": "resp_EWsapf5Dbk1i0Ou4pwX3I",
+   "status": "completed",
+   "status_details": null,
+   "usage": {
+    "total_tokens": 376,
+    "input_tokens": 287,
+    "output_tokens": 89,
+    "input_token_details": {
+     "text_tokens": 155,
+     "audio_tokens": 132,
+     "image_tokens": 0,
+     "cached_tokens": 128,
+     "cached_tokens_details": {
+      "text_tokens": 128,
+      "audio_tokens": 0,
+      "image_tokens": 0
+     }
+    },
+    "output_token_details": {
+     "text_tokens": 22,
+     "audio_tokens": 67
+    }
+   }
+  }
+ },
+ {
+  "type": "rate_limits.updated",
+  "rate_limits": []
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_EWsamPeRW3GbOAj8KgFK2",
+  "content_index": 0,
+  "delta": "I"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_EWsamPeRW3GbOAj8KgFK2",
+  "content_index": 0,
+  "delta": " have"
+ },
+ {
+  "type": "conversation.item.deleted",
+  "item_id": "item_EWsaeQ9f1FdR9dSZeofgX"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_EWsamPeRW3GbOAj8KgFK2",
+  "content_index": 0,
+  "delta": " had"
+ },
+ {
+  "type": "conversation.item.deleted",
+  "item_id": "item_EWsah2bH0ML4DAFzcLNHa"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_EWsamPeRW3GbOAj8KgFK2",
+  "content_index": 0,
+  "delta": " a"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_EWsamPeRW3GbOAj8KgFK2",
+  "content_index": 0,
+  "delta": " headache"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_EWsamPeRW3GbOAj8KgFK2",
+  "content_index": 0,
+  "delta": " for"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_EWsamPeRW3GbOAj8KgFK2",
+  "content_index": 0,
+  "delta": " three"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_EWsamPeRW3GbOAj8KgFK2",
+  "content_index": 0,
+  "delta": " days"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "item_id": "item_EWsamPeRW3GbOAj8KgFK2",
+  "content_index": 0,
+  "delta": "."
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.completed",
+  "item_id": "item_EWsamPeRW3GbOAj8KgFK2",
+  "content_index": 0,
+  "transcript": "I have had a headache for three days.",
+  "usage": {
+   "type": "tokens",
+   "total_tokens": 43,
+   "input_tokens": 32,
+   "input_token_details": {
+    "text_tokens": 0,
+    "audio_tokens": 32
+   },
+   "output_tokens": 11
+  }
+ },
+ {
+  "type": "output_audio_buffer.stopped",
+  "response_id": "resp_EWsapf5Dbk1i0Ou4pwX3I"
+ }
+]

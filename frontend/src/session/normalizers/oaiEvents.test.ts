@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import recorded from "../../../../contract/fixtures/openai/realtime_ws_two_turns.json";
+import recordedRtc from "../../../../contract/fixtures/openai/realtime_webrtc_three_turns.json";
 import type { SessionEvent } from "../protocol";
 import { HistoryPruner, OaiNormalizer, type OaiEvent } from "./oaiEvents";
 
@@ -76,6 +77,28 @@ describe("OaiNormalizer on a recorded two-turn session", () => {
       ["turn.skipped", "empty_audio"],
       ["error", "rate_limited"],
     ]);
+  });
+});
+
+describe("OaiNormalizer on recorded WebRTC data-channel events (headless Chrome, 3 PTT turns)", () => {
+  it("binds each response to its turn and drives playback state from output_audio_buffer", () => {
+    const { n, out, audio } = setup();
+    let commits = 0;
+    for (const ev of recordedRtc as OaiEvent[]) {
+      if (ev.type === "input_audio_buffer.committed") n.turnCommitted(++commits);
+      n.handle(ev);
+    }
+    expect(out.filter((e) => e.type === "turn.done").map((e) => e.turn_id)).toEqual([1, 2, 3]);
+    expect(out.filter((e) => e.type === "audio.ended").map((e) => e.turn_id)).toEqual([1, 2, 3]);
+    expect(audio).toEqual([[1, true], [1, false], [2, true], [2, false], [3, true], [3, false]]);
+    const tr = out.filter((e) => e.type === "translation.final") as { turn_id: number; text: string }[];
+    expect(tr.every((t) => t.text.startsWith("He tenido un dolor de cabeza"))).toBe(true);
+    expect(out.some((e) => e.type === "error" || e.type === "turn.skipped")).toBe(false);
+  });
+
+  it("the live session pruned to the last turn (server confirmed the deletes)", () => {
+    const deleted = (recordedRtc as OaiEvent[]).filter((e) => e.type === "conversation.item.deleted");
+    expect(deleted.length).toBe(4); // turn 1 after turn 2, turn 2 after turn 3
   });
 });
 
