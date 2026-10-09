@@ -134,6 +134,7 @@ The brief prefers .NET/C# but accepts Python. We chose Python/FastAPI because th
 - [`docs/comparison-details.md`](docs/comparison-details.md) technical companion: method, full metrics, engineering findings, cost breakdown
 - [`docs/KEY_METRICS.md`](docs/KEY_METRICS.md) the brief's five metrics: definition, how measured, target, results, status
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) components, data flow, latency measurement points, error handling, config, security posture (with diagrams)
+- [`docs/SCALING.md`](docs/SCALING.md) what breaks and what changes at 10 to 100,000 users, with cost formulas
 - `docs/PRD.md` requirements · `docs/DESIGN.md` approved design · `docs/api-research.md` provider research
 - `AGENTS.md` how the coding agent was directed
 - `sources/assignment.pdf` the authoritative brief
