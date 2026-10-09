@@ -89,7 +89,7 @@ export class RealtimeRelayTransport implements Transport {
           // relay-level contract error (not an OpenAI event)
           if (!ready) {
             clearTimeout(timer);
-            reject(new Error(ev.message));
+            reject(Object.assign(new Error(ev.message), { reported: true })); // already shown via emit
           }
           o.emit({ type: "error", code: ev.code, stage: ev.stage ?? "realtime", retryable: !!ev.retryable, message: ev.message });
           return;

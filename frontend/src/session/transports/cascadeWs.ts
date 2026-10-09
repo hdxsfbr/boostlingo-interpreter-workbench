@@ -73,7 +73,7 @@ export class CascadeTransport implements Transport {
         }
         if (!ready && ev.type === "error") {
           clearTimeout(timer);
-          reject(new Error(ev.message));
+          reject(Object.assign(new Error(ev.message), { reported: true })); // already shown via emit
         }
         const norm = normalizeServerEvent(ev);
         if (norm) opts.emit(norm);
