@@ -222,7 +222,7 @@ async def test_new_turn_supersedes_unfinished_turn_and_close_releases_stt():
 
 async def test_history_is_passed_as_context_for_next_turn():
     mt = FakeTranslator({"Good morning, doctor.": "Buenos días, doctor."})
-    s, sink = make(mt=mt)
+    s, _sink = make(mt=mt)
     await speak(s, turn_id=1)
     await finish(s, 1)
     await speak(s, turn_id=2)

@@ -21,6 +21,8 @@ from collections.abc import AsyncIterator, Awaitable, Callable
 from typing import Protocol
 from urllib.parse import urlencode
 
+from websockets.exceptions import WebSocketException
+
 from app.core.audio import LeadingSilenceTrimmer
 from app.core.errors import (
     AuthError,
@@ -129,7 +131,7 @@ class ElevenLabsTTS:
                     raise send_task.exception()
                 try:
                     raw = await ws.recv()
-                except Exception as e:  # socket closed
+                except (WebSocketException, OSError, ValueError) as e:  # socket closed
                     if send_task.done() and send_task.exception():
                         raise send_task.exception() from None
                     raise ProviderDisconnected(f"ElevenLabs socket closed: {type(e).__name__}",

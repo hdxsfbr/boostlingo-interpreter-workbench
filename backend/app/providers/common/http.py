@@ -34,7 +34,7 @@ async def raise_for_status(r: httpx.Response, *, provider: str, stage: str) -> N
     try:
         body = (await r.aread()).decode("utf-8", "replace")
         msg = json.loads(body).get("error", {}).get("message", body)
-    except Exception:
+    except (ValueError, AttributeError, httpx.HTTPError):  # non-JSON / unexpected error body
         msg = f"HTTP {r.status_code}"
     raise from_http_status(r.status_code, str(msg)[:300], retry_after=parse_retry_after(r.headers.get("retry-after")),
                            provider=provider, stage=stage)

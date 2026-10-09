@@ -10,8 +10,8 @@ from pathlib import Path
 import httpx
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from app.providers.base import TurnContext  # noqa: E402
-from app.providers.mt.anthropic import AnthropicTranslator  # noqa: E402
+from app.providers.base import TurnContext
+from app.providers.mt.anthropic import AnthropicTranslator
 
 KEYS = Path.home() / ".config" / "agentforge"
 FIX = Path(__file__).resolve().parents[2] / "contract" / "fixtures" / "anthropic" / "messages_stream_translate.json"

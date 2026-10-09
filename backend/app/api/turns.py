@@ -3,6 +3,7 @@ server marks, usage, transcripts) to data/sessions/<session_id>.jsonl.
 No audio is stored (PRD A2). The eval harness reads the same files."""
 from __future__ import annotations
 
+import asyncio
 import json
 import re
 import time
@@ -30,5 +31,9 @@ async def post_turn(body: TurnPost) -> None:
     d = get_settings().data_dir / "sessions"
     d.mkdir(parents=True, exist_ok=True)
     line = json.dumps({"ts": time.time(), **body.model_dump()}, ensure_ascii=False)
-    with open(d / f"{body.session_id}.jsonl", "a", encoding="utf-8") as f:
+    await asyncio.to_thread(_append, d / f"{body.session_id}.jsonl", line)
+
+
+def _append(path, line: str) -> None:
+    with open(path, "a", encoding="utf-8") as f:
         f.write(line + "\n")

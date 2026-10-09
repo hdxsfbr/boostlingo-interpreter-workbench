@@ -203,8 +203,10 @@ class CascadeSession:
             t.task.cancel()
             try:
                 await t.task
-            except (asyncio.CancelledError, Exception):
-                pass
+            except asyncio.CancelledError:
+                pass  # expected: we just cancelled it
+            except Exception:  # the turn task already reported its error to the client
+                log.debug("cancelled turn %s ended with an error", t.id, exc_info=True)
             if reason:
                 await self.send_event(TurnSkipped(turn_id=t.id, reason=reason))
         self._turns.pop(t.id, None)

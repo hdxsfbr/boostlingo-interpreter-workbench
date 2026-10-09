@@ -2,7 +2,6 @@
 import json
 
 import pytest
-
 from fastapi.testclient import TestClient
 
 from app.core.config import get_settings
@@ -87,7 +86,7 @@ def test_openrouter_profile_needs_its_key():
     with pytest.raises(ConfigError, match="OPENROUTER_API_KEY"):
         build_providers(Settings(openai_api_key="sk-x", openrouter_api_key=None),  # pin env (lesson from M1)
                         {"stt": "fake", "mt": "openrouter", "tts": "fake"})
-    built, names, _, _ = build_providers(Settings(openai_api_key="sk-x", openrouter_api_key="sk-or-x"),
+    built, _names, _, _ = build_providers(Settings(openai_api_key="sk-x", openrouter_api_key="sk-or-x"),
                                          {"stt": "fake", "mt": "openrouter", "tts": "fake"})
     from app.providers.base import TurnContext
     assert built["mt"].body("x", "en", "es", TurnContext())["provider"] == {"sort": "latency"}

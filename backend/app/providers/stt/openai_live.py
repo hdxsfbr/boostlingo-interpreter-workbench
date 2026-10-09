@@ -22,6 +22,8 @@ import logging
 from collections.abc import AsyncIterator, Awaitable, Callable
 from typing import Any, Protocol
 
+from websockets.exceptions import WebSocketException
+
 from app.core.errors import (
     AuthError,
     BadRequest,
@@ -119,7 +121,7 @@ class OpenAILiveSTT:
                 await q.put(json.loads(await ws.recv()))
         except asyncio.CancelledError:
             raise
-        except Exception as e:  # socket closed / protocol error
+        except (WebSocketException, OSError, ValueError) as e:  # socket closed / protocol error
             await q.put({"type": "_closed", "reason": type(e).__name__})
 
     async def aclose(self) -> None:

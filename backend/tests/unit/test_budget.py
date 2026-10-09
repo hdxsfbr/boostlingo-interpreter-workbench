@@ -53,7 +53,7 @@ async def test_session_cap_stops_before_the_chunk_is_sent(tmp_path):
 
 
 async def test_month_ledger_persists_across_sessions_and_months(tmp_path):
-    g1, _, led = guard(tmp_path, month=12)
+    g1, _, _ = guard(tmp_path, month=12)
     await drain(g1.stream(chunks("12345678"), "es", "v"))
     g2, spy2, _ = guard(tmp_path, month=12)  # new session, same ledger file
     with pytest.raises(BudgetExceeded, match="monthly cap"):
@@ -76,5 +76,5 @@ def test_build_providers_refuses_elevenlabs_unless_enabled(tmp_path):
     key = tmp_path / "el_key"
     key.write_text("xi-test\n")
     s = Settings(openai_api_key="sk-x", elevenlabs_enabled=True, elevenlabs_api_key_file=key, data_dir=tmp_path)
-    built, names, _, _ = build_providers(s, {"stt": "fake", "mt": "fake", "tts": "elevenlabs"})
+    built, _names, _, _ = build_providers(s, {"stt": "fake", "mt": "fake", "tts": "elevenlabs"})
     assert isinstance(built["tts"], ElevenLabsBudget) and built["tts"].inner.api_key == "xi-test"

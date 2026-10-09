@@ -6,11 +6,8 @@ from __future__ import annotations
 import asyncio
 import random
 from collections.abc import AsyncIterator, Awaitable, Callable
-from typing import TypeVar
 
 from app.core.errors import ProviderError, RateLimited
-
-T = TypeVar("T")
 
 
 def backoff_delay(attempt: int, base: float = 0.2, cap: float = 2.0, retry_after: float | None = None,
@@ -20,7 +17,7 @@ def backoff_delay(attempt: int, base: float = 0.2, cap: float = 2.0, retry_after
     return rng() * min(cap, base * (2 ** attempt))
 
 
-async def stream_with_retry(make: Callable[[], AsyncIterator[T]], *, retries: int = 2,
+async def stream_with_retry[T](make: Callable[[], AsyncIterator[T]], *, retries: int = 2,
                             on_retry: Callable[[ProviderError, int, float], Awaitable[None]] | None = None,
                             sleep: Callable[[float], Awaitable[None]] = asyncio.sleep) -> AsyncIterator[T]:
     attempt = 0

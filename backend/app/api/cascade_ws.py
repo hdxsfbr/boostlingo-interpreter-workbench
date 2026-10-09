@@ -20,6 +20,7 @@ from typing import Protocol
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, ValidationError
 
+from app.core.errors import ProviderError
 from app.core.events import (
     Commit,
     ErrorEvent,
@@ -163,7 +164,7 @@ async def cascade_ws(ws: WebSocket) -> None:
                     await pipeline.close()
                 try:
                     pipeline = build_pipeline(msg, io)
-                except Exception as exc:  # config/auth problems surface to the UI
+                except (ProviderError, KeyError, ValueError, OSError, ImportError) as exc:  # config problems -> UI
                     log.warning("pipeline init failed: %s", type(exc).__name__)
                     await io.event(ErrorEvent(code="config_error", stage="gateway", retryable=False,
                                               message=str(exc)))

@@ -31,19 +31,19 @@ def build_providers(settings: Settings, overrides: dict[str, str] | None = None)
     p = cfg["providers"]
     key = settings.openai_api_key.get_secret_value() if settings.openai_api_key else ""
     kwargs = {
-        ("stt", "openai_live"): lambda: dict(api_key=key, model=p["openai_live"]["model"],
-                                             delay=p["openai_live"].get("delay"),
-                                             languages=p["openai_live"].get("languages")),
-        ("mt", "openai"): lambda: dict(api_key=key, model=p["openai"]["model"],
-                                       reasoning_effort=p["openai"].get("reasoning_effort"),
-                                       max_output_tokens=p["openai"].get("max_output_tokens", 400)),
-        ("tts", "openai"): lambda: dict(api_key=key, model=p["openai_tts"]["model"]),
-        ("mt", "anthropic"): lambda: dict(
-            api_key=settings.anthropic_api_key.get_secret_value() if settings.anthropic_api_key else "",
-            workspace_id=(settings.anthropic_workspace_id.get_secret_value()
-                          if settings.anthropic_workspace_id else None),
-            model=p["anthropic"]["model"], max_tokens=p["anthropic"].get("max_tokens", 400),
-            effort=p["anthropic"].get("effort", "low")),
+        ("stt", "openai_live"): lambda: {"api_key": key, "model": p["openai_live"]["model"],
+                                         "delay": p["openai_live"].get("delay"),
+                                         "languages": p["openai_live"].get("languages")},
+        ("mt", "openai"): lambda: {"api_key": key, "model": p["openai"]["model"],
+                                   "reasoning_effort": p["openai"].get("reasoning_effort"),
+                                   "max_output_tokens": p["openai"].get("max_output_tokens", 400)},
+        ("tts", "openai"): lambda: {"api_key": key, "model": p["openai_tts"]["model"]},
+        ("mt", "anthropic"): lambda: {
+            "api_key": settings.anthropic_api_key.get_secret_value() if settings.anthropic_api_key else "",
+            "workspace_id": (settings.anthropic_workspace_id.get_secret_value()
+                             if settings.anthropic_workspace_id else None),
+            "model": p["anthropic"]["model"], "max_tokens": p["anthropic"].get("max_tokens", 400),
+            "effort": p["anthropic"].get("effort", "low")},
     }
     if names["mt"] == "openrouter":
         orc = p.get("openrouter", {})
