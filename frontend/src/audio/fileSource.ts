@@ -16,7 +16,26 @@ export class FileSource {
   constructor() {
     this.ctx = new AudioContext({ latencyHint: "interactive" });
     this.dest = this.ctx.createMediaStreamDestination();
+    this.startNoiseFloor();
     void this.ctx.resume();
+  }
+
+  /**
+   * A real room is never digitally silent. Pure zeros between files let the
+   * WebRTC sender go quiet, and the Realtime server VAD then never sees the
+   * end of speech (found in the M4 VAD sweep). A -60 dBFS noise floor keeps the
+   * stream continuous; it is far below the capture VAD threshold (~-38 dBFS).
+   */
+  private startNoiseFloor(amplitude = 0.001): void {
+    const len = this.ctx.sampleRate;
+    const buf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
+    const ch = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) ch[i] = (Math.random() * 2 - 1) * amplitude * Math.SQRT2 * 1.2;
+    const src = this.ctx.createBufferSource();
+    src.buffer = buf;
+    src.loop = true;
+    src.connect(this.dest);
+    src.start();
   }
 
   get stream(): MediaStream {
