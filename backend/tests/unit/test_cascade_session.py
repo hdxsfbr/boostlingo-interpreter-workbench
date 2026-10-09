@@ -236,3 +236,107 @@ async def test_audio_after_final_commit_is_ignored():
     s.audio(FRAME)  # late frame must not leak into the next turn or crash
     await finish(s)
     assert sink.of("turn.done")
+
+
+# ---------------- speculative MT (M4) ----------------
+class PartialFirstSTT(FakeSTT):
+    """Like a streaming STT: the partial for a segment arrives BEFORE its commit;
+    the final arrives `final_delay` after the commit. `late` = extra partial after commit."""
+
+    def __init__(self, partial: str, final: str, final_delay: float = 0.15, late: str | None = None):
+        super().__init__([final], final_delay=final_delay)
+        self.partial, self.final, self.late = partial, final, late
+
+    async def stream(self, audio, langs):
+        from app.providers.base import Commit, TranscriptEvent
+        sent_partial = False
+        async for item in audio:
+            if isinstance(item, bytes):
+                if not sent_partial:
+                    sent_partial = True
+                    yield TranscriptEvent(seg=0, text=self.partial, final=False)
+                continue
+            assert isinstance(item, Commit)
+            if self.late:
+                await asyncio.sleep(0.02)
+                yield TranscriptEvent(seg=0, text=self.late, final=False)
+            await asyncio.sleep(self.final_delay)
+            yield TranscriptEvent(seg=0, text=self.final, final=True, audio_s=0.1)
+            return
+
+
+def make_spec(stt, mt=None, tts=None):
+    sink = Sink()
+    s = CascadeSession(stt, mt or FakeTranslator({"Good morning, doctor.": "Buenos días, doctor."}),
+                       tts or FakeTTS(first_byte=0.0), send_event=sink.event, send_audio=sink.send_audio,
+                       voices={"es": "marin"}, speculative=True)
+    return s, sink
+
+
+async def _speak_until_audio_frames(s):
+    await s.turn_start(1, "en", "es")
+    for _ in range(3):
+        s.audio(FRAME)
+    await asyncio.sleep(0.02)  # let the partial arrive before the commit
+    await s.commit(1, True)
+
+
+async def test_speculation_hit_starts_mt_before_the_stt_final():
+    mt = FakeTranslator({"Good morning, doctor": "Buenos días, doctor."})
+    s, sink = make_spec(PartialFirstSTT("Good morning, doctor", "Good morning, doctor."), mt=mt)
+    await _speak_until_audio_frames(s)
+    await finish(s)
+    done = sink.of("turn.done")[0]["marks"]
+    assert done["mt_first_token"] < done["stt_final"]  # MT ran on the partial
+    assert "spec_hit" in done
+    assert len(mt.calls) == 1  # no second MT call for the matching final
+    assert sink.of("translation.final")[0]["text"] == "Buenos días, doctor."
+    assert sink.audio
+    # transcript shows the STT final, not the partial
+    assert sink.of("transcript.final")[0]["text"] == "Good morning, doctor."
+
+
+async def test_speculation_miss_is_discarded_and_the_final_is_translated():
+    mt = FakeTranslator({"Good morning": "Buenos días", "Good morning, doctor.": "Buenos días, doctor."})
+    tts = FakeTTS(first_byte=0.0)
+    s, sink = make_spec(PartialFirstSTT("Good morning", "Good morning, doctor."), mt=mt, tts=tts)
+    await _speak_until_audio_frames(s)
+    await finish(s)
+    finals = sink.of("translation.final")
+    assert [f["text"] for f in finals] == ["Buenos días, doctor."]  # speculative text never shown
+    assert [c[0] for c in mt.calls] == ["Good morning", "Good morning, doctor."]
+    assert "spec_hit" not in sink.of("turn.done")[0]["marks"]
+    played = b"".join(p for _, p in sink.audio)
+    assert played and sink.of("turn.done")
+
+
+async def test_late_partial_restarts_the_speculation():
+    mt = FakeTranslator({"Good": "Bueno", "Good morning, doctor": "Buenos días, doctor."})
+    s, sink = make_spec(PartialFirstSTT("Good", "Good morning, doctor.", late="Good morning, doctor"), mt=mt)
+    await _speak_until_audio_frames(s)
+    await finish(s)
+    assert [c[0] for c in mt.calls] == ["Good", "Good morning, doctor"]
+    assert "spec_hit" in sink.of("turn.done")[0]["marks"]
+    assert [f["text"] for f in sink.of("translation.final")] == ["Buenos días, doctor."]
+
+
+async def test_speculation_error_does_not_fail_the_turn():
+    class FailOnPartial(FakeTranslator):
+        async def stream(self, text, src, tgt, ctx):
+            if text == "Good morning":
+                raise AuthError("boom", provider="fake", stage="mt")
+            async for x in super().stream(text, src, tgt, ctx):
+                yield x
+
+    mt = FailOnPartial({"Good morning, doctor.": "Buenos días, doctor."})
+    s, sink = make_spec(PartialFirstSTT("Good morning", "Good morning, doctor."), mt=mt)
+    await _speak_until_audio_frames(s)
+    await finish(s)
+    assert not sink.of("error")
+    assert sink.of("turn.done") and sink.audio
+
+
+def test_norm_text_ignores_case_and_punctuation():
+    from app.cascade.session import norm_text
+    assert norm_text("¿Me duele  mucho la Cabeza?") == norm_text("me duele mucho la cabeza")
+    assert norm_text("Good morning") != norm_text("Good morning, doctor")

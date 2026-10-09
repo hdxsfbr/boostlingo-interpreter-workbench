@@ -15,6 +15,16 @@ disconnect, watchdog) tears everything down.
 Latency marks are server-monotonic durations from the FINAL commit; marks
 recorded before it (pipelined early segments) are emitted, possibly negative,
 once the final commit arrives.
+
+Speculative MT (M4, optional): STT partials stream while the user speaks, so
+when a segment is committed its partial transcript is usually already
+complete, ~0.4-0.6 s before the STT `completed` final. At each commit we start
+MT -> TTS on that partial (restarting if a later partial for the segment
+changes it). When the final arrives: if it matches the speculated text
+(case/punctuation-insensitive) the speculative run is adopted as the segment;
+otherwise it is cancelled and the segment runs normally on the final text.
+Speculative output (audio, translation events, latency marks) is held until
+adopted, so a miss is invisible to the user and costs only the wasted calls.
 """
 from __future__ import annotations
 
@@ -38,6 +48,12 @@ log = logging.getLogger(__name__)
 SendEvent = Callable[[Any], Awaitable[None]]
 SendAudio = Callable[[int, bytes], Awaitable[None]]
 _EMPTY = re.compile(r"^[\s\W_]*$", re.UNICODE)
+_NONWORD = re.compile(r"[\W_]+", re.UNICODE)
+
+
+def norm_text(text: str) -> str:
+    """Case/punctuation/whitespace-insensitive form used to accept a speculation."""
+    return " ".join(_NONWORD.sub(" ", (text or "").lower()).split())
 
 
 def is_empty_text(text: str) -> bool:
@@ -113,6 +129,19 @@ class ReplayableChunks:
 
 
 @dataclass
+class Spec:
+    """A speculative segment run on a partial transcript (held until adopted)."""
+    seg: int
+    text: str
+    queue: asyncio.Queue
+    task: asyncio.Task | None = None
+    confirmed: bool = False
+    marks: dict[str, float] = field(default_factory=dict)
+    out_text: str = ""
+    mt_done: bool = False
+
+
+@dataclass
 class Turn:
     id: int
     src: str
@@ -128,13 +157,21 @@ class Turn:
     source_text: list[str] = field(default_factory=list)
     target_text: dict[int, str] = field(default_factory=dict)
     audio_bytes: int = 0
+    # speculative MT bookkeeping
+    tg: asyncio.TaskGroup | None = None
+    n_commits: int = 0
+    partials: dict[int, str] = field(default_factory=dict)
+    finalized: set[int] = field(default_factory=set)
+    specs: dict[int, Spec] = field(default_factory=dict)
+    spec_stats: dict[str, int] = field(default_factory=lambda: {"started": 0, "hit": 0, "miss": 0})
 
 
 class CascadeSession:
     def __init__(self, stt: STTProvider, mt: Translator, tts: TTSProvider, *, send_event: SendEvent,
                  send_audio: SendAudio, voices: dict[str, str] | None = None, langs: list[str] | None = None,
                  timeouts: Timeouts | None = None, glossary: dict[str, str] | None = None,
-                 history_turns: int = 2, clock: Callable[[], float] = time.monotonic) -> None:
+                 history_turns: int = 2, clock: Callable[[], float] = time.monotonic,
+                 speculative: bool = False, chunker: dict[str, Any] | None = None) -> None:
         self.stt, self.mt, self.tts = stt, mt, tts
         self.send_event, self.send_audio = send_event, send_audio
         self.voices = voices or {}
@@ -144,6 +181,8 @@ class CascadeSession:
         self.history: list[tuple[str, str]] = []
         self.history_turns = history_turns
         self.clock = clock
+        self.speculative = speculative
+        self.chunker_kwargs = dict(chunker or {})
         self.turn: Turn | None = None
         self._turns: dict[int, Turn] = {}
 
@@ -180,6 +219,10 @@ class CascadeSession:
         if t is None or t.final_commit.is_set():
             return
         await t.queue.put(Commit(final=final))
+        seg = t.n_commits
+        t.n_commits += 1
+        if seg in t.partials:
+            self._speculate(t, seg, t.partials[seg])
         if final:
             t.t_final_commit = self.clock()
             t.final_commit.set()
@@ -247,21 +290,38 @@ class CascadeSession:
         n_text_segments = 0
         try:
             async with asyncio.TaskGroup() as tg:
+                t.tg = tg
                 tg.create_task(self._sender(t, segq_list))
                 async for ev in self.stt.stream(self._audio_iter(t), self.langs):
                     if not ev.final:
                         await self.send_event(TranscriptOut(type="transcript.partial", turn_id=t.id, seg=ev.seg,
                                                             text=ev.text))
+                        if ev.seg not in t.finalized:
+                            t.partials[ev.seg] = ev.text
+                            if ev.seg < t.n_commits:  # already committed: (re)speculate on the newer text
+                                self._speculate(t, ev.seg, ev.text)
                         continue
+                    t.finalized.add(ev.seg)
+                    spec = t.specs.pop(ev.seg, None)
                     t.usage.stt_audio_s += ev.audio_s
                     await self.send_event(TranscriptOut(type="transcript.final", turn_id=t.id, seg=ev.seg,
                                                         text=ev.text))
                     if t.final_commit.is_set():
                         self._mark(t, "stt_final", once=False)  # last final after the commit
+                    hit = spec is not None and not is_empty_text(ev.text) and norm_text(spec.text) == norm_text(ev.text)
+                    if spec is not None and not hit:
+                        t.spec_stats["miss"] += 1
+                        if spec.task:
+                            spec.task.cancel()
                     if is_empty_text(ev.text):
                         continue
                     n_text_segments += 1
                     t.source_text.append(ev.text.strip())
+                    if hit:
+                        t.spec_stats["hit"] += 1
+                        await self._adopt(t, spec)
+                        await segq_list.put(spec.queue)
+                        continue
                     q: asyncio.Queue = asyncio.Queue(maxsize=256)
                     await segq_list.put(q)
                     tg.create_task(self._segment(t, ev.seg, ev.text.strip(), q))
@@ -280,6 +340,7 @@ class CascadeSession:
             await self._fail(t, perr)
             return
         finally:
+            t.tg = None
             for w in t.watchdogs:
                 w.cancel()
             self._turns.pop(t.id, None)
@@ -295,6 +356,8 @@ class CascadeSession:
         translation = " ".join(t.target_text[k] for k in sorted(t.target_text))
         self.history = (self.history + [(" ".join(t.source_text), translation)])[-self.history_turns:]
         marks = self._rel_marks(t)
+        if t.spec_stats["started"]:
+            log.info("turn %s speculative MT: %s", t.id, t.spec_stats)
         if "tail_tts_first_byte" in marks:
             await self.send_event(LatencyMark(turn_id=t.id, mark="tail_tts_first_byte",
                                               ms=marks["tail_tts_first_byte"]))
@@ -305,6 +368,60 @@ class CascadeSession:
         log.warning("turn %s failed at %s: %s", t.id, stage, exc.code)
         await self.send_event(ErrorEvent(code=exc.code, stage=stage, retryable=False, turn_id=t.id,
                                          message=f"{stage} failed: {exc}"))
+
+    # ---------------- speculative MT ----------------
+    def _speculate(self, t: Turn, seg: int, text: str) -> None:
+        """Start (or restart) a held MT -> TTS run for a committed segment's partial."""
+        if not self.speculative or t.tg is None or seg in t.finalized or is_empty_text(text):
+            return
+        old = t.specs.get(seg)
+        if old is not None:
+            if norm_text(old.text) == norm_text(text):
+                return
+            if old.task:
+                old.task.cancel()
+        sp = Spec(seg=seg, text=text.strip(), queue=asyncio.Queue(maxsize=256))
+        t.specs[seg] = sp
+        t.spec_stats["started"] += 1
+        self._mark(t, "spec_start", once=False)
+        try:
+            sp.task = t.tg.create_task(self._spec_run(t, sp))
+        except RuntimeError:  # task group is shutting down
+            t.specs.pop(seg, None)
+
+    async def _spec_run(self, t: Turn, sp: Spec) -> None:
+        """A provider error in a not-yet-adopted speculation must not fail the turn:
+        drop it and let the final run the normal path."""
+        try:
+            await self._segment(t, sp.seg, sp.text, sp.queue, spec=sp)
+        except (ProviderError, BaseExceptionGroup) as e:
+            if sp.confirmed:
+                raise
+            log.info("turn %s seg %s: speculative run dropped (%s)", t.id, sp.seg, type(e).__name__)
+            if t.specs.get(sp.seg) is sp:
+                t.specs.pop(sp.seg)
+
+    async def _adopt(self, t: Turn, sp: Spec) -> None:
+        """The final matched: publish the held marks and translation, then go live."""
+        sp.confirmed = True
+        self._mark(t, "spec_hit", once=False)
+        for name, at in sorted(sp.marks.items(), key=lambda kv: kv[1]):
+            if name.startswith("tail_") or name not in t.marks:
+                t.marks[name] = at
+                if t.t_final_commit is not None and not name.startswith("tail_"):
+                    await self._emit_mark(t, name, at)
+        if sp.out_text:
+            await self.send_event(TranslationEvent(type="translation.partial", turn_id=t.id, seg=sp.seg,
+                                                   text=sp.out_text.strip()))
+        if sp.mt_done:
+            await self.send_event(TranslationEvent(type="translation.final", turn_id=t.id, seg=sp.seg,
+                                                   text=sp.out_text.strip()))
+
+    def _smark(self, t: Turn, sp: Spec | None, name: str, once: bool = True) -> None:
+        if sp is None or sp.confirmed:
+            self._mark(t, name, once)
+        elif not (once and name in sp.marks):
+            sp.marks[name] = self.clock()
 
     async def _notice_retry(self, t: Turn, stage: str, exc: ProviderError, attempt: int, delay: float) -> None:
         await self.send_event(ErrorEvent(code=exc.code, stage=stage, retryable=True, turn_id=t.id,
@@ -319,21 +436,22 @@ class CascadeSession:
                 t.audio_bytes += len(pcm)
                 await self.send_audio(t.id, pcm)
 
-    async def _segment(self, t: Turn, seg: int, text: str, outq: asyncio.Queue) -> None:
+    async def _segment(self, t: Turn, seg: int, text: str, outq: asyncio.Queue, spec: Spec | None = None) -> None:
         chunkq: asyncio.Queue = asyncio.Queue(maxsize=32)
         ctx = TurnContext(history=list(self.history), glossary=dict(self.glossary))
         try:
             async with asyncio.TaskGroup() as tg:
-                tg.create_task(self._mt_stage(t, seg, text, ctx, chunkq))
-                tg.create_task(self._tts_stage(t, seg, chunkq, outq))
+                tg.create_task(self._mt_stage(t, seg, text, ctx, chunkq, spec))
+                tg.create_task(self._tts_stage(t, seg, chunkq, outq, spec))
         finally:
             try:
                 outq.put_nowait(None)
             except asyncio.QueueFull:
                 pass
 
-    async def _mt_stage(self, t: Turn, seg: int, text: str, ctx: TurnContext, chunkq: asyncio.Queue) -> None:
-        chunker = SentenceChunker()
+    async def _mt_stage(self, t: Turn, seg: int, text: str, ctx: TurnContext, chunkq: asyncio.Queue,
+                        spec: Spec | None = None) -> None:
+        chunker = SentenceChunker(**self.chunker_kwargs)
         out = ""
 
         async def retry_notice(exc, attempt, delay):
@@ -343,15 +461,18 @@ class CascadeSession:
         try:
             async for tok in first_within(stream, self.timeouts.mt_first_token, "mt", self.mt.name):
                 if not out:
-                    self._mark(t, "mt_first_token")
+                    self._smark(t, spec, "mt_first_token")
                 out += tok
-                await self.send_event(TranslationEvent(type="translation.partial", turn_id=t.id, seg=seg,
-                                                       text=out.strip()))
+                if spec is not None:
+                    spec.out_text = out
+                if spec is None or spec.confirmed:
+                    await self.send_event(TranslationEvent(type="translation.partial", turn_id=t.id, seg=seg,
+                                                           text=out.strip()))
                 for c in chunker.feed(tok):
-                    self._mark(t, "mt_first_chunk")
+                    self._smark(t, spec, "mt_first_chunk")
                     await chunkq.put(c)
             for c in chunker.flush():
-                self._mark(t, "mt_first_chunk")
+                self._smark(t, spec, "mt_first_chunk")
                 await chunkq.put(c)
         except ProviderError as e:
             e.stage = e.stage or "mt"
@@ -363,11 +484,15 @@ class CascadeSession:
             t.usage.mt_input_tokens += u.mt_input_tokens
             t.usage.mt_output_tokens += u.mt_output_tokens
         t.target_text[seg] = out.strip()
-        await self.send_event(TranslationEvent(type="translation.final", turn_id=t.id, seg=seg, text=out.strip()))
+        if spec is not None:
+            spec.mt_done = True
+        if spec is None or spec.confirmed:
+            await self.send_event(TranslationEvent(type="translation.final", turn_id=t.id, seg=seg, text=out.strip()))
         if is_empty_text(out):
             log.info("turn %s seg %s: empty translation", t.id, seg)
 
-    async def _tts_stage(self, t: Turn, seg: int, chunkq: asyncio.Queue, outq: asyncio.Queue) -> None:
+    async def _tts_stage(self, t: Turn, seg: int, chunkq: asyncio.Queue, outq: asyncio.Queue,
+                         spec: Spec | None = None) -> None:
         first = await chunkq.get()
         if first is None:
             return  # empty translation: nothing to speak
@@ -378,7 +503,7 @@ class CascadeSession:
         src = ReplayableChunks(chunkq, on_chunk)
         src.seen.append(first)
         on_chunk(first)
-        self._mark(t, "tts_request")
+        self._smark(t, spec, "tts_request")
         voice = self.voices.get(t.tgt, "")
 
         async def retry_notice(exc, attempt, delay):
@@ -392,8 +517,8 @@ class CascadeSession:
                     continue
                 if not got:
                     got = True
-                    self._mark(t, "tts_first_byte")
-                    self._mark(t, "tail_tts_first_byte", once=False)
+                    self._smark(t, spec, "tts_first_byte")
+                    self._smark(t, spec, "tail_tts_first_byte", once=False)
                 await outq.put(pcm)
         except ProviderError as e:
             e.stage = e.stage or "tts"
