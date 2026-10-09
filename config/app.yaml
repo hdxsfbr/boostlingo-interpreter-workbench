@@ -52,3 +52,4 @@ timeouts_s:
   tts_first_byte: 3
   turn: 20
   connect: 5
+  hedge_s: 1.5   # backup MT/TTS request if no first output by then (0 = off)

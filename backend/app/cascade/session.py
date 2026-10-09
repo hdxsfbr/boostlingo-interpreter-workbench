@@ -37,6 +37,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from app.cascade.chunker import SentenceChunker
+from app.cascade.hedge import hedged_first
 from app.core.errors import EmptyResult, ProviderError, ProviderTimeout
 from app.core.events import ErrorEvent, LatencyMark, TranslationEvent, TurnDone, TurnSkipped, TurnStarted
 from app.core.events import TranscriptEvent as TranscriptOut
@@ -76,6 +77,8 @@ class Timeouts:
     mt_first_token: float = 3.0
     tts_first_byte: float = 3.0
     turn: float = 20.0
+    # start one backup MT/TTS request if no first output by then (0 = off)
+    hedge_s: float = 1.5
 
     @classmethod
     def from_config(cls, cfg: dict) -> Timeouts:
@@ -103,28 +106,56 @@ async def first_within(it: AsyncIterator, seconds: float, stage: str, provider: 
 
 
 class ReplayableChunks:
-    """Chunk source for TTS that can be re-iterated (for a retry before first
-    byte) by replaying the chunks already consumed, then continuing."""
+    """Chunk source for TTS that can be iterated by several consumers (a
+    retry before first byte, or a hedged backup request): each iterator
+    replays the chunks already pulled from the queue, then follows new ones.
+    `on_chunk` fires once per chunk regardless of the number of consumers."""
 
     def __init__(self, q: asyncio.Queue, on_chunk: Callable[[str], None]) -> None:
         self.q = q
         self.seen: list[str] = []
         self.done = False
         self.on_chunk = on_chunk
+        self._cond = asyncio.Condition()
+        self._pump: asyncio.Task | None = None
 
     def __call__(self) -> AsyncIterator[str]:
         return self._iter()
 
-    async def _iter(self) -> AsyncIterator[str]:
-        for c in list(self.seen):
-            yield c
-        while not self.done:
-            c = await self.q.get()
-            if c is None:
+    async def _run_pump(self) -> None:
+        try:
+            while True:
+                c = await self.q.get()
+                async with self._cond:
+                    if c is None:
+                        self.done = True
+                    else:
+                        self.seen.append(c)
+                        self.on_chunk(c)
+                    self._cond.notify_all()
+                if c is None:
+                    return
+        except asyncio.CancelledError:
+            async with self._cond:
                 self.done = True
-                return
-            self.seen.append(c)
-            self.on_chunk(c)
+                self._cond.notify_all()
+            raise
+
+    def close(self) -> None:
+        if self._pump is not None and not self._pump.done():
+            self._pump.cancel()
+
+    async def _iter(self) -> AsyncIterator[str]:
+        if self._pump is None:
+            self._pump = asyncio.create_task(self._run_pump())
+        i = 0
+        while True:
+            async with self._cond:
+                await self._cond.wait_for(lambda i=i: i < len(self.seen) or self.done)
+                if i >= len(self.seen):
+                    return
+                c = self.seen[i]
+            i += 1
             yield c
 
 
@@ -447,6 +478,13 @@ class CascadeSession:
             await self.send_event(TranslationEvent(type="translation.final", turn_id=t.id, seg=sp.seg,
                                                    text=sp.out_text.strip()))
 
+    def _hedge_cb(self, t: Turn, sp: Spec | None, seg: int, stage: str) -> Callable[[str], None]:
+        def cb(ev: str) -> None:
+            log.info("turn %s seg %s %s: %s", t.id, seg, stage, ev)
+            self._smark(t, sp, f"{stage}_{ev}", once=False)
+
+        return cb
+
     def _smark(self, t: Turn, sp: Spec | None, name: str, once: bool = True) -> None:
         if sp is None or sp.confirmed:
             self._mark(t, name, once)
@@ -489,9 +527,13 @@ class CascadeSession:
         async def retry_notice(exc, attempt, delay):
             await self._notice_retry(t, "mt", exc, attempt, delay)
 
-        stream = stream_with_retry(lambda: self.mt.stream(text, t.src, t.tgt, ctx), on_retry=retry_notice)
+        def factory():
+            return stream_with_retry(lambda: self.mt.stream(text, t.src, t.tgt, ctx), on_retry=retry_notice)
+
+        stream = hedged_first(factory, timeout=self.timeouts.mt_first_token, hedge_after=self.timeouts.hedge_s or None,
+                              stage="mt", provider=self.mt.name, on_event=self._hedge_cb(t, spec, seg, "mt"))
         try:
-            async for tok in first_within(stream, self.timeouts.mt_first_token, "mt", self.mt.name):
+            async for tok in stream:
                 if not out:
                     self._smark(t, spec, "mt_first_token")
                 out += tok
@@ -541,10 +583,14 @@ class CascadeSession:
         async def retry_notice(exc, attempt, delay):
             await self._notice_retry(t, "tts", exc, attempt, delay)
 
-        stream = stream_with_retry(lambda: self.tts.stream(src(), t.tgt, voice), on_retry=retry_notice)
+        def factory():
+            return stream_with_retry(lambda: self.tts.stream(src(), t.tgt, voice), on_retry=retry_notice)
+
+        stream = hedged_first(factory, timeout=self.timeouts.tts_first_byte, hedge_after=self.timeouts.hedge_s or None,
+                              stage="tts", provider=self.tts.name, on_event=self._hedge_cb(t, spec, seg, "tts"))
         got = False
         try:
-            async for pcm in first_within(stream, self.timeouts.tts_first_byte, "tts", self.tts.name):
+            async for pcm in stream:
                 if not pcm:
                     continue
                 if not got:
@@ -555,5 +601,7 @@ class CascadeSession:
         except ProviderError as e:
             e.stage = e.stage or "tts"
             raise
+        finally:
+            src.close()
         if not got:
             raise EmptyResult("TTS returned no audio", stage="tts", provider=self.tts.name)
