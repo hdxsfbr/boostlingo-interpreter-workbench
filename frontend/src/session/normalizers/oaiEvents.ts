@@ -65,6 +65,11 @@ export class OaiNormalizer {
     this.h.emit({ type: "latency.mark", turn_id: turnId, mark, ms: this.now() - end, clock: "browser" });
   }
 
+  /** Turn a response belongs to (relay audio routing). */
+  turnOf(responseId: string | undefined): number | undefined {
+    return this.turnForResponse(responseId);
+  }
+
   private turnForResponse(id: string | undefined): number | undefined {
     return id ? this.respTurn.get(id) : undefined;
   }
