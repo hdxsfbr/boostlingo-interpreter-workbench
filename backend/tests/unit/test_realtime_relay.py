@@ -42,7 +42,7 @@ def client(monkeypatch):
     up = FakeUpstream()
 
     async def connect(url, key):
-        assert "model=gpt-realtime-mini" in url
+        assert "model=gpt-realtime" in url and url.endswith("gpt-realtime")
         return up
     monkeypatch.setattr(realtime_relay, "_connect", connect)
     yield TestClient(create_app()), up
@@ -53,7 +53,7 @@ def test_relay_session_config_and_audio_roundtrip(client):
     c, up = client
     with c.websocket_connect("/ws/realtime") as ws:
         ws.send_text(json.dumps({"type": "relay.start", "a": "en", "b": "es", "turn_mode": "ptt"}))
-        assert json.loads(ws.receive_text()) == {"type": "relay.ready", "model": "gpt-realtime-mini"}
+        assert json.loads(ws.receive_text()) == {"type": "relay.ready", "model": "gpt-realtime"}
         upd = up.sent[0]["session"]
         assert "model" not in upd and upd["audio"]["input"]["format"]["rate"] == 24000
         assert upd["audio"]["input"]["turn_detection"] is None

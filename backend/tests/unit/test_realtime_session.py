@@ -33,13 +33,13 @@ def test_mints_secret_without_leaking_key(client):
     calls = install(lambda req: httpx.Response(200, json={"value": "ek_abc", "expires_at": 123, "session": {}}))
     r = c.post("/api/realtime/session", json={"a": "en", "b": "es"})
     assert r.status_code == 200
-    assert r.json() == {"value": "ek_abc", "expires_at": 123, "model": "gpt-realtime-mini", "turn_mode": "ptt"}
+    assert r.json() == {"value": "ek_abc", "expires_at": 123, "model": "gpt-realtime", "turn_mode": "ptt"}
     assert "sk-test-secret" not in r.text
     sent = json.loads(calls[0].content)
     assert calls[0].headers["authorization"] == "Bearer sk-test-secret"
     assert sent["expires_after"] == {"anchor": "created_at", "seconds": 600}
     s = sent["session"]
-    assert s["type"] == "realtime" and s["model"] == "gpt-realtime-mini" and s["output_modalities"] == ["audio"]
+    assert s["type"] == "realtime" and s["model"] == "gpt-realtime" and s["output_modalities"] == ["audio"]
     assert s["audio"]["input"]["turn_detection"] is None  # push-to-talk default
 
 
