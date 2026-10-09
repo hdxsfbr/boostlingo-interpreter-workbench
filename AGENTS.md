@@ -51,3 +51,14 @@ This repo is built by an agentic coding assistant (Grok Bot executor agents) dir
   - A test monkeypatched `asyncio.sleep` globally to speed up retries, which also short-circuited the watchdogs and made the turn time out. Replaced with a zero `Retry-After`.
   - A config-error test passed on the lab only because the lab shell happened to export `OPENAI_API_KEY`; the offline Docker run exposed it. Tests now pin their environment.
   - The smoke harness released PTT at in-sentence pauses of the looping fake-mic file, producing fragment turns ("Could morning." → "¿Buenas, ¿eh?"). It now presses only during silence and requires a minimum speech duration.
+
+### M2 (Realtime mode)
+- Direction: "browser WebRTC path with the ephemeral token, WS relay fallback, mic gating during playback, speech-end → first-audio instrumentation, browser smoke in both directions vs < 1.5 s; `gpt-realtime-mini` only; no Anthropic or ElevenLabs calls."
+- Order: recorded a real two-turn `gpt-realtime-mini` WS session first (one probe script, key read from file and never printed) and wrote the `oaiEvents` normaliser + history pruner against it; then the WebRTC transport with fake `RTCPeerConnection`/data channel tests (SDP exchange with the `ek_` secret, PTT command sequence, VAD gating, pruning, `close()` releasing peer/channel/track/remote audio); then the backend relay with a fake upstream; then the frontend relay transport; then wiring into `InterpreterSession` (WebRTC / relay / auto-fallback, server-VAD turns, remote-playback gating, a `diag()` leak probe).
+- The harness grew `--mode/--rt/--turn-mode`, `--switches` (leak check), `--barge-in`, `--block-webrtc` (fallback) and a gating probe; WebRTC worked in headless Chrome with the fake-mic file on the first try, so the relay is a tested fallback, not the measured path.
+- Verification: 87 backend tests, 29 frontend tests, `tsc`, live browser runs (`docs/benchmarks/m2-realtime-smoke.md`, raw logs in `docs/benchmarks/raw/m2/`). The recorded WebRTC data-channel events became a second normaliser fixture.
+- **Agent mistakes / findings caught and fixed:**
+  - The first ES run released PTT at a 350 ms in-sentence pause (300 ms release policy), and the model *answered* the fragment ("I'm sorry you're feeling that way…") in 2/5 turns. Two fixes: per-turn direction instructions on `response.create` (PTT knows the direction), and a 450 ms harness release policy for both modes. The M1 ES cascade numbers had the same truncation; both cascade directions were re-run under the new policy (in the M2 doc).
+  - Barge-in used `lastCommittedTurn`, which is cleared once audio starts, so a press during playback cancelled nothing. It now cancels the playing turn; the relay also drops late audio frames of a cancelled turn.
+  - The first barge-in probe measured the session's own flag (16 ms) rather than the end of audio; it now waits for the interrupted turn's `audio.ended`.
+
