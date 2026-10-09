@@ -13,6 +13,7 @@ from app.core.budget import ElevenLabsBudget, Ledger
 from app.core.config import Settings, get_settings
 from app.core.errors import ConfigError, ProviderError
 from app.core.events import Commit, ErrorEvent, SessionStart, TurnDone, TurnSkipped, TurnStart
+from app.core.languages import languages_config
 from app.core.recording import CascadeRecorder, RecordingError, RecordingStore, get_store
 from app.providers import registry
 
@@ -26,7 +27,7 @@ def _read_key_file(path) -> str:
         return ""
 
 
-def build_providers(settings: Settings, overrides: dict[str, str] | None = None):
+def build_providers(settings: Settings, overrides: dict[str, str] | None = None, langs: list[str] | None = None):
     cfg = settings.app_config()
     names = {k: (overrides or {}).get(k) or cfg["cascade"][k] for k in ("stt", "mt", "tts")}
     p = cfg["providers"]
@@ -34,7 +35,7 @@ def build_providers(settings: Settings, overrides: dict[str, str] | None = None)
     kwargs = {
         ("stt", "openai_live"): lambda: {"api_key": key, "model": p["openai_live"]["model"],
                                          "delay": p["openai_live"].get("delay"),
-                                         "languages": p["openai_live"].get("languages")},
+                                         "languages": langs},
         ("mt", "openai"): lambda: {"api_key": key, "model": p["openai"]["model"],
                                    "reasoning_effort": p["openai"].get("reasoning_effort"),
                                    "max_output_tokens": p["openai"].get("max_output_tokens", 400)},
@@ -59,7 +60,9 @@ def build_providers(settings: Settings, overrides: dict[str, str] | None = None)
         el = p["elevenlabs"]
         kwargs[("tts", "elevenlabs")] = lambda: {
             "api_key": _read_key_file(settings.elevenlabs_api_key_file),
-            "model": el.get("model", "eleven_flash_v2_5"), "voices": el.get("voices", {}),
+            "model": el.get("model", "eleven_flash_v2_5"),
+            "voices": {**{c: lg.voices["elevenlabs"] for c, lg in languages_config().languages.items()
+                          if lg.voices.get("elevenlabs")}, **el.get("voices", {})},
             "prewarm": el.get("prewarm", True)}
     if names["mt"] == "anthropic" and not settings.haiku_enabled():
         raise ConfigError("cascade-haiku is disabled (Anthropic validity check failed); "
@@ -73,7 +76,11 @@ def build_providers(settings: Settings, overrides: dict[str, str] | None = None)
                                         ledger=Ledger(settings.data_dir / "elevenlabs_ledger.json"),
                                         session_char_cap=el.get("session_char_cap", 1500),
                                         month_char_cap=el.get("month_char_cap", 8000))
-    voices = p.get("openai_tts", {}).get("voices", {}) if names["tts"] == "openai" else {}
+    voices = dict(p.get("openai_tts", {}).get("voices", {})) if names["tts"] == "openai" else {}
+    if names["tts"] == "openai":  # languages.yaml per-language voices fill the gaps (A14)
+        for code, lang in languages_config().languages.items():
+            if lang.voices.get("openai"):
+                voices.setdefault(code, lang.voices["openai"])
     return built, names, voices, Timeouts.from_config(cfg.get("timeouts_s", {}))
 
 
@@ -141,15 +148,16 @@ class CascadePipeline:
     @classmethod
     def from_settings(cls, start: SessionStart, io: SessionIO, settings: Settings | None = None) -> CascadePipeline:
         settings = settings or get_settings()
-        (prov, names, voices, timeouts) = build_providers(settings, start.providers)
-        langs = settings.languages()
-        glossary = next((pr.get("glossary") or {} for pr in langs.get("pairs", [])
-                         if {pr.get("a"), pr.get("b")} == {start.src, start.tgt}), {})
+        lc = languages_config()
+        src, tgt = lc.resolve(start.src, start.tgt)  # ValueError -> config error shown in the UI
+        (prov, names, voices, timeouts) = build_providers(settings, start.providers, [src, tgt])
+        pair = lc.find(src, tgt)
+        glossary = dict(pair.glossary) if pair else {}
         ccfg = settings.app_config()["cascade"]
         rec, refusal = make_recorder(start, get_store())
         send_event, send_audio = recording_io(io, rec)
         session = CascadeSession(prov["stt"], prov["mt"], prov["tts"], send_event=send_event, send_audio=send_audio,
-                                 voices=voices, langs=[start.src, start.tgt], timeouts=timeouts, glossary=glossary,
+                                 voices=voices, langs=[src, tgt], timeouts=timeouts, glossary=glossary,
                                  speculative=speculative_enabled(ccfg, names["tts"]),
                                  merge_fragments=bool(ccfg.get("merge_fragments", True)),
                                  chunker=ccfg.get("chunker") or {})

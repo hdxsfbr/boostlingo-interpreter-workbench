@@ -73,7 +73,7 @@ class FakeWS:
 def stt_with(ws, **kw):
     async def connect(url, key):
         return ws
-    return OpenAILiveSTT("sk-test", connect=connect, **kw)
+    return OpenAILiveSTT("sk-test", connect=connect, **{"languages": ["en", "es"], **kw})
 
 
 async def audio(*items):

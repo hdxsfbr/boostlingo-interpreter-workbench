@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from app.core.config import get_settings
+from app.core.languages import languages_config
 from app.providers.common.http import shared_client
 from app.realtime.session_config import build_interpreter_session
 
@@ -22,8 +23,8 @@ ALLOWED_MODELS = {"gpt-realtime", "gpt-realtime-mini"}
 
 
 class MintRequest(BaseModel):
-    a: str = "en"
-    b: str = "es"
+    a: str | None = None  # default pair from config/languages.yaml
+    b: str | None = None
     turn_mode: Literal["ptt", "vad"] = "ptt"
     silence_duration_ms: int = 400
     model: str | None = None  # defaults to config (gpt-realtime-mini in dev)
@@ -38,11 +39,15 @@ async def mint(req: MintRequest):
     settings = get_settings()
     if not settings.openai_api_key:
         raise HTTPException(503, detail={"code": "config_error", "message": "OPENAI_API_KEY is not set"})
+    try:
+        a, b = languages_config().resolve(req.a, req.b)
+    except ValueError as e:
+        raise HTTPException(400, detail={"code": "bad_request", "message": str(e)}) from None
     cfg = settings.app_config()["realtime"]
     model = req.model or cfg["model"]
     if model not in ALLOWED_MODELS | {cfg["model"]}:
         raise HTTPException(400, detail={"code": "bad_request", "message": f"model {model} not allowed"})
-    session = build_interpreter_session(req.a, req.b, model=model, voice=cfg.get("voice", "marin"),
+    session = build_interpreter_session(a, b, model=model, voice=cfg.get("voice", "marin"),
                                         transcription_model=cfg.get("transcription_model", "gpt-4o-transcribe"),
                                         turn_mode=req.turn_mode, silence_duration_ms=req.silence_duration_ms)
     body = {"expires_after": {"anchor": "created_at", "seconds": int(cfg.get("secret_ttl_s", 600))},

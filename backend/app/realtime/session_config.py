@@ -1,18 +1,18 @@
 """Realtime (speech-to-speech) interpreter session config (DESIGN §2, R§1.4).
 
-Audio-only output, explicit language policy (EN in -> ES only, ES in -> EN
-only; never answer), side transcription for the source text, push-to-talk
+Audio-only output, explicit language policy (A in -> B only, B in -> A only;
+never answer; language names from config/languages.yaml), side transcription for the source text, push-to-talk
 (turn_detection null) by default or server VAD with interrupt_response off.
 """
 from __future__ import annotations
 
 from typing import Literal
 
-LANG_NAMES = {"en": "English", "es": "Spanish"}
+from app.core.languages import lang_name
 
 
 def interpreter_instructions(a: str, b: str) -> str:
-    A, B = LANG_NAMES.get(a, a), LANG_NAMES.get(b, b)
+    A, B = lang_name(a), lang_name(b)
     return (
         f"You are a professional consecutive interpreter between {A} and {B}. "
         f"When you hear {A}, say ONLY its faithful {B} translation. "

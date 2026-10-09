@@ -11,11 +11,10 @@ from collections.abc import AsyncIterator
 import httpx
 
 from app.core.errors import ConfigError, ProviderError
+from app.core.languages import lang_name
 from app.providers.base import TurnContext, Usage
 from app.providers.common.http import iter_sse, provider_stream, shared_client
 from app.providers.registry import register
-
-LANG_NAMES = {"en": "English", "es": "Spanish"}
 
 INSTRUCTIONS = (
     "You are a professional consecutive interpreter working in medical, legal and everyday settings. "
@@ -34,7 +33,7 @@ def build_input(text: str, src: str, tgt: str, ctx: TurnContext) -> str:
     if ctx.glossary:
         gl = "\n".join(f"- {k} => {v}" for k, v in ctx.glossary.items())
         parts.append(f"Glossary (use these renderings):\n{gl}")
-    parts.append(f"Translate from {LANG_NAMES.get(src, src)} to {LANG_NAMES.get(tgt, tgt)}:\n{text}")
+    parts.append(f"Translate from {lang_name(src)} to {lang_name(tgt)}:\n{text}")
     return "\n\n".join(parts)
 
 

@@ -31,6 +31,7 @@ from pydantic import BaseModel, ValidationError
 from app.core.config import get_settings
 from app.core.errors import AuthError, ProviderDisconnected, ProviderError, RateLimited
 from app.core.events import pack_audio
+from app.core.languages import languages_config
 from app.realtime.session_config import build_interpreter_session
 
 log = logging.getLogger(__name__)
@@ -70,8 +71,8 @@ _connect: Connect = default_connect  # monkeypatched in tests
 
 class RelayStart(BaseModel):
     type: str = "relay.start"
-    a: str = "en"
-    b: str = "es"
+    a: str | None = None  # default pair from config/languages.yaml
+    b: str | None = None
     turn_mode: str = "ptt"
     silence_duration_ms: int = 400
 
@@ -80,7 +81,8 @@ def relay_session(start: RelayStart) -> tuple[str, dict]:
     settings = get_settings()
     cfg = settings.app_config()["realtime"]
     model = cfg["model"]
-    s = build_interpreter_session(start.a, start.b, model=model, voice=cfg.get("voice", "marin"),
+    a, b = languages_config().resolve(start.a, start.b)
+    s = build_interpreter_session(a, b, model=model, voice=cfg.get("voice", "marin"),
                                   transcription_model=cfg.get("transcription_model", "gpt-4o-transcribe"),
                                   turn_mode="vad" if start.turn_mode == "vad" else "ptt",
                                   silence_duration_ms=start.silence_duration_ms)
@@ -111,7 +113,12 @@ async def relay(ws: WebSocket) -> None:
         await ws.send_text(_err("config_error", "OPENAI_API_KEY is not set"))
         await ws.close()
         return
-    model, session = relay_session(start)
+    try:
+        model, session = relay_session(start)
+    except ValueError as e:  # unconfigured language pair
+        await ws.send_text(_err("bad_request", str(e)))
+        await ws.close()
+        return
     try:
         up = await _connect(URL.format(model=model), settings.openai_api_key.get_secret_value())
     except ProviderError as e:

@@ -83,7 +83,7 @@ class OpenAILiveSTT:
         if not api_key:
             raise ConfigError("OPENAI_API_KEY is not set", provider="openai", stage="stt")
         self.api_key, self.model, self.delay = api_key, model, delay
-        self.languages = languages or ["en", "es"]
+        self.languages = list(languages or [])  # the session's pair; [] = no language hint
         self.prompt = prompt
         self._connect, self.url = connect, url
         self.ws: WSConn | None = None
@@ -93,7 +93,9 @@ class OpenAILiveSTT:
         self._open_lock = asyncio.Lock()
 
     def _session_update(self, langs: list[str]) -> dict:
-        tr: dict[str, Any] = {"model": self.model, "languages": langs}
+        tr: dict[str, Any] = {"model": self.model}
+        if langs:
+            tr["languages"] = langs
         if self.delay:
             tr["delay"] = self.delay
         if self.prompt:
@@ -138,6 +140,9 @@ class OpenAILiveSTT:
         await self.open()  # re-open if the socket dropped since the last turn
         ws = self.ws
         assert ws is not None
+        if langs and list(langs) != self.languages:  # pair differs from the warm-up hint
+            self.languages = list(langs)
+            await ws.send(json.dumps(self._session_update(self.languages)))
         await ws.send(json.dumps({"type": "input_audio_buffer.clear"}))
         stale = set(self.seen_items)  # late events from a cancelled turn are ignored
         out: asyncio.Queue = asyncio.Queue()

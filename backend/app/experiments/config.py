@@ -67,7 +67,22 @@ STARTUP_S = 12.0  # browser + session start per setup
 @lru_cache
 def utterances(root: Path = REPO_ROOT) -> dict[str, dict]:
     data = yaml.safe_load((root / "docs" / "benchmarks" / "utterances.yaml").read_text())
-    return {u["id"]: {**u, "lang": lang} for lang in ("en", "es") for u in data[lang]}
+    return {u["id"]: {**u, "lang": lang} for lang in bench_langs() for u in data.get(lang, [])}
+
+
+def bench_langs() -> list[str]:
+    """Directions come from config: the benchmarked pair in languages.yaml (A14)."""
+    from app.core.languages import languages_config
+    return languages_config().benchmarked().langs
+
+
+def direction_options() -> list[dict]:
+    from app.core.languages import languages_config
+    lc = languages_config()
+    a, b = bench_langs()
+    return [{"value": "both", "label": f"Both ({a.upper()}→{b.upper()} and {b.upper()}→{a.upper()})"},
+            {"value": a, "label": f"{lc.name(a)} → {lc.name(b)} only"},
+            {"value": b, "label": f"{lc.name(b)} → {lc.name(a)} only"}]
 
 
 @lru_cache
@@ -100,7 +115,7 @@ def m5_profile_stats(bench_dir: Path) -> dict:
     return out
 
 
-ID_RE = re.compile(r"^(en|es)-[slm]\d{2}$")
+ID_RE = re.compile(r"^[a-z]{2,3}-[slm]\d{2}$")
 
 
 class ExperimentConfig(BaseModel):
@@ -108,7 +123,7 @@ class ExperimentConfig(BaseModel):
     setups: list[str] = Field(min_length=1, max_length=len(SETUPS))
     utterances: Literal["full", "short", "custom"] = "short"
     ids: list[str] = Field(default_factory=list, max_length=48)
-    directions: Literal["both", "en", "es"] = "both"
+    directions: str = "both"  # "both" or one language of the benchmarked pair (languages.yaml)
     passes: int = Field(default=1, ge=1, le=5)
     allow_elevenlabs: bool = False
 
@@ -130,6 +145,14 @@ class ExperimentConfig(BaseModel):
             raise ValueError("duplicate setups")
         return v
 
+    @field_validator("directions")
+    @classmethod
+    def _directions(cls, v: str) -> str:
+        allowed = ["both", *bench_langs()]
+        if v not in allowed:
+            raise ValueError(f"directions must be one of {allowed}")
+        return v
+
     @model_validator(mode="after")
     def _rules(self) -> ExperimentConfig:
         if "cascade-elevenlabs" in self.setups and not self.allow_elevenlabs:
@@ -146,7 +169,7 @@ class ExperimentConfig(BaseModel):
 
     def selected(self) -> list[str]:
         """Utterance ids in utterances.yaml order, filtered by set and direction."""
-        langs = {"both": ("en", "es"), "en": ("en",), "es": ("es",)}[self.directions]
+        langs = bench_langs() if self.directions == "both" else [self.directions]
         out = []
         for uid, u in utterances().items():
             if u["lang"] not in langs:

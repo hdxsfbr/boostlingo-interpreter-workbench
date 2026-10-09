@@ -107,7 +107,7 @@ def test_pipeline_with_mocked_elevenlabs_builds_session_without_speculation(monk
 
     fake_tts = FakeTTS()
     fake_tts.name = "elevenlabs"
-    monkeypatch.setattr(wp, "build_providers", lambda settings, providers: (
+    monkeypatch.setattr(wp, "build_providers", lambda settings, providers, langs=None: (
         {"stt": FakeSTT(), "mt": FakeTranslator(), "tts": fake_tts},
         {"stt": "fake", "mt": "fake", "tts": "elevenlabs"}, {}, wp.Timeouts()))
     from app.core.config import Settings

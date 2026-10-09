@@ -24,7 +24,7 @@ import time
 from collections.abc import Callable
 from pathlib import Path
 
-from app.experiments.config import SETUPS, ExperimentConfig
+from app.experiments.config import SETUPS, ExperimentConfig, bench_langs
 from app.experiments.store import ExperimentStore
 
 log = logging.getLogger(__name__)
@@ -38,8 +38,9 @@ class Busy(RuntimeError):
 
 def harness_command(setup: str, ids: list[str], cfg: ExperimentConfig, out: Path, url: str) -> list[str]:
     s = SETUPS[setup]
+    a, b = bench_langs()
     cmd = [sys.executable, "-u", "-m", "eval.harness", "--url", url, *s.args, "--ids", ",".join(ids),
-           "--dirs", "en,es", "--repeat", str(cfg.passes), "--profile", setup, "--out", str(out), "--chrome", ""]
+           "--dirs", f"{a},{b}", "--pair", f"{a},{b}", "--repeat", str(cfg.passes), "--profile", setup, "--out", str(out), "--chrome", ""]
     if setup == "cascade-elevenlabs":
         cmd += ["--el-char-cap", "1400"]
     return cmd
@@ -47,10 +48,11 @@ def harness_command(setup: str, ids: list[str], cfg: ExperimentConfig, out: Path
 
 def planned_order(ids: list[str], passes: int) -> list[str]:
     """Same order as eval.harness.interleave(load_set) * repeat."""
-    by = {"en": [i for i in ids if i.startswith("en-")], "es": [i for i in ids if i.startswith("es-")]}
+    langs = bench_langs()
+    by = {k: [i for i in ids if i.startswith(f"{k}-")] for k in langs}
     out = []
-    while by["en"] or by["es"]:
-        for k in ("en", "es"):
+    while any(by.values()):
+        for k in langs:
             if by[k]:
                 out.append(by[k].pop(0))
     return out * passes

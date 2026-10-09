@@ -101,8 +101,8 @@ server_event_adapter: TypeAdapter[ServerEvent] = TypeAdapter(ServerEvent)
 class SessionStart(_Event):
     type: Literal["session.start"] = "session.start"
     pipeline: Literal["loopback", "cascade"] = "cascade"
-    src: Lang = "en"
-    tgt: Lang = "es"
+    src: Lang | None = None  # None = default pair from config/languages.yaml
+    tgt: Lang | None = None
     turn_mode: Literal["ptt", "vad"] = "ptt"
     providers: dict[str, str] = Field(default_factory=dict)
     session_id: str | None = Field(default=None, max_length=80)

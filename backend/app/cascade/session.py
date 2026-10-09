@@ -41,6 +41,7 @@ from app.cascade.hedge import hedged_first
 from app.core.errors import EmptyResult, ProviderError, ProviderTimeout
 from app.core.events import ErrorEvent, LatencyMark, TranslationEvent, TurnDone, TurnSkipped, TurnStarted
 from app.core.events import TranscriptEvent as TranscriptOut
+from app.core.languages import languages_config
 from app.core.retry import stream_with_retry
 from app.providers.base import Commit, STTProvider, Translator, TTSProvider, TurnContext, Usage
 
@@ -222,7 +223,7 @@ class CascadeSession:
         self.stt, self.mt, self.tts = stt, mt, tts
         self.send_event, self.send_audio = send_event, send_audio
         self.voices = voices or {}
-        self.langs = langs or ["en", "es"]
+        self.langs = langs or languages_config().default.langs
         self.timeouts = timeouts or Timeouts()
         self.glossary = glossary or {}
         self.history: list[tuple[str, str]] = []

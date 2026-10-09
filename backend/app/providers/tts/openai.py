@@ -16,10 +16,10 @@ import httpx
 
 from app.core.audio import LeadingSilenceTrimmer
 from app.core.errors import ConfigError
+from app.core.languages import lang_name
 from app.providers.common.http import provider_stream, shared_client
 from app.providers.registry import register
 
-LANG_NAMES = {"en": "English", "es": "Spanish"}
 _END = object()
 
 
@@ -57,7 +57,7 @@ class OpenAITTS:
     def _body(self, text: str, lang: str, voice: str) -> dict:
         body = {"model": self.model, "voice": voice or "marin", "input": text, "response_format": "pcm",
                 "stream_format": "audio",
-                "instructions": f"Speak {LANG_NAMES.get(lang, lang)} clearly and naturally, like a professional "
+                "instructions": f"Speak {lang_name(lang)} clearly and naturally, like a professional "
                                 f"interpreter: neutral tone, steady pace."}
         if self.speed:
             body["speed"] = self.speed

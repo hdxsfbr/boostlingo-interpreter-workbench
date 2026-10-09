@@ -16,7 +16,7 @@ from pydantic import ValidationError
 
 from app.core.config import get_settings
 from app.experiments import baseline
-from app.experiments.config import SETUPS, ExperimentConfig, estimate, utterances
+from app.experiments.config import SETUPS, ExperimentConfig, direction_options, estimate, utterances
 from app.experiments.runner import Busy, ExperimentRunner
 from app.experiments.store import ExperimentStore
 
@@ -75,6 +75,7 @@ def setups() -> dict:
                         "unavailable": av[s.name], "needs_confirmation_checkbox": s.name == "cascade-elevenlabs"}
                        for s in SETUPS.values()],
             "default_setups": ["realtime-mini", "cascade-openai"],
+            "directions": direction_options(),
             "confirm_above_usd": float(exp_cfg()["confirm_above_usd"]),
             "utterances": [{"id": k, "lang": u["lang"], "size": u["size"], "text": u["text"]} for k, u in utt.items()]}
 
