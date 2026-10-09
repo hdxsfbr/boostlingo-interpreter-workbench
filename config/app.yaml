@@ -11,7 +11,7 @@ cascade:
   mt: openai
   tts: openai
   playback_policy: after_speech_end   # D8
-  speculative_mt: true    # M4 (tail -0.5 s, 0 misses in 61 adoptions): MT/TTS on the committed segment's partial transcript (env CASCADE_SPECULATIVE)
+  speculative_mt: true    # M4 (tail -0.3..-0.5 s, 0 misses): MT/TTS on the committed segment's partial transcript (env CASCADE_SPECULATIVE)
   chunker:                # SentenceChunker kwargs (env CHUNK_FIRST_CLAUSE_MIN / CHUNK_FIRST_WORD_MIN)
     first_clause_min: 25
     first_word_min: 20    # M4: first TTS chunk at a word boundary (~-100 ms on short turns)
@@ -19,7 +19,7 @@ cascade:
 providers:
   openai_live:
     model: gpt-live-transcribe
-    delay: minimal        # M4: complete partials at commit -> speculation hits (low: +0.2 s tail)
+    delay: low            # M4: minimal is ~0.2 s faster with speculation but STT WER rose 2-3x (0.02-0.03 -> 0.05-0.07); env STT_DELAY=minimal
     languages: [en, es]
   openai:
     model: gpt-5.4-nano       # chosen by measured TTFT in M1 (see docs/benchmarks/mt-ttft.md)
