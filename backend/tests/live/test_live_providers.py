@@ -46,12 +46,9 @@ async def test_openai_mt_live():
 
 async def test_openai_tts_live():
     need("OPENAI_API_KEY")
-    import httpx
-
     from app.providers.tts.openai import OpenAITTS
-    async with httpx.AsyncClient(timeout=30) as client:  # own client: the shared one is bound to another test's loop
-        tts = OpenAITTS(os.environ["OPENAI_API_KEY"], model="gpt-4o-mini-tts", client=client)
-        pcm = b"".join([b async for b in tts.stream(_chunks("Hola."), "es", "marin")])
+    tts = OpenAITTS(os.environ["OPENAI_API_KEY"], model="gpt-4o-mini-tts")
+    pcm = b"".join([b async for b in tts.stream(_chunks("Hola."), "es", "marin")])
     assert len(pcm) > 24000  # > 0.5 s of 24 kHz PCM16
 
 

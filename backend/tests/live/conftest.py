@@ -29,3 +29,12 @@ def fixture_pcm(uid: str = "en-s01") -> bytes:
     with wave.open(str(p)) as w:
         assert w.getframerate() == 24000 and w.getsampwidth() == 2
         return w.readframes(w.getnframes())
+
+
+@pytest.fixture(autouse=True)
+def _fresh_shared_client():
+    """Each test runs in its own event loop; the shared provider client must not outlive it."""
+    import app.providers.common.http as h
+    h._client = None
+    yield
+    h._client = None
