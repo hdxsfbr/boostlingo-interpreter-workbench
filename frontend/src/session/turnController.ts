@@ -4,9 +4,10 @@
  *   late release counts against latency exactly as the user perceives it.
  * - Optional in-turn pause commits (cascade): a pause >= pauseCommitMs after
  *   speech yields one non-final commit, so long turns get segment finals.
- *   A pause only commits once the segment holds >= minSegmentMs of voiced
- *   audio (M5): shorter stretches ("Do you have... any allergies?") are
- *   merged into the next segment instead of being translated as fragments.
+ *   Optionally (minSegmentMs > 0) a pause only commits once the segment holds
+ *   that much voiced audio. Off by default: measured in M5 it delays short
+ *   turns (the early pause commit is what lets speculative MT start before
+ *   the release), so fragments are merged server-side instead.
  */
 import type { Lang, Speaker } from "./protocol";
 
@@ -34,7 +35,7 @@ export class TurnController {
     private readonly pair: { a: Lang; b: Lang },
     private readonly pauseCommitMs: number | null = 300,
     private readonly pauseHintMs: number | null = null,
-    private readonly minSegmentMs = 1000,
+    private readonly minSegmentMs = 0,
     private readonly frameMs = 20,
   ) {}
 

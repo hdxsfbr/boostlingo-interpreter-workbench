@@ -96,6 +96,7 @@ class CascadePipeline:
         session = CascadeSession(prov["stt"], prov["mt"], prov["tts"], send_event=io.event, send_audio=io.audio,
                                  voices=voices, langs=[start.src, start.tgt], timeouts=timeouts, glossary=glossary,
                                  speculative=bool(ccfg.get("speculative_mt", False)),
+                                 merge_fragments=bool(ccfg.get("merge_fragments", True)),
                                  chunker=ccfg.get("chunker") or {})
         pipe = cls(session, names, [prov["mt"], prov["tts"]])
         pipe._opened = asyncio.get_running_loop().create_task(pipe._open(io))

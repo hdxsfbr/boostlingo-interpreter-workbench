@@ -12,6 +12,7 @@ cascade:
   tts: openai
   playback_policy: after_speech_end   # D8
   speculative_mt: true    # M4 (tail -0.3..-0.5 s, 0 misses): MT/TTS on the committed segment's partial transcript (env CASCADE_SPECULATIVE)
+  merge_fragments: true   # M5: a short unpunctuated in-turn segment ("Do you have") is merged into the next (env CASCADE_MERGE_FRAGMENTS)
   chunker:                # SentenceChunker kwargs (env CHUNK_FIRST_CLAUSE_MIN / CHUNK_FIRST_WORD_MIN)
     first_clause_min: 25
     first_word_min: 20    # M4: first TTS chunk at a word boundary (~-100 ms on short turns)

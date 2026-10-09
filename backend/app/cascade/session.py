@@ -57,6 +57,16 @@ def norm_text(text: str) -> str:
     return " ".join(_NONWORD.sub(" ", (text or "").lower()).split())
 
 
+_TERMINAL = re.compile(r"[.?!…。]['\"”’)»]*\s*$")
+
+
+def is_fragment(text: str, max_words: int = 6) -> bool:
+    """A short in-turn segment without sentence-final punctuation ("Do you have")
+    is merged into the next segment instead of being translated alone (M5)."""
+    t = (text or "").strip()
+    return bool(t) and len(t.split()) < max_words and not _TERMINAL.search(t)
+
+
 def is_empty_text(text: str) -> bool:
     """Empty or punctuation-only (CQ-4 empty result)."""
     return bool(_EMPTY.match(text or ""))
@@ -198,6 +208,8 @@ class Turn:
     finalized: set[int] = field(default_factory=set)
     specs: dict[int, Spec] = field(default_factory=dict)
     spec_stats: dict[str, int] = field(default_factory=lambda: {"started": 0, "hit": 0, "miss": 0})
+    carry: str = ""  # fragment segment(s) waiting to be merged into the next segment
+    carry_seg: int = -1
 
 
 class CascadeSession:
@@ -205,7 +217,8 @@ class CascadeSession:
                  send_audio: SendAudio, voices: dict[str, str] | None = None, langs: list[str] | None = None,
                  timeouts: Timeouts | None = None, glossary: dict[str, str] | None = None,
                  history_turns: int = 2, clock: Callable[[], float] = time.monotonic,
-                 speculative: bool = False, chunker: dict[str, Any] | None = None) -> None:
+                 speculative: bool = False, chunker: dict[str, Any] | None = None,
+                 merge_fragments: bool = True) -> None:
         self.stt, self.mt, self.tts = stt, mt, tts
         self.send_event, self.send_audio = send_event, send_audio
         self.voices = voices or {}
@@ -216,6 +229,7 @@ class CascadeSession:
         self.history_turns = history_turns
         self.clock = clock
         self.speculative = speculative
+        self.merge_fragments = merge_fragments
         self.chunker_kwargs = dict(chunker or {})
         self.turn: Turn | None = None
         self._turns: dict[int, Turn] = {}
@@ -367,15 +381,32 @@ class CascadeSession:
                                                         text=ev.text))
                     if t.final_commit.is_set():
                         self._mark(t, "stt_final", once=False)  # last final after the commit
-                    hit = spec is not None and not is_empty_text(ev.text) and norm_text(spec.text) == norm_text(ev.text)
+                    text = ev.text.strip()
+                    is_last = t.final_commit.is_set() and ev.seg >= t.n_commits - 1
+                    if (self.merge_fragments and not is_last and not is_empty_text(text)
+                            and is_fragment(text)):
+                        # "Do you have" + "any allergies?": translate once, merged
+                        if spec is not None and spec.task:
+                            spec.task.cancel()
+                        t.carry = f"{t.carry} {text}".strip()
+                        t.carry_seg = ev.seg
+                        t.source_text.append(text)
+                        t.spec_stats["merged"] = t.spec_stats.get("merged", 0) + 1
+                        nxt = ev.seg + 1
+                        if nxt in t.partials and nxt < t.n_commits:
+                            self._speculate(t, nxt, t.partials[nxt])
+                        continue
+                    full = f"{t.carry} {text}".strip() if t.carry and not is_empty_text(text) else text
+                    hit = spec is not None and not is_empty_text(text) and norm_text(spec.text) == norm_text(full)
                     if spec is not None and not hit:
                         t.spec_stats["miss"] += 1
                         if spec.task:
                             spec.task.cancel()
-                    if is_empty_text(ev.text):
+                    if is_empty_text(text):
                         continue
+                    t.carry = ""
                     n_text_segments += 1
-                    t.source_text.append(ev.text.strip())
+                    t.source_text.append(text)
                     if hit:
                         t.spec_stats["hit"] += 1
                         await self._adopt(t, spec)
@@ -383,7 +414,13 @@ class CascadeSession:
                         continue
                     q: asyncio.Queue = asyncio.Queue(maxsize=256)
                     await segq_list.put(q)
-                    tg.create_task(self._segment(t, ev.seg, ev.text.strip(), q))
+                    tg.create_task(self._segment(t, ev.seg, full, q))
+                if t.carry:  # the turn ended on a fragment: translate what we have
+                    n_text_segments += 1
+                    q = asyncio.Queue(maxsize=256)
+                    await segq_list.put(q)
+                    tg.create_task(self._segment(t, t.carry_seg, t.carry, q))
+                    t.carry = ""
                 self._mark(t, "stt_final")  # ensure present even if every final came early
                 t.stt_done.set()
                 await segq_list.put(None)
@@ -436,6 +473,8 @@ class CascadeSession:
         """Start (or restart) a held MT -> TTS run for a committed segment's partial."""
         if not self.speculative or t.tg is None or seg in t.finalized or is_empty_text(text):
             return
+        if t.carry and seg > t.carry_seg:
+            text = f"{t.carry} {text.strip()}"
         old = t.specs.get(seg)
         if old is not None:
             if norm_text(old.text) == norm_text(text):

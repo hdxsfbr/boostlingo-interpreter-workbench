@@ -45,6 +45,7 @@ class Settings(BaseSettings):
     # M4 latency-tuning overrides (A/B runs without editing app.yaml)
     stt_delay: str | None = None
     cascade_speculative: bool | None = None
+    cascade_merge_fragments: bool | None = None
     chunk_first_clause_min: int | None = None
     chunk_first_word_min: int | None = None
 
@@ -64,6 +65,8 @@ class Settings(BaseSettings):
             cfg["providers"]["openai_live"]["delay"] = None if self.stt_delay == "none" else self.stt_delay
         if self.cascade_speculative is not None:
             cfg["cascade"]["speculative_mt"] = self.cascade_speculative
+        if self.cascade_merge_fragments is not None:
+            cfg["cascade"]["merge_fragments"] = self.cascade_merge_fragments
         chunker = cfg["cascade"].setdefault("chunker", {})
         if self.chunk_first_clause_min is not None:
             chunker["first_clause_min"] = self.chunk_first_clause_min
