@@ -139,6 +139,15 @@ Open the **Experiments** tab (or `http://localhost:8740/?tab=experiments`). It r
 - Headless check (no provider calls): `docker exec -e HOME=/tmp -w /app/backend boostlingo-interpreter-workbench-app-1 python -m eval.experiments_check --chrome "" --exp <id>`.
 - Small samples are noisy. The first 6-utterance smoke read cascade H p50 at 2261 ms because of a slow spell at the TTS provider; reruns, in the app or from the CLI on the host or in the container, gave 1622–1781 ms, matching M5's 1690 ([`docs/benchmarks/results/inapp-slowdown/`](docs/benchmarks/results/inapp-slowdown/summary.md)). Use at least 12 turns per setup (more utterances or passes) before reading differences.
 
+## Live provider tests (opt-in; PRD CQ-3.5)
+
+One minimal real call per provider: OpenAI STT, MT, TTS, the Realtime session mint, OpenRouter MT, and ElevenLabs (5 characters, through the credit guard and the real ledger). They are never collected by `pytest`, `make test` or `make test-docker`. Each test skips unless `LIVE_TESTS=1` and its key is present:
+
+    cd backend && set -a && source ../.env && set +a && LIVE_TESTS=1 .venv/bin/pytest -m live tests/live -v
+    # ElevenLabs too (spends 5 credits): ELEVENLABS_API_KEY_FILE="$ELEVENLABS_KEY_PATH" LIVE_TESTS=1 .venv/bin/pytest -m live tests/live -v
+
+STT uses `data/fixtures/en-s01.wav` (`make fixtures`). A full run costs well under $0.01.
+
 ## Configuration and secrets
 
 - `.env` (gitignored, mode 600) holds `OPENAI_API_KEY` and `OPENROUTER_API_KEY` (Haiku runs via OpenRouter). The direct Anthropic adapter is disabled and its key is no longer loaded. `.env.example` lists the variables without values. `scripts/setup_env.py` fills them from key files and prints only "set"/"missing".
