@@ -70,6 +70,8 @@ python -m eval.blind --run ... --ids en-s01,... --out out/blind                 
 python -m eval.error_pass                                                         # error-state pass (no provider calls)
 ```
 
+Final M5 results: [`docs/benchmarks/results/m5/summary.md`](docs/benchmarks/results/m5/summary.md) (matrix), `results.json` + per-utterance CSVs next to it, raw runs in `raw/`, blind-rating kit in [`docs/benchmarks/blind/`](docs/benchmarks/blind/README.md).
+
 The harness drives the real SPA in headless Chrome and plays each fixture as the microphone (`?source=file`). It releases PTT 450 ms after the last voiced frame and also reports every number minus that gap. `--tts elevenlabs` refuses to run without `--allow-elevenlabs`, and it aborts before any call if the estimated characters exceed the cap or the remaining allowance.
 
 ## Error states (DESIGN §6)
