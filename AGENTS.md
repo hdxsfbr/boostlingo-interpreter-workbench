@@ -128,3 +128,6 @@ This repo is built by an agentic coding assistant (Grok Bot executor agents) dir
   - The ElevenLabs row is 12 utterances only.
   - Hedge counts from marks collapse repeated hedges within one turn.
   - With speculation, ElevenLabs is charged for chunks of cancelled speculative runs (ledger 883 vs 403–445 billed).
+- **After M5 (Andre):**
+  - Speculative MT/TTS is off by default when ElevenLabs is the TTS, so cancelled speculative chunks don't spend demo credits (DESIGN A9; `cascade.speculative_with_elevenlabs` opts back in; covered by unit tests with mocked providers).
+  - Recorded decisions (DESIGN A10): nano stays the cascade default for the latency target, Haiku via OpenRouter is the quality option, and fragment merging stays on.
