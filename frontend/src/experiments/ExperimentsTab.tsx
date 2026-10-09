@@ -120,6 +120,12 @@ function NewExperiment({ meta, busy, onStarted }: { meta: SetupsResponse; busy: 
               <b data-testid="exp-estimate-total">Estimated {fmtUsd(est.usd, 4)}</b> · about {fmtDur(est.duration_s)} · {est.turns} turns.{" "}
               <span className="hint">{est.basis}; prices as of {est.pricing_as_of}.</span>
             </p>
+            {est.per_setup.some((r) => r.utterances < 12) ? (
+              <p className="warn" data-testid="exp-small-sample">
+                Small sample: fewer than 12 turns per setup. 6-turn latency medians have swung by ~500 ms between identical runs (a slow spell at a
+                provider), so add utterances or passes before reading latency differences.
+              </p>
+            ) : null}
           </>
         ) : null}
         {err ? <div className="save-error" role="alert" data-testid="exp-error">{err}</div> : null}
