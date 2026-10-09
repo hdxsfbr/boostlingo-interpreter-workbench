@@ -88,6 +88,13 @@ Decided or recorded during M4 (2026-10-08):
   - Why: the TTS fixtures have 0.5–0.9 s pauses between sentences, which would end turns early under a first-pause rule; a person holding PTT releases when they are done. With pure digital silence between files the WebRTC sender went quiet and the Realtime server VAD never saw speech end.
 - **A6: cascade VAD mode implemented in the browser.**
   - What: `VadSegmenter` (3-frame debounce, 300 ms pre-roll, end after `silence_duration_ms`, the same window value as Realtime `server_vad`); the user picks the speaker (direction) in the UI, because STT/MT need it.
+- **A7: hedged first output for cascade MT and TTS (M5, Andre).**
+  - What: if an MT or TTS request has produced nothing after `timeouts_s.hedge_s` (1.5 s), one backup request with the same input starts; the first to yield output wins and the other is cancelled. The 3 s first-output deadline still applies. Only the first item is raced, so audio is never duplicated (the §6 rule). Hedges are logged and reported as `*_hedge_fired` / `*_hedge_won` server marks.
+  - Why: M4 had 3/96 first-output timeouts (2 MT, 1 TTS) from rare slow provider requests. In M5 there were 0/192 timeouts; 7 hedges fired and 3 were won by the backup. The cost is one extra request in about 3–4% of segments.
+- **A8: fragment segments are merged server-side (M5).**
+  - What: a non-final in-turn segment that is short (< 6 words) and has no sentence-final punctuation ("Do you have") is not translated alone; it is prepended to the next segment (speculation included). The last segment is never held. Toggle with `cascade.merge_fragments` / `CASCADE_MERGE_FRAGMENTS`.
+  - Why: 300 ms pause commits produced fragment translations ("¿Tienes? / ¿Alguna alergia?"). In the A/B (2×48 each), merging raised chrF from 69.8 to 72.9 (EN→ES) and from 76.6 to 78.4 (ES→EN). The cost is about 0.2 s on short turns (H p50 1571 → 1791 ms); medium and long turns are unchanged.
+  - Rejected alternative: gating pause commits in the browser on ≥ 1 s of speech. It pushed short-turn H to about 2.1–2.4 s, because the early pause commit is what lets speculative MT start before the PTT release. It is still available as `?min_seg_ms=` for A/B runs and is off by default.
 
 ## 1. Transport per mode
 
