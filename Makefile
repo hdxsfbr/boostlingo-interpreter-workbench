@@ -4,7 +4,7 @@ COMPOSE := docker compose
 export UID := $(shell id -u)
 export GID := $(shell id -g)
 
-.PHONY: up down logs env test test-docker dev-backend dev-frontend health
+.PHONY: up down logs env test test-docker dev-backend dev-frontend health fixtures
 
 ## One setup command: write .env from key files, build, start, wait for health.
 up: env
@@ -39,3 +39,7 @@ dev-backend:
 
 dev-frontend:
 	cd frontend && npm run dev
+
+## Benchmark fixtures (OpenAI TTS, non-pipeline voices) -> data/fixtures/*.wav (gitignored; skips existing files).
+fixtures:
+	set -a && source .env && set +a && backend/.venv/bin/python scripts/make_fixtures.py

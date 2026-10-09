@@ -1,0 +1,56 @@
+# Benchmark utterance set (DESIGN §9). 24 per direction: 8 short, 10 medium,
+# 6 long multi-sentence; about half medical/legal. Fixture audio is generated
+# by `make fixtures` (scripts/make_fixtures.py) into data/fixtures/ (gitignored)
+# with OpenAI TTS voices that differ from the pipeline voice (marin).
+# Reference translations were written for this set (not machine output) and are
+# used for the side quality check, not as the only acceptable rendering.
+en:
+  - {id: en-s01, size: short, domain: medical, text: "Do you have any allergies?", reference_translation: "¿Tiene alguna alergia?"}
+  - {id: en-s02, size: short, domain: general, text: "Please have a seat.", reference_translation: "Por favor, tome asiento."}
+  - {id: en-s03, size: short, domain: legal, text: "Please state your full name.", reference_translation: "Por favor, diga su nombre completo."}
+  - {id: en-s04, size: short, domain: medical, text: "Where does it hurt?", reference_translation: "¿Dónde le duele?"}
+  - {id: en-s05, size: short, domain: general, text: "Can you hear me well?", reference_translation: "¿Me oye bien?"}
+  - {id: en-s06, size: short, domain: legal, text: "Do you understand the charges?", reference_translation: "¿Entiende los cargos?"}
+  - {id: en-s07, size: short, domain: general, text: "Thank you for waiting.", reference_translation: "Gracias por esperar."}
+  - {id: en-s08, size: short, domain: medical, text: "Take a deep breath.", reference_translation: "Respire hondo."}
+  - {id: en-m01, size: medium, domain: medical, text: "I'm going to prescribe amoxicillin, five hundred milligrams, three times a day.", reference_translation: "Le voy a recetar amoxicilina, quinientos miligramos, tres veces al día."}
+  - {id: en-m02, size: medium, domain: medical, text: "How long have you had this pain in your chest?", reference_translation: "¿Desde cuándo tiene este dolor en el pecho?"}
+  - {id: en-m03, size: medium, domain: legal, text: "Your next court date is March fourteenth at nine in the morning.", reference_translation: "Su próxima fecha de audiencia es el catorce de marzo a las nueve de la mañana."}
+  - {id: en-m04, size: medium, domain: general, text: "The pharmacy on the first floor closes at six tonight.", reference_translation: "La farmacia del primer piso cierra a las seis esta noche."}
+  - {id: en-m05, size: medium, domain: legal, text: "You have the right to remain silent and to speak with a lawyer.", reference_translation: "Tiene derecho a guardar silencio y a hablar con un abogado."}
+  - {id: en-m06, size: medium, domain: medical, text: "Have you taken any medication for the fever today?", reference_translation: "¿Ha tomado algún medicamento para la fiebre hoy?"}
+  - {id: en-m07, size: medium, domain: general, text: "We will call you as soon as the results are ready.", reference_translation: "Le llamaremos en cuanto estén listos los resultados."}
+  - {id: en-m08, size: medium, domain: legal, text: "Please sign here to confirm that you received a copy of the order.", reference_translation: "Por favor, firme aquí para confirmar que recibió una copia de la orden."}
+  - {id: en-m09, size: medium, domain: general, text: "Your appointment has been moved to next Tuesday afternoon.", reference_translation: "Su cita se ha cambiado al próximo martes por la tarde."}
+  - {id: en-m10, size: medium, domain: medical, text: "Are you pregnant, or is there any chance you could be pregnant?", reference_translation: "¿Está embarazada o existe alguna posibilidad de que lo esté?"}
+  - {id: en-l01, size: long, domain: medical, text: "Your blood pressure is a little high today. I want you to check it at home every morning for two weeks. Write the numbers down and bring them to your next visit.", reference_translation: "Hoy tiene la presión un poco alta. Quiero que se la mida en casa todas las mañanas durante dos semanas. Anote los números y tráigalos a su próxima consulta."}
+  - {id: en-l02, size: long, domain: legal, text: "The judge has reviewed your case. Because this is your first offense, you will be offered a diversion program. If you complete it, the charge will be dismissed.", reference_translation: "El juez ha revisado su caso. Como es su primer delito, se le ofrecerá un programa de desvío. Si lo completa, se desestimará el cargo."}
+  - {id: en-l03, size: long, domain: general, text: "Thanks for coming in today. The form asks for your address and phone number. If you need help filling it out, just let me know.", reference_translation: "Gracias por venir hoy. El formulario pide su dirección y su número de teléfono. Si necesita ayuda para llenarlo, avíseme."}
+  - {id: en-l04, size: long, domain: medical, text: "Don't eat or drink anything after midnight before the surgery. You can take your heart medication with a small sip of water. Someone will need to drive you home afterward.", reference_translation: "No coma ni beba nada después de la medianoche antes de la cirugía. Puede tomar su medicamento para el corazón con un sorbo pequeño de agua. Alguien tendrá que llevarlo a casa después."}
+  - {id: en-l05, size: long, domain: general, text: "The bus to the clinic leaves every thirty minutes. It stops right in front of the main entrance. The ride usually takes about twenty minutes.", reference_translation: "El autobús a la clínica sale cada treinta minutos. Para justo enfrente de la entrada principal. El viaje suele durar unos veinte minutos."}
+  - {id: en-l06, size: long, domain: legal, text: "Your case number is two four seven dash eight one. Keep this paper with you. You will need it every time you come to the courthouse.", reference_translation: "Su número de caso es dos cuatro siete guion ocho uno. Guarde este papel. Lo necesitará cada vez que venga al juzgado."}
+es:
+  - {id: es-s01, size: short, domain: medical, text: "Me duele mucho la cabeza.", reference_translation: "I have a bad headache."}
+  - {id: es-s02, size: short, domain: general, text: "No entiendo la pregunta.", reference_translation: "I don't understand the question."}
+  - {id: es-s03, size: short, domain: legal, text: "Quiero hablar con un abogado.", reference_translation: "I want to speak with a lawyer."}
+  - {id: es-s04, size: short, domain: medical, text: "Soy alérgica a la penicilina.", reference_translation: "I'm allergic to penicillin."}
+  - {id: es-s05, size: short, domain: general, text: "¿Puede repetirlo, por favor?", reference_translation: "Can you repeat that, please?"}
+  - {id: es-s06, size: short, domain: legal, text: "Nunca firmé ese contrato.", reference_translation: "I never signed that contract."}
+  - {id: es-s07, size: short, domain: general, text: "Vivo aquí desde hace diez años.", reference_translation: "I've lived here for ten years."}
+  - {id: es-s08, size: short, domain: medical, text: "Tengo fiebre desde ayer.", reference_translation: "I've had a fever since yesterday."}
+  - {id: es-m01, size: medium, domain: medical, text: "Tomo metformina, ochocientos cincuenta miligramos, dos veces al día.", reference_translation: "I take metformin, eight hundred fifty milligrams, twice a day."}
+  - {id: es-m02, size: medium, domain: medical, text: "El dolor empezó hace tres días y ahora baja por el brazo izquierdo.", reference_translation: "The pain started three days ago and now goes down my left arm."}
+  - {id: es-m03, size: medium, domain: legal, text: "El accidente ocurrió el doce de agosto, cerca de las ocho de la noche.", reference_translation: "The accident happened on August twelfth, around eight at night."}
+  - {id: es-m04, size: medium, domain: general, text: "Mi hijo tiene cita con el pediatra el jueves por la mañana.", reference_translation: "My son has an appointment with the pediatrician on Thursday morning."}
+  - {id: es-m05, size: medium, domain: legal, text: "El dueño del apartamento no me ha devuelto el depósito.", reference_translation: "The landlord hasn't returned my deposit."}
+  - {id: es-m06, size: medium, domain: medical, text: "Me caí en la escalera y no puedo mover bien el tobillo.", reference_translation: "I fell on the stairs and can't move my ankle well."}
+  - {id: es-m07, size: medium, domain: general, text: "Necesito un intérprete para la reunión de la escuela.", reference_translation: "I need an interpreter for the school meeting."}
+  - {id: es-m08, size: medium, domain: legal, text: "Trabajé allí dos años y nunca me pagaron las horas extra.", reference_translation: "I worked there for two years and they never paid me overtime."}
+  - {id: es-m09, size: medium, domain: general, text: "¿A qué hora abre la oficina el sábado?", reference_translation: "What time does the office open on Saturday?"}
+  - {id: es-m10, size: medium, domain: medical, text: "Mi madre tiene diabetes y la presión alta.", reference_translation: "My mother has diabetes and high blood pressure."}
+  - {id: es-l01, size: long, domain: medical, text: "Hace una semana empecé a tomar la medicina nueva. Desde entonces tengo mareos por la mañana. A veces también siento náuseas después de comer.", reference_translation: "I started taking the new medicine a week ago. Since then I've been dizzy in the mornings. Sometimes I also feel nauseous after eating."}
+  - {id: es-l02, size: long, domain: legal, text: "Recibí una carta del juzgado la semana pasada. Dice que tengo que presentarme el lunes. No sé si necesito traer algún documento.", reference_translation: "I received a letter from the court last week. It says I have to appear on Monday. I don't know if I need to bring any documents."}
+  - {id: es-l03, size: long, domain: general, text: "Llegué a esta ciudad hace poco y todavía no tengo coche. Trabajo de noche en un restaurante. Por eso prefiero las citas por la tarde.", reference_translation: "I arrived in this city recently and I still don't have a car. I work nights at a restaurant. That's why I prefer afternoon appointments."}
+  - {id: es-l04, size: long, domain: medical, text: "Mi hija tose mucho por las noches. Le di jarabe, pero no mejora. Además, hoy tiene treinta y ocho grados de fiebre.", reference_translation: "My daughter coughs a lot at night. I gave her syrup, but she isn't getting better. Also, today she has a fever of thirty-eight degrees."}
+  - {id: es-l05, size: long, domain: general, text: "Quisiera cambiar mi dirección en el sistema. Me mudé el mes pasado. La nueva dirección está en este papel.", reference_translation: "I'd like to change my address in the system. I moved last month. The new address is on this paper."}
+  - {id: es-l06, size: long, domain: legal, text: "El policía me detuvo por una luz rota. Me pidió la licencia y el seguro. Yo le mostré los dos, pero igual me dio una multa.", reference_translation: "The police officer stopped me for a broken light. He asked for my license and insurance. I showed him both, but he gave me a ticket anyway."}
