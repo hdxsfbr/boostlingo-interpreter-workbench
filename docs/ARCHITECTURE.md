@@ -1,6 +1,6 @@
 # Architecture
 
-This is an overview of how the AI Interpreter Workbench is built, written for a reviewer. Terms are defined as they come up. The full design, with every decision and its evidence, is in [`DESIGN.md`](DESIGN.md); this page links its amendments (A1–A11) rather than repeating them.
+This is an overview of how the AI Interpreter Workbench is built, written for a reviewer. Terms are defined as they come up. The full design, with every decision and its evidence, is in [`DESIGN.md`](DESIGN.md); this page links its amendments (A1–A13) rather than repeating them.
 
 **The two designs compared.**
 - **Realtime mode:** one OpenAI model (`gpt-realtime`) listens to the speaker and speaks the translation.
@@ -12,6 +12,7 @@ This is an overview of how the AI Interpreter Workbench is built, written for a 
 **How it is packaged.**
 - One **Docker** container (a self-contained, packaged app) runs a Python **FastAPI** web server.
 - That server serves the browser app, built with React and TypeScript, plus a few HTTP endpoints and two **WebSocket** endpoints. A WebSocket is a connection that stays open so both sides can stream data.
+- The browser app has three tabs: **Interpreter** (the live conversation), **Review** (human quality ratings, A12) and **Experiments** (run the benchmark from the app, A13).
 - It listens only on `127.0.0.1:8740`, the lab machine itself. The Mac reaches it through an SSH port-forward (`docker-compose.yml`, DESIGN D7).
 
 ## 1. System overview
@@ -26,6 +27,8 @@ flowchart LR
     CT["Cascade transport<br/>transports/cascadeWs.ts"]
     RT["Realtime transport<br/>transports/realtimeWebrtc.ts<br/>(fallback: realtimeRelay.ts)"]
     REC["Per-turn recorder (Realtime)<br/>session/turnRecorder.ts"]
+    RV["Review tab (A12)<br/>review/*"]
+    EX["Experiments tab (A13)<br/>experiments/*"]
     UI --> ST
     IS --> ST
     IS --> CT
@@ -42,7 +45,15 @@ flowchart LR
     CS["CascadeSession<br/>cascade/session.py<br/>+ chunker.py, hedge.py"]
     PROV["Provider adapters<br/>providers/stt, mt, tts<br/>registry.py"]
     STORE[("data/ on disk<br/>sessions/*.jsonl<br/>recordings/*<br/>elevenlabs_ledger.json")]
+    REVAPI["/api/review/*<br/>api/review.py + review/*"]
+    EXPAPI["/api/experiments/*<br/>api/experiments.py"]
+    RUN["Experiment job<br/>experiments/runner.py<br/>runs eval.harness + headless Chromium"]
+    DB[("SQLite<br/>review.sqlite3<br/>experiments.sqlite3")]
     WS --> CS --> PROV
+    REVAPI --> DB
+    REVAPI -. "recorded sessions" .-> STORE
+    EXPAPI --> RUN
+    RUN --> DB
     TURNS --> STORE
     RECAPI --> STORE
     CS -. "cascade recording<br/>core/recording.py" .-> STORE
@@ -55,25 +66,31 @@ flowchart LR
   PROV <--> V[("OpenAI STT / MT / TTS,<br/>OpenRouter, ElevenLabs")]
   IS -->|"finished turn records"| TURNS
   REC -->|"audio uploads"| RECAPI
+  RV <-->|"clips, ratings, results"| REVAPI
+  EX <-->|"estimate, run, progress (SSE)"| EXPAPI
+  RUN -->|"drives the SPA like a user"| UI
 ```
+
+- **SSE (server-sent events)** is a one-way stream from server to browser over plain HTTP; the Experiments tab uses it for live progress.
+- The experiment job drives this same app from inside the container, so experiment turns go through the normal Realtime and cascade paths above.
 
 ## 2. Components and layers
 
 | Layer | What it does | Where (verified paths) |
 |---|---|---|
-| **UI** | Mode toggle, push-to-talk buttons for Speaker A/B, live transcripts, latency waterfall and summary, error banners, provider selectors, "Record session" toggle; a **Review** tab for human quality ratings (A12) | `frontend/src/App.tsx`, `frontend/src/review/` (`ReviewTab.tsx`, `RateView.tsx`, `ResultsView.tsx`, `rateLogic.ts`, `api.ts`), `frontend/src/ui/Controls.tsx`, `TranscriptPane.tsx`, `LatencyWaterfall.tsx`, `MetricsSummary.tsx`, `ErrorBanner.tsx` |
+| **UI** | Mode toggle, push-to-talk buttons for Speaker A/B, live transcripts, latency waterfall and summary, error banners, provider selectors, "Record session" toggle; a **Review** tab for human quality ratings (A12) and an **Experiments** tab that runs benchmarks (A13) | `frontend/src/App.tsx`, `frontend/src/review/` (`ReviewTab.tsx`, `RateView.tsx`, `ResultsView.tsx`, `rateLogic.ts`, `api.ts`), `frontend/src/experiments/` (`ExperimentsTab.tsx`, `ExperimentDetail.tsx`, `LatencyChart.tsx`, `api.ts`), `frontend/src/ui/Controls.tsx`, `TranscriptPane.tsx`, `LatencyWaterfall.tsx`, `MetricsSummary.tsx`, `ErrorBanner.tsx` |
 | **State** | Turns UI state into a pure function of session events; computes rolling p50/p90 and exports JSON/CSV | `frontend/src/store/reducer.ts`, `metrics.ts`, `turnSink.ts` (posts each finished turn to the server) |
 | **Session (mode-agnostic)** | `InterpreterSession` exposes one API (start, stop, setMode, pttDown/pttUp, …) and emits one set of events for both modes, so the UI never knows which mode is running | `frontend/src/session/InterpreterSession.ts`, `protocol.ts` (the **event contract**: the agreed list of event types and fields), `turnController.ts` (push-to-talk turn logic) |
 | **Mode-specific transports** | **Cascade:** a WebSocket to our server carrying audio and JSON events. **Realtime:** WebRTC straight to OpenAI. WebRTC is the browser's built-in standard for live audio between two endpoints. A WebSocket relay through our server is the fallback | `session/transports/cascadeWs.ts`, `realtimeWebrtc.ts`, `realtimeRelay.ts`; OpenAI event translation in `session/normalizers/oaiEvents.ts`; Realtime instructions in `session/realtimePrompt.ts` |
 | **Audio** | One audio context for both modes. Mic capture with voice detection; cascade playback; an **output monitor** (a small audio processor that notices the first audible sample of the translation) | `frontend/src/audio/engine.ts`, `capture.worklet.ts`, `playback.worklet.ts`, `outputTap.worklet.ts`, `clock.ts`; `fileSource.ts` plays test audio as the mic for benchmarks |
-| **Server API** | Short-lived key minting, the cascade gateway, the Realtime relay, the turn log, recordings, review sets and ratings, health | `backend/app/main.py`, `backend/app/api/*.py` (`review.py` for `/api/review`) |
+| **Server API** | Short-lived key minting, the cascade gateway, the Realtime relay, the turn log, recordings, review sets and ratings, experiments, health | `backend/app/main.py`, `backend/app/api/*.py` (`review.py` for `/api/review`, `experiments.py` for `/api/experiments`) |
 | **Review (A12)** | Review sets, items and per-rater ratings in SQLite; blind-set import and preload; recorded-session import; results aggregation | `backend/app/review/store.py`, `sources.py`, `results.py` |
 | **Cascade orchestration** | Runs each turn as concurrent stages (STT → MT → sentence chunker → TTS) joined by queues. Handles cancellation, timing marks, the backup request for slow first output, early translation of partial transcripts, and merging of short fragments | `backend/app/cascade/session.py`, `ws_pipeline.py` (builds providers from config), `chunker.py`, `hedge.py` |
 | **Provider interfaces** | Three abstract interfaces, so the orchestrator never imports a vendor: `STTProvider`, `Translator`, `TTSProvider`. Adapters implement them; a registry maps config names to adapters | `backend/app/providers/base.py`, `registry.py`, `stt/openai_live.py`, `mt/openai.py`, `mt/openrouter.py`, `mt/anthropic.py`, `tts/openai.py`, `tts/elevenlabs.py`, `fakes.py` (for tests) |
 | **Shared core** | Server-side event models (mirroring the browser contract), normalised errors, the retry policy, the ElevenLabs credit guard, settings, audio helpers, recording store | `backend/app/core/events.py`, `errors.py`, `retry.py`, `budget.py`, `config.py`, `audio.py`, `recording.py` |
 | **Experiments (A13)** | Experiment config + estimate, background job that runs `eval.harness` per setup and summarises with `eval.metrics`, SQLite store, M5 baseline import | `backend/app/experiments/config.py`, `runner.py`, `store.py`, `baseline.py`; `backend/app/api/experiments.py`; `frontend/src/experiments/` |
 | **Persistence** | Files under `data/` (gitignored): one JSONL log per session (one JSON record per line), recordings, the ElevenLabs credit ledger, and the Review tab's SQLite file | `data/sessions/<session_id>.jsonl`, `data/recordings/<session_id>/turn-<n>-{source,target}.<ext>`, `data/elevenlabs_ledger.json`, `data/review.sqlite3`, `data/experiments.sqlite3` + `data/experiments/<id>/<setup>.{jsonl,log}` |
-| **Evaluation harness** | Drives the real app in hidden Chrome (Playwright), plays test sentences as the mic, then computes metrics, the blind-rating kit and the error-state checks | `backend/eval/harness.py`, `metrics.py`, `blind.py`, `blind_results.py`, `error_pass.py`, plus tuning tools (`summarize.py`, `vad_table.py`, `soak_report.py`, `stt_wer.py`, `tts_ttfb.py`) |
+| **Evaluation harness** | Drives the real app in hidden Chrome (Playwright), plays test sentences as the mic, then computes metrics, the blind-rating kit and the error-state checks; also run by the Experiments job | `backend/eval/harness.py`, `metrics.py`, `blind.py`, `blind_results.py`, `error_pass.py`, `review_check.py` and `experiments_check.py` (headless checks of the two tabs), plus tuning tools (`summarize.py`, `vad_table.py`, `soak_report.py`, `stt_wer.py`, `tts_ttfb.py`) |
 
 **The shared event contract is tested on both sides.**
 - The JSON samples in `contract/fixtures/` (`client_messages.json`, `server_events.json`) are checked by the TypeScript types and by the Python models in `core/events.py`.
@@ -200,7 +217,9 @@ DESIGN §6 has the full table. In short:
 - **`config/app.yaml`:** active providers and model ids. Model ids live only here, not in code. It also holds cascade switches (early translation, fragment merging, chunk sizes), timeouts, ElevenLabs caps and recording settings.
 - **Environment variables** override it: `CASCADE_STT`, `CASCADE_MT`, `CASCADE_TTS`, `REALTIME_MODEL`, `MT_MODEL`, `RECORDING_ENABLED`, `ELEVENLABS_ENABLED` and others.
 - **`config/languages.yaml`:** language pairs and an optional glossary per pair.
-- **`config/pricing.yaml`:** dated prices, used only by the evaluation metrics.
+- **`config/pricing.yaml`:** dated prices, used by the evaluation metrics and the Experiments tab's cost estimate.
+- **`experiments.*`** in `config/app.yaml`: `confirm_above_usd` (default $1; a larger estimated cost needs a confirmation) and `self_url` (the address the experiment job drives).
+- **Image settings:** `BENCH_DIR` (the blind set and M5 results shipped in the image, read by the Review and Experiments tabs) and `GIT_COMMIT` (stamped by `make up` so each experiment records the code version).
 - **`GET /healthz`** reports which providers are ready, the active models, the swap options and the recording state.
 
 ## 9. Security posture
@@ -209,12 +228,13 @@ DESIGN §6 has the full table. In short:
 - **API keys stay on the server.**
   - The OpenAI and OpenRouter keys are read from a `.env` file (mode 600, gitignored), which `scripts/setup_env.py` writes from key files on the lab machine. The direct Anthropic key is no longer loaded (A3).
   - The ElevenLabs key is mounted as a Docker secret file and never put in `.env`.
-- **Short-lived keys for the browser.** For Realtime, the server mints a key valid for 600 s (`realtime.secret_ttl_s`); the real OpenAI key never reaches the browser. Only `gpt-realtime` and `gpt-realtime-mini` can be requested.
+- **Short-lived keys for the browser.** For Realtime, the server mints a key valid for 600 s (`realtime.secret_ttl_s`); the real OpenAI key never reaches the browser. Only `gpt-realtime` and `gpt-realtime-mini` can be requested (also via `?rt_model=`; the server checks an allowlist).
+- **Experiment guardrails:** one run at a time (a second gets HTTP 409), a confirmation above the cost threshold (HTTP 428), and ElevenLabs only with an explicit opt-in.
 - **Local only.** The app is bound to `127.0.0.1` and reached through SSH. Browsers allow the mic and WebRTC on `http://localhost`.
 - **Input validation on recordings:** session id pattern, whitelisted turn and side, content type and a 20 MB size cap. Writes are atomic, and path traversal is blocked (A11).
 
 **What is missing for production.**
-- **No user authentication or authorisation on any endpoint.** Anyone who can reach the port can mint Realtime keys (spending our OpenAI budget), open cascade sessions, post turn records, and upload or delete recordings.
+- **No user authentication or authorisation on any endpoint.** Anyone who can reach the port can mint Realtime keys (spending our OpenAI budget), open cascade sessions, post turn records, upload or delete recordings, start paid experiments, and rate or delete ratings under any name (Review raters are plain names).
 - **No encryption at rest** for logs or recordings, and no access logging.
 - **No per-participant consent record** beyond the UI notice.
 - **No rate limiting** on our own endpoints.
@@ -235,5 +255,7 @@ DESIGN §6 has the full table. In short:
 | No early translation with ElevenLabs | Discarded drafts would spend free credits | Gives up the A4 speed gain on that voice | A9 |
 | Provider defaults: nano for speed, Haiku as the quality option | Latency target vs. translation score | Two options to explain | A10 |
 | Opt-in per-turn recording, off by default, 30-day retention | Auditability without recording by default; per-turn files line up with turn records | Local files only; needs encryption and auth before real use | A11 |
+| In-app human ratings in SQLite, blind until reveal | More raters without spreadsheets; blindness enforced by the server | Raters are names, not accounts | A12 |
+| In-app experiment runner reusing the M5 harness | Same numbers as the CLI benchmark, kept with code version and models | Runs a headless browser inside the serving container; one run at a time | A13 |
 | Python/FastAPI instead of the brief's preferred .NET | Andre's choice: the streaming-audio SDKs and evaluation tools are Python-first (README "Why Python rather than .NET") | Not Boostlingo's main stack | DESIGN header, README |
-| Plain files instead of a database | Simple, inspectable, enough for one user | Doesn't scale or support multiple servers (see [SCALING.md](SCALING.md)) | DESIGN §4, A11 |
+| Plain files for sessions and recordings; SQLite only for ratings and experiments | Simple, inspectable, enough for one user; SQLite where edits must be atomic | Neither scales to multiple servers (see [SCALING.md](SCALING.md)) | DESIGN §4, A11–A13 |

@@ -2,14 +2,14 @@
 
 | | |
 |---|---|
-| **Status** | v0.2 approved 2026-10-08; amended after M2 by Andre's decisions (see [Amendments](#amendments-after-approval)) |
+| **Status** | v0.2 approved 2026-10-08; amended after M2 by Andre's decisions A1–A13 (see [Amendments](#amendments-after-approval)). The as-built layout is in [`ARCHITECTURE.md`](ARCHITECTURE.md); requirement status is in [`REQUIREMENTS_TRACE.md`](REQUIREMENTS_TRACE.md) |
 | **Inputs** | [`PRD.md`](PRD.md) v0.1, [`sources/assignment.pdf`](../sources/assignment.pdf) (authoritative), [`api-research.md`](api-research.md) (cited as "R§x") |
 | **Fixed by Andre** | Python (FastAPI) backend, TypeScript (React + Vite) frontend, Docker on hdx-lab, one setup command, local-only. Providers: OpenAI, Anthropic, ElevenLabs (free tier), OpenRouter, local/free |
 | **Targets** (PRD §3, NFR-1/2, from the brief) | Realtime **< 1.5 s**, Cascade **< 3 s, target < 2 s**, speech end → first audio out; 5-minute conversation with no disconnect, drift or leak |
 
 **Summary.**
 - **Realtime mode:** the browser talks to OpenAI directly over **WebRTC** (`gpt-realtime`; `gpt-realtime-mini` in dev), using a short-lived secret minted by FastAPI.
-- **Cascade mode:** the browser streams PCM to FastAPI over a **WebSocket**. FastAPI runs `gpt-live-transcribe` → streaming LLM (`gpt-6-luna` / `claude-haiku-5-5`) → `gpt-4o-mini-tts` (ElevenLabs Flash as the swap).
+- **Cascade mode:** the browser streams PCM to FastAPI over a **WebSocket**. FastAPI runs `gpt-live-transcribe` → streaming LLM (`gpt-6-luna` / `claude-haiku-5-5` as planned; the M1 measurement picked **`gpt-5.4-nano`** as the default and Haiku runs via OpenRouter, see [`benchmarks/mt-ttft.md`](benchmarks/mt-ttft.md), A3, A10) → `gpt-4o-mini-tts` (ElevenLabs Flash as the swap).
 - **Shared:** both transports sit behind one client `InterpreterSession` that emits one event contract. Latency is measured identically in the browser, from the last voiced mic frame to the first audible output sample.
 
 ## Decisions for Andre
@@ -286,6 +286,8 @@ Retries apply only before a stage's first output byte: at most 2, exponential ba
 | ElevenLabs budget | `BudgetExceeded` before the call → "switch TTS to OpenAI"; eval aborts |
 
 ## 7. Module / layer layout
+
+> **As built (2026-10-09):** this was the plan. Some planned files never existed (`core/latency.py`, `core/usage.py`, `eval/run.py`, `wer.py`, `quality.py`, `cost.py`, `report.py`, the `ui/ModeToggle`/`LanguagePair`/`PttButtons` components) and some targets were not added (`make dev`, `make eval`, `make soak`). Later work added `cascade/hedge.py`, `core/retry.py`, `core/recording.py`, `api/realtime_relay.py`, `api/recordings.py`, `review/` + `api/review.py` (A12) and `experiments/` + `api/experiments.py` (A13); the eval scripts are `eval/harness.py`, `metrics.py` and friends. The current, verified layout is in [`ARCHITECTURE.md`](ARCHITECTURE.md) §2.
 
 ```
 backend/app/
