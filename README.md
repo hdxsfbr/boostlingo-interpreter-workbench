@@ -16,7 +16,7 @@ Latency is measured **in the browser, on one clock**, from the last voiced micro
 | M3 provider swaps: Haiku (via OpenRouter), ElevenLabs TTS + credit guard, per-session selector | done ([swaps](docs/provider-swaps.md)) |
 | M4 harness, fixtures, cascade tuning (speculative MT), VAD sweep, 5-min soak | done ([M4 results](docs/benchmarks/m4-tuning.md)) |
 | M5 hedged first output, fragment merge, error-state pass, final benchmark matrix, README, AGENTS.md | done ([summary](docs/benchmarks/results/m5/summary.md), [results.json](docs/benchmarks/results/m5/results.json)) |
-| Comparison write-up (must-have #8) | done: [`docs/comparison.md`](docs/comparison.md) (blind human ratings pending) |
+| Comparison write-up (must-have #8) | done: [`docs/comparison.md`](docs/comparison.md) (2-page write-up) + [`docs/comparison-details.md`](docs/comparison-details.md) (method, full numbers); blind human ratings pending |
 
 ## Run it (runbook)
 
@@ -121,6 +121,7 @@ The brief prefers .NET/C# but accepts Python. We chose Python/FastAPI because th
 ## Key files
 
 - [`docs/comparison.md`](docs/comparison.md) Realtime vs Cascade write-up (latency, quality, cost, controllability, recommendation)
+- [`docs/comparison-details.md`](docs/comparison-details.md) technical companion: method, full metrics, engineering findings, cost breakdown
 - `docs/PRD.md` requirements · `docs/DESIGN.md` approved design · `docs/api-research.md` provider research
 - `AGENTS.md` how the coding agent was directed
 - `sources/assignment.pdf` the authoritative brief
