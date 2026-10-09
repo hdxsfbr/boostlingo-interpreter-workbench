@@ -4,6 +4,8 @@ This document looks at what it would take to run the interpreter workbench for 1
 
 It is an **analysis, not a load test**. Today the app is a single-user demo on one machine. The provider prices, rate limits and per-minute costs below come from our own measurements and research (linked). Everything about usage patterns is an **assumption**, and these are marked *(estimate)*. Where we don't know a number we say "unknown" rather than guess.
 
+**What the app keeps today.** Session logs (JSONL files), recordings (audio files) and the ElevenLabs credit ledger are plain files under `data/`. Since A12 and A13 there are also two **SQLite** files (SQLite is a database stored in a single local file, with no server): `data/review.sqlite3` for human ratings and `data/experiments.sqlite3` for benchmark runs started from the Experiments tab. That tab's **experiment runner** starts a headless Chrome browser inside the same container that serves users, and drives the app like a user. One run at a time is allowed; in the slowdown check one run peaked at about one CPU core ([`inapp-slowdown`](benchmarks/results/inapp-slowdown/summary.md)).
+
 How the app works today is described in [ARCHITECTURE.md](ARCHITECTURE.md). The measured numbers come from [KEY_METRICS.md](KEY_METRICS.md) and the M5 benchmark ([summary](benchmarks/results/m5/summary.md)). Provider limits come from [api-research.md](api-research.md) §5.3.
 
 ## 1. Terms used here
@@ -97,7 +99,8 @@ The ceilings below are per account, at the OpenAI **Build** tier, from [api-rese
 
 1. **No authentication.** Today, anyone who can reach the port can use the app and mint OpenAI keys on our account. That is fine on `127.0.0.1` (only reachable from the same machine) but not for ten people on different machines. This is the first blocker, before any capacity issue.
 2. **ElevenLabs free tier.** 1,000 speech-minutes would need about 833,000 characters, against 10,000 free credits. Any real ElevenLabs use exhausts the free tier on day one. The app's budget guard (`core/budget.py`, with the ledger in `data/elevenlabs_ledger.json`) caps ElevenLabs at 1,500 characters per session and 8,000 per month. When a cap is reached it stops ElevenLabs and tells the user to switch TTS to OpenAI, so this fails safely but needs a manual switch.
-3. **Local files.** Session logs and recordings sit on one disk with no backup. A lost machine means lost data. That's acceptable for a pilot only if the users know.
+3. **Local files.** Session logs, recordings and the two SQLite files sit on one disk with no backup. A lost machine means lost data. That's acceptable for a pilot only if the users know.
+4. **Anyone can start a paid experiment** or rate under any name. The Experiments tab spends provider money (with a confirmation above $1) and the Review tab trusts the typed name.
 
 **Capacity:** everything else is far below every limit. One container handles a handful of sessions; the exact capacity is unmeasured, but our benchmark runs one session at a time without strain.
 
@@ -106,7 +109,8 @@ The ceilings below are per account, at the OpenAI **Build** tier, from [api-rese
 - **A login in front of the app.** A single sign-on proxy is enough at this size. The ephemeral-key endpoint must sit behind it.
 - **Hosting.** Move from a laptop to one small cloud VM with HTTPS (the browser requires HTTPS for microphone access off `localhost`).
 - **A paid ElevenLabs plan,** if ElevenLabs is offered. Otherwise keep the OpenAI-only cascade.
-- **Nightly backups** of `data/`, if recordings are kept.
+- **Nightly backups** of `data/`, including the SQLite files, if recordings or ratings are kept.
+- **Restrict the Experiments and Review admin actions** (runs, deleting ratings) to named admins behind the login.
 
 **Rough monthly cost**
 
@@ -162,7 +166,8 @@ The ceilings below are per account, at the OpenAI **Build** tier, from [api-rese
    - Every session writes a log file on the container's disk, about 13 KB per speech-minute, so roughly 1.3 GB a month.
    - With more than one container, logs and recordings would be scattered across machines.
    - The sweep in each container would only see its own disk.
-4. **Network reach.** Some hospital networks block WebRTC. The app has a relay fallback (`/ws/realtime`) that carries Realtime audio through our server instead. Every relayed session adds load to the container, and TURN has not been tested.
+4. **SQLite and the experiment runner don't spread across containers.** Each container would have its own `review.sqlite3` and `experiments.sqlite3`, and the "one run at a time" lock is per process. An experiment's headless browser also competes for CPU with live sessions on the same container.
+5. **Network reach.** Some hospital networks block WebRTC. The app has a relay fallback (`/ws/realtime`) that carries Realtime audio through our server instead. Every relayed session adds load to the container, and TURN has not been tested.
 
 **Required changes**
 
@@ -174,6 +179,8 @@ The ceilings below are per account, at the OpenAI **Build** tier, from [api-rese
   - Session logs and metadata go to a **managed database**.
   - Recordings go straight to object storage.
   - The ElevenLabs credit ledger, today a local JSON file, moves to the database so all containers share one counter.
+  - Review ratings and experiment history move from the two SQLite files to the same managed database.
+- **Move experiments off the serving path.** Run the experiment job as a separate worker that takes jobs from a queue, with its own CPU, and point it at a staging copy of the app rather than the production containers.
 - **A write queue.** Session-log and recording writes go through a queue so a slow database never delays audio.
 - **A load test** to measure sessions per container (CPU, memory and latency at 10, 25 and 50 cascade sessions), so the container count is based on data.
 - **Provider headroom.**
