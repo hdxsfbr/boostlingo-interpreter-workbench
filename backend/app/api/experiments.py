@@ -25,8 +25,11 @@ _STATE: dict = {}
 
 
 def exp_cfg() -> dict:
-    return {"confirm_above_usd": 1.0, "self_url": "http://127.0.0.1:8740",
-            **(get_settings().app_config().get("experiments") or {})}
+    cfg = {"confirm_above_usd": 1.0, "self_url": "http://127.0.0.1:8740",
+           **(get_settings().app_config().get("experiments") or {})}
+    if os.environ.get("PORT") and cfg["self_url"] == "http://127.0.0.1:8740":  # hosted: the app listens on $PORT
+        cfg["self_url"] = f"http://127.0.0.1:{os.environ['PORT']}"
+    return cfg
 
 
 def get_experiments() -> tuple[ExperimentStore, ExperimentRunner]:

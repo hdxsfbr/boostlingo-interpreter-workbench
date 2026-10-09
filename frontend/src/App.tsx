@@ -29,7 +29,7 @@ export default function App() {
   const [chosen, setChosen] = useState<Record<string, string>>(initialProviders);
   const [swaps, setSwaps] = useState<Swaps | null>(null);
   useEffect(() => {
-    fetch("/healthz")
+    fetch("/api/health")
       .then((r) => r.json())
       .then((h) => setSwaps(h.swaps ?? null))
       .catch(() => setSwaps(null));

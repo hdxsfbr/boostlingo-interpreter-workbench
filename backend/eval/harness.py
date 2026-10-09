@@ -33,6 +33,8 @@ from pathlib import Path
 import yaml
 from playwright.async_api import async_playwright
 
+from eval import auth
+
 ROOT = Path(__file__).resolve().parents[2]
 SPEAKER = {"en": "A", "es": "B"}  # set from --pair in run(): pair a -> Speaker A, b -> Speaker B
 TERMINAL = "['done','skipped','failed']"
@@ -261,7 +263,7 @@ async def run(a: argparse.Namespace) -> list[dict]:
     async with async_playwright() as p:
         browser = await p.chromium.launch(executable_path=a.chrome or None, headless=True,
                                           args=["--autoplay-policy=no-user-gesture-required", "--enable-precise-memory-info"])
-        page = await browser.new_page()
+        page = await browser.new_page(**auth.page_kwargs())
         page.on("console", lambda m: m.type == "error" and print("console:", m.text))
 
         async def serve(route):

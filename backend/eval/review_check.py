@@ -20,6 +20,8 @@ from pathlib import Path
 
 from playwright.async_api import async_playwright
 
+from eval import auth
+
 ROOT = Path(__file__).resolve().parents[2]
 VARIANTS = ("realtime", "cascade-openai", "cascade-haiku", "cascade-elevenlabs")
 SCRATCH = "zz-scratch-check"
@@ -48,7 +50,7 @@ async def main(url: str, chrome: str) -> bool:
 
     async with async_playwright() as p:
         b = await p.chromium.launch(executable_path=chrome, headless=True, args=["--autoplay-policy=no-user-gesture-required"])
-        page = await b.new_page()
+        page = await b.new_page(**auth.page_kwargs())
         page.on("console", lambda m: m.type == "error" and print("console:", m.text))
 
         async def use(name: str) -> None:
@@ -130,10 +132,10 @@ def cleanup(url: str, ok: bool) -> int:
         print(("PASS " if cond else "FAIL ") + what)
 
     req = urllib.request.Request(f"{url}/api/review/sets/blind-m5/ratings?rater={SCRATCH}", method="DELETE")
-    deleted = json.loads(urllib.request.urlopen(req).read())["deleted"]
-    left = json.loads(urllib.request.urlopen(f"{url}/api/review/sets/blind-m5?rater={SCRATCH}").read())["ratings"]
+    deleted = json.loads(auth.urlopen(req).read())["deleted"]
+    left = json.loads(auth.urlopen(f"{url}/api/review/sets/blind-m5?rater={SCRATCH}").read())["ratings"]
     check(deleted == 1 and left == {}, f"scratch ratings deleted ({deleted})")
-    andre = json.loads(urllib.request.urlopen(f"{url}/api/review/sets/blind-m5?rater=andre").read())["progress"]
+    andre = json.loads(auth.urlopen(f"{url}/api/review/sets/blind-m5?rater=andre").read())["progress"]
     check(andre["done"] == 48, "andre still 48/48")
     print("ALL PASS" if ok else "SOME CHECKS FAILED")
     return 0 if ok else 1

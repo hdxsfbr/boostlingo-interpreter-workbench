@@ -15,6 +15,8 @@ from pathlib import Path
 
 from playwright.async_api import async_playwright
 
+from eval import auth
+
 
 async def main(url: str, exp: str, chrome: str, results: str) -> bool:
     ok = True
@@ -26,7 +28,7 @@ async def main(url: str, exp: str, chrome: str, results: str) -> bool:
 
     async with async_playwright() as p:
         b = await p.chromium.launch(executable_path=chrome or None, headless=True)
-        page = await b.new_page()
+        page = await b.new_page(**auth.page_kwargs())
         errors: list[str] = []
         page.on("pageerror", lambda e: errors.append(str(e)))
         await page.goto(f"{url}/?tab=experiments")
@@ -75,8 +77,7 @@ async def main(url: str, exp: str, chrome: str, results: str) -> bool:
 
 
 def _get(u: str) -> str:
-    import urllib.request
-    with urllib.request.urlopen(u, timeout=10) as r:
+    with auth.urlopen(u, timeout=10) as r:
         return r.read().decode()
 
 
