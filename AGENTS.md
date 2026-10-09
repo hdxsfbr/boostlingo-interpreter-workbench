@@ -149,4 +149,13 @@ This repo is built by an agentic coding assistant (Grok Bot executor agents) dir
   - Tests: 15 pytest, 6 Vitest. Headless check `eval/review_check.py`: preload complete, Results == results.md cell for cell, keyboard round trip, resume, a failed save, scratch-rater cleanup.
   - `docs/comparison.md`: one added line only, conclusions untouched.
   - Agent finding: the first headless run showed Back stored an empty rating for an untouched clip (as `rate.py` also did). Fixed so unchanged drafts aren't written.
-
+- **Experiments tab (DESIGN A13, Andre via Butler, time-boxed 3–4 h):**
+  - What it is: an in-product runner for the M5 harness. Create (setups, utterance set, directions, passes), get an estimate, confirm above $1, run, watch live SSE progress, cancel. Then history, detail (M5 columns + latency chart), compare, and CSV/JSON export.
+  - Reuse: the job runs `python -m eval.harness` per setup inside the container (the image now has Playwright + headless Chromium + metrics deps) and summarises with `eval.metrics`. New harness flags: `--rt-model` (with `?rt_model=` in the SPA) and `--pipeline` (loopback, free).
+  - Storage: `data/experiments.sqlite3`. The M5 baseline is imported read-only. The git commit is stamped at build (`make up` passes `GIT_COMMIT`).
+  - Guardrails: 428 confirm above `experiments.confirm_above_usd`, ElevenLabs only with `allow_elevenlabs` (plus the harness credit guard), a gpt-realtime warning, 409 for a second run (refused, not queued), and Cancel kills the harness process tree (`cleanup.orphans` recorded).
+  - Tests: 20 pytest (fake harness child; no browser, no provider) and 3 Vitest. Headless check `eval/experiments_check.py` (runs in the container): 17 checks pass, including baseline == results.json per profile.
+  - Live smoke (the only paid run): realtime-mini + cascade-openai on 6 short utterances (en/es s01–s03), 12/12 done, 0 failures, 87 s. Actual **$0.0228**. The estimate at run time (flat M5 $/min) was $0.0169 (−26%). Fixed: the estimate now sums M5's measured per-utterance cost, which gives $0.0229 for the same config.
+  - Smoke latency vs M5 on the same 6 ids: realtime-mini H p50 1059 vs 1237 ms; cascade-openai 2261 vs 1690 ms. n=6 with Chromium inside the app container, not investigated. Compare in-app experiments with each other.
+  - Live cancel check (free, cancelled before the first utterance): status cancelled, 0 orphans, no harness/Chromium process left in the container.
+  - Cut for time: queueing, "create review set from experiment", in-app judge/round trip, and per-experiment server config.

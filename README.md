@@ -117,6 +117,21 @@ Open the **Review** tab (or `http://localhost:8740/?tab=review`) and enter your 
 - **Remove a rater's data:** `curl -X DELETE "http://127.0.0.1:8740/api/review/sets/<set_id>/ratings?rater=<name>"`.
 - **Headless check** (no provider calls): `cd backend && python -m eval.review_check --url http://127.0.0.1:8740`.
 
+## Experiments tab: run benchmarks from the app (DESIGN A13)
+
+Open the **Experiments** tab (or `http://localhost:8740/?tab=experiments`). It runs the same headless-Chrome harness as the M5 benchmarks, inside the container against the app itself, and keeps every run.
+
+1. **New experiment:** give it a name, then tick one or more setups. The defaults are `realtime-mini` + `cascade-openai`.
+   - Ticking `realtime` (full) shows a costs-more warning.
+   - `cascade-elevenlabs` needs an extra "I accept spending ElevenLabs credits" tick and only works when ElevenLabs is enabled. `cascade-haiku` needs `OPENROUTER_API_KEY`.
+   - Choose the utterances (full 48, short 16, or a custom subset by id), the directions and the number of passes.
+2. **Check the estimate:** a table shows turns, voiced minutes, cost and time per setup, based on the measured M5 cost of the same utterances priced with `config/pricing.yaml`. Above `experiments.confirm_above_usd` ($1) you must click **Run anyway**.
+3. **Run:** a live panel shows the setup, the utterance being played, done/total, the running H p50, failures and the cost so far. **Cancel** stops the browser and its provider sessions and keeps the partial results. Only one experiment runs at a time.
+4. **Results:** click an experiment in **History** to see the M5 summary columns (latency p50/p90 with and without the 450 ms release gap, tail, chrF, source WER, $/min, failures), a per-turn latency chart, the code version and model ids. You can download CSV or JSON. Tick two experiments and press **Compare** for a side-by-side view with deltas. **M5 baseline** (read-only) holds the final M5 numbers.
+- API: `POST /api/experiments/estimate` and `POST /api/experiments` take `{"name", "setups", "utterances": "full|short|custom", "ids", "directions": "both|en|es", "passes", "allow_elevenlabs", "confirm"}`.
+- Headless check (no provider calls): `docker exec -e HOME=/tmp -w /app/backend boostlingo-interpreter-workbench-app-1 python -m eval.experiments_check --chrome "" --exp <id>`.
+- Caveat: Chromium shares the container with the backend. Absolute latencies can differ from the M5 runs (driven from the host). Compare experiments run the same way.
+
 ## Configuration and secrets
 
 - `.env` (gitignored, mode 600) holds `OPENAI_API_KEY` and `OPENROUTER_API_KEY` (Haiku runs via OpenRouter). The direct Anthropic adapter is disabled and its key is no longer loaded. `.env.example` lists the variables without values. `scripts/setup_env.py` fills them from key files and prints only "set"/"missing".

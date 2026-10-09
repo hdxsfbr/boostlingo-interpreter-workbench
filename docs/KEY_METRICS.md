@@ -18,6 +18,7 @@ This page explains each one in plain terms. For each it covers how this repo mea
 **Where the numbers come from.**
 - **Main runs:** the final benchmark runs of 8 Oct 2026 ("M5"), in [`benchmarks/results/m5/`](benchmarks/results/m5/) ([`summary.md`](benchmarks/results/m5/summary.md), [`results.json`](benchmarks/results/m5/results.json) and one CSV spreadsheet per setup).
 - **Recording check:** the recording on/off comparison in [`benchmarks/results/recording-ab/`](benchmarks/results/recording-ab/summary.md).
+- **In-app experiments (since A13):** latency, source WER, chrF, cost per minute and failures can now be produced from the Workbench's **Experiments** tab. It runs the same harness and metrics code as M5, keeps each run with its code version and model ids, and imports M5 as the read-only "M5 baseline" for comparison (README, "Experiments tab"). The figures on this page are still the M5 runs. The answered-instead-of-translated judge and the TTS round trip are only available from the command line (`eval.metrics --judge --roundtrip`).
 - **Plain-language background:** [comparison.md](comparison.md) and [comparison-details.md](comparison-details.md).
 
 **The two designs being compared.**

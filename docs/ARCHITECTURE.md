@@ -71,7 +71,8 @@ flowchart LR
 | **Cascade orchestration** | Runs each turn as concurrent stages (STT → MT → sentence chunker → TTS) joined by queues. Handles cancellation, timing marks, the backup request for slow first output, early translation of partial transcripts, and merging of short fragments | `backend/app/cascade/session.py`, `ws_pipeline.py` (builds providers from config), `chunker.py`, `hedge.py` |
 | **Provider interfaces** | Three abstract interfaces, so the orchestrator never imports a vendor: `STTProvider`, `Translator`, `TTSProvider`. Adapters implement them; a registry maps config names to adapters | `backend/app/providers/base.py`, `registry.py`, `stt/openai_live.py`, `mt/openai.py`, `mt/openrouter.py`, `mt/anthropic.py`, `tts/openai.py`, `tts/elevenlabs.py`, `fakes.py` (for tests) |
 | **Shared core** | Server-side event models (mirroring the browser contract), normalised errors, the retry policy, the ElevenLabs credit guard, settings, audio helpers, recording store | `backend/app/core/events.py`, `errors.py`, `retry.py`, `budget.py`, `config.py`, `audio.py`, `recording.py` |
-| **Persistence** | Files under `data/` (gitignored): one JSONL log per session (one JSON record per line), recordings, the ElevenLabs credit ledger, and the Review tab's SQLite file | `data/sessions/<session_id>.jsonl`, `data/recordings/<session_id>/turn-<n>-{source,target}.<ext>`, `data/elevenlabs_ledger.json`, `data/review.sqlite3` |
+| **Experiments (A13)** | Experiment config + estimate, background job that runs `eval.harness` per setup and summarises with `eval.metrics`, SQLite store, M5 baseline import | `backend/app/experiments/config.py`, `runner.py`, `store.py`, `baseline.py`; `backend/app/api/experiments.py`; `frontend/src/experiments/` |
+| **Persistence** | Files under `data/` (gitignored): one JSONL log per session (one JSON record per line), recordings, the ElevenLabs credit ledger, and the Review tab's SQLite file | `data/sessions/<session_id>.jsonl`, `data/recordings/<session_id>/turn-<n>-{source,target}.<ext>`, `data/elevenlabs_ledger.json`, `data/review.sqlite3`, `data/experiments.sqlite3` + `data/experiments/<id>/<setup>.{jsonl,log}` |
 | **Evaluation harness** | Drives the real app in hidden Chrome (Playwright), plays test sentences as the mic, then computes metrics, the blind-rating kit and the error-state checks | `backend/eval/harness.py`, `metrics.py`, `blind.py`, `blind_results.py`, `error_pass.py`, plus tuning tools (`summarize.py`, `vad_table.py`, `soak_report.py`, `stt_wer.py`, `tts_ttfb.py`) |
 
 **The shared event contract is tested on both sides.**
@@ -153,7 +154,7 @@ sequenceDiagram
   - **Realtime:** captured in the browser as webm/opus and uploaded.
   - Each saved file adds an audit line to the session JSONL. A sweep at startup and every 6 h deletes files older than `retention_days` (30).
 - **The session id** is created in the browser (`session/sessionId.ts`) and validated by the server.
-- **The only database** is the Review tab's SQLite file (`data/review.sqlite3`, A12). Ratings are edited in place, so they need atomic updates. Everything else stays in plain files.
+- **The only databases** are two SQLite files: the Review tab's (`data/review.sqlite3`, A12), where ratings are edited in place and need atomic updates, and the Experiments tab's (`data/experiments.sqlite3`, A13). Everything else stays in plain files.
 
 ### 5a. Review tab flow (A12)
 
@@ -162,6 +163,15 @@ sequenceDiagram
 3. **Rate:** `GET /api/review/sets/<id>?rater=` returns the items (without a variant while blind) and this rater's ratings. The view opens at the first incomplete item. Audio streams from `/api/review/sets/<id>/items/<item>/audio`. Each Save is a `PUT …/items/<item>/rating`, one SQLite transaction.
 4. **Results:** `GET …/results?rater=&raters=me|all` aggregates per variant × direction and adds M5 H and chrF from `results.json`. For blind sets it returns 403 until the rater presses Reveal (`POST …/reveal`) or completes the set. `results.csv` and `ratings.csv` export the same data.
 5. **Cleanup:** `DELETE …/ratings?rater=` removes one rater's ratings and their reveal.
+
+### 5b. Experiments tab flow (A13)
+
+1. **Startup:** `get_experiments()` opens `data/experiments.sqlite3`, marks runs left `running` as `interrupted`, and imports `results/m5/results.json` (+ `raw/`) once as the read-only `m5-baseline`.
+2. **Configure:** the tab loads `GET /api/experiments/setups` (setups, warnings, availability, threshold, the 48 utterances). Every change calls `POST /api/experiments/estimate`, which validates the config (422 with a message) and returns cost and duration per setup.
+3. **Run:** `POST /api/experiments`. The server refuses unavailable setups (400), estimates above the threshold without `confirm` (428) and a second concurrent run (409). It then creates the row and starts the job.
+4. **Job:** for each setup, `python -m eval.harness --url http://127.0.0.1:8740 <setup flags> --ids … --repeat <passes> --out data/experiments/<id>/<setup>.jsonl --chrome ''` runs in its own process session. Headless Chromium opens the SPA with `?source=file`, plays each fixture as the microphone and measures H, exactly like M5. The job polls the JSONL (0.3 s), stores each row with its `row_cost`, and publishes progress to the SSE subscribers (`GET /api/experiments/<id>/events`).
+5. **Finish / cancel:** after the last setup, or after `POST …/cancel` (which kills the process tree), it runs `eval.metrics.per_row` + `aggregate` per setup in a thread and stores the summary, cost, models, status and elapsed time.
+6. **Read:** `GET /api/experiments`, `/<id>`, `/<id>/turns`, `/<id>/export.json`, `/<id>/export.csv?kind=summary|turns`. Compare is client-side, from two details.
 
 ## 6. Where latency is measured
 
