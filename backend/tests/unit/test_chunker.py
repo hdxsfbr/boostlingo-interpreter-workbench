@@ -51,3 +51,12 @@ def test_needs_lookahead_whitespace_then_emits_incrementally():
 def test_tokens_split_mid_word_and_punctuation():
     out = chunk_all(["Hel", "lo the", "re, my fri", "end. How", " are", " you", "?"])
     assert out == ["Hello there, my friend.", "How are you?"]
+
+
+def test_first_word_min_cuts_the_first_chunk_at_a_word_boundary_only():
+    from app.cascade.chunker import chunk_all
+    toks = list("Me duele mucho la cabeza desde ayer por la tarde y no se me pasa con nada.")
+    out = chunk_all(toks, first_word_min=20)
+    assert out[0] == "Me duele mucho la"  # first chunk: complete words only, >= 20 chars buffered
+    assert out[1].endswith("nada.")  # later chunks keep the normal sentence rules
+    assert chunk_all(toks)[0].endswith("nada.")  # default: unchanged

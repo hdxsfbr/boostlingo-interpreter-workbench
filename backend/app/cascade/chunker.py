@@ -6,6 +6,9 @@ TTS; flush() at end of stream. Rules:
 - emit at a clause boundary (, ; :) followed by whitespace once >= 60 chars are
   buffered (25 for the FIRST chunk, to get first audio out sooner);
 - hard cap: 160 chars, split at the last whitespace;
+- optional `first_word_min` (M4 tuning, off by default): if the FIRST chunk has
+  no boundary yet once this many chars are buffered, cut at the last word
+  boundary, trading a prosody seam for earlier first audio;
 - never split inside decimals/times ("3.5", "10:30": no whitespace follows)
   or after known abbreviations ("Dr.", "Sra.", "p. ej.", "EE. UU.").
 """
@@ -24,11 +27,12 @@ _WORD_BEFORE = re.compile(r"([\wÁÉÍÓÚÑáéíóúñü.]+)\.$")
 
 class SentenceChunker:
     def __init__(self, min_sentence: int = 12, clause_min: int = 60, first_clause_min: int = 25,
-                 hard_cap: int = 160) -> None:
+                 hard_cap: int = 160, first_word_min: int | None = None) -> None:
         self.min_sentence = min_sentence
         self.clause_min = clause_min
         self.first_clause_min = first_clause_min
         self.hard_cap = hard_cap
+        self.first_word_min = first_word_min
         self.buf = ""
         self.emitted = 0
 
@@ -55,6 +59,10 @@ class SentenceChunker:
                 return i + 1
             if ch in CLAUSE_END and len(seg) >= clause_min:
                 return i + 1
+        if self.emitted == 0 and self.first_word_min and len(b) >= self.first_word_min:
+            sp = b.rfind(" ", 0, len(b))
+            if sp > 0 and len(b[:sp].strip()) >= self.first_word_min // 2:
+                return sp
         if len(b) >= self.hard_cap:
             sp = b.rfind(" ", 0, self.hard_cap)
             return sp if sp > 0 else self.hard_cap
