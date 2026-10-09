@@ -65,3 +65,6 @@ data/
 *.egg-info/
 .pytest_cache/
 .ruff_cache/
+
+# --- Session recordings (A11), always local-only ---
+data/recordings/

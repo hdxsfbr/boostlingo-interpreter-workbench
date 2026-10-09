@@ -46,6 +46,8 @@ class Settings(BaseSettings):
     stt_delay: str | None = None
     cascade_speculative: bool | None = None
     cascade_merge_fragments: bool | None = None
+    # A11: opt-in session recording (None = config/app.yaml recording.enabled)
+    recording_enabled: bool | None = None
     chunk_first_clause_min: int | None = None
     chunk_first_word_min: int | None = None
 

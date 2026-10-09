@@ -48,6 +48,12 @@ providers:
       en: JBFqnCBsd6RMkjVDRZzb
       es: JBFqnCBsd6RMkjVDRZzb
 
+recording:                # A11: opt-in session audio recording (auditability); local only
+  enabled: false          # env RECORDING_ENABLED=1; the UI toggle is disabled while false
+  retention_days: 30      # files older than this are deleted on startup + periodic sweep
+  sweep_interval_h: 6
+  max_upload_mb: 20       # realtime per-turn browser uploads
+
 timeouts_s:
   stt_final: 3
   mt_first_token: 3
