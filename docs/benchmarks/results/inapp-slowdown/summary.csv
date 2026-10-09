@@ -1,0 +1,9 @@
+run,n,H_p50,H_max,H_gap_p50,release_lag_p50,stt_final_p50,tts_ttfb_p50,tts_ttfb_max,usd
+"M5 (host CLI, 8 Oct)",12,1690,2419,1233,457,600,620,1038,0.0231
+"App runner, smoke #1 (after realtime-mini)",6,2261,2959,1806,456,518,1000,1145,0.0116
+"CLI on host, pass 1",6,1622,2050,1166,455,589,591,636,0.0113
+"CLI in container, pass 1",6,1697,1976,1243,455,669,662,926,0.0112
+"CLI on host, pass 2",6,1781,1978,1324,456,637,649,956,0.0117
+"CLI in container, pass 2",6,1749,2165,1292,455,687,661,792,0.0118
+"App runner, cascade only",6,1710,2338,1255,455,700,596,912,0.0116
+"App runner, smoke #2 (after realtime-mini)",6,1711,2359,1256,455,671,587,992,0.0116
