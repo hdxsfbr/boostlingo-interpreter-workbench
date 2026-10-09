@@ -103,6 +103,10 @@ export class CascadeTransport implements Transport {
   commit(turnId: number, final: boolean): void {
     this.send({ type: "commit", turn_id: turnId, final });
   }
+  /** M4: short in-turn silence; lets the server start speculative MT early. */
+  pauseHint(turnId: number): void {
+    this.send({ type: "pause.hint", turn_id: turnId });
+  }
   cancel(turnId: number): void {
     this.send({ type: "turn.cancel", turn_id: turnId });
   }

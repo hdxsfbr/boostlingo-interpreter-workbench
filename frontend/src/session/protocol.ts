@@ -30,6 +30,7 @@ export type ClientMessage =
   | { type: "session.start"; pipeline: Pipeline; src: Lang; tgt: Lang; turn_mode: "ptt" | "vad"; providers: Record<string, string> }
   | { type: "turn.start"; turn_id: number; src: Lang; tgt: Lang }
   | { type: "commit"; turn_id: number; final: boolean }
+  | { type: "pause.hint"; turn_id: number }
   | { type: "turn.cancel"; turn_id: number }
   | { type: "ping"; t?: number | null };
 
@@ -84,6 +85,7 @@ export interface Transport {
   turnStart(turnId: number, src: Lang, tgt: Lang): void;
   /** In-turn pause (final=false) or end of turn (final=true). */
   commit(turnId: number, final: boolean): void;
+  pauseHint?(turnId: number): void;
   cancel(turnId: number): void;
   /** Must release sockets / peer connections / audio nodes (FR-4). */
   close(): Promise<void>;

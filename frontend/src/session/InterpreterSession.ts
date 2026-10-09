@@ -58,6 +58,8 @@ export type SessionConfig = {
   silenceDurationMs?: number;
   /** Cascade provider overrides per session (FR-9), e.g. {mt: "anthropic", tts: "elevenlabs"}. */
   providers?: Record<string, string>;
+  /** Cascade: in-turn silence that triggers a speculative-MT hint (ms; null = off). */
+  pauseHintMs?: number | null;
   /** "file" = benchmark harness input (DESIGN §9); default "mic". */
   source?: "mic" | "file";
   /** VAD mode: which speaker label/direction new turns get in the UI. */
@@ -98,7 +100,7 @@ export class InterpreterSession implements InterpreterSessionApi {
     this.pipeline = cfg.pipeline;
     this.turnMode = cfg.turnMode ?? "ptt";
     this.providers = { ...(cfg.providers ?? {}) };
-    this.turns = new TurnController(cfg.pair, cfg.pauseCommitMs ?? 300);
+    this.turns = new TurnController(cfg.pair, cfg.pauseCommitMs ?? 300, cfg.pauseHintMs === undefined ? 150 : cfg.pauseHintMs);
     this.vadSeg = new VadSegmenter(cfg.silenceDurationMs ?? 400);
     const hook = harnessHook();
     hook.setVadSpeaker = (sp) => this.setVadSpeaker(sp);
@@ -387,6 +389,7 @@ export class InterpreterSession implements InterpreterSessionApi {
     const act = this.turns.frame(voiced && !gated, tPerf);
     if (!act.send || !this.transport) return;
     this.transport.sendAudio?.(gated ? new Int16Array(pcm.length) : pcm);
+    if (act.pauseHint && this.turns.active) this.transport.pauseHint?.(this.turns.active.id);
     if (act.pauseCommit && this.turns.active) this.transport.commit(this.turns.active.id, false);
   }
 
@@ -412,6 +415,7 @@ export class InterpreterSession implements InterpreterSessionApi {
       this.endTurn();
       return;
     }
+    if (fa.pauseHint) this.transport.pauseHint?.(this.turns.active.id);
     if (fa.pauseCommit) this.transport.commit(this.turns.active.id, false);
   }
 

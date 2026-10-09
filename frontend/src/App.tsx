@@ -39,6 +39,7 @@ export default function App() {
       const s = new InterpreterSession({ pair: PAIR, mode: initialMode, pipeline, turnMode, realtime: realtimeKind, providers: initialProviders,
         source: params.get("source") === "file" ? "file" : "mic",
         silenceDurationMs: Number(params.get("vad_ms")) || undefined,
+        pauseHintMs: params.get("hint_ms") === null ? undefined : Number(params.get("hint_ms")) || null,
         vadSpeaker: params.get("vad_speaker") === "B" ? "B" : "A" });
       s.on((ev) => dispatch({ kind: "ev", ev }));
       sessionRef.current = s;

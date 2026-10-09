@@ -70,3 +70,19 @@ describe("VadSegmenter (cascade VAD)", () => {
     expect(v.active).toBe(false);
   });
 });
+
+describe("pause hint (speculative MT)", () => {
+  it("fires once per pause, before the pause commit", () => {
+    const tc = new TurnController({ a: "en", b: "es" }, 300, 150);
+    tc.pttDown("A", 0);
+    tc.frame(true, 20);
+    const acts = [];
+    for (let t = 40; t <= 400; t += 20) acts.push({ t, ...tc.frame(false, t) });
+    const hint = acts.filter((a) => a.pauseHint);
+    const commit = acts.filter((a) => a.pauseCommit);
+    expect(hint.map((a) => a.t)).toEqual([180]);
+    expect(commit.map((a) => a.t)).toEqual([320]);
+    tc.frame(true, 420); // speech resumes: re-armed
+    expect(tc.frame(false, 580).pauseHint).toBe(true);
+  });
+});

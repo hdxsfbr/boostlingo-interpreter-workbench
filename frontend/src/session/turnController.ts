@@ -15,10 +15,11 @@ export type ActiveTurn = {
   startedAt: number;
   lastVoiced: number | null;
   pauseCommitted: boolean;
+  pauseHinted: boolean;
   voicedFrames: number;
 };
 
-export type FrameAction = { send: boolean; pauseCommit: boolean };
+export type FrameAction = { send: boolean; pauseCommit: boolean; pauseHint?: boolean };
 export type TurnEnd = { turn: ActiveTurn; tSpeechEnd: number; hadSpeech: boolean };
 
 export class TurnController {
@@ -28,6 +29,7 @@ export class TurnController {
   constructor(
     private readonly pair: { a: Lang; b: Lang },
     private readonly pauseCommitMs: number | null = 300,
+    private readonly pauseHintMs: number | null = null,
   ) {}
 
   directionFor(speaker: Speaker): { src: Lang; tgt: Lang } {
@@ -36,7 +38,7 @@ export class TurnController {
 
   pttDown(speaker: Speaker, now: number): ActiveTurn {
     const { src, tgt } = this.directionFor(speaker);
-    this.active = { id: this.nextId++, speaker, src, tgt, startedAt: now, lastVoiced: null, pauseCommitted: true, voicedFrames: 0 };
+    this.active = { id: this.nextId++, speaker, src, tgt, startedAt: now, lastVoiced: null, pauseCommitted: true, pauseHinted: true, voicedFrames: 0 };
     return this.active;
   }
 
@@ -47,7 +49,12 @@ export class TurnController {
       t.lastVoiced = tPerf;
       t.voicedFrames++;
       t.pauseCommitted = false;
+      t.pauseHinted = false;
       return { send: true, pauseCommit: false };
+    }
+    if (this.pauseHintMs !== null && !t.pauseHinted && t.lastVoiced !== null && tPerf - t.lastVoiced >= this.pauseHintMs) {
+      t.pauseHinted = true;
+      return { send: true, pauseCommit: false, pauseHint: true };
     }
     if (this.pauseCommitMs !== null && !t.pauseCommitted && t.lastVoiced !== null && tPerf - t.lastVoiced >= this.pauseCommitMs) {
       t.pauseCommitted = true;
