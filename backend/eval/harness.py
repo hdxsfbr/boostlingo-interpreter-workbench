@@ -252,7 +252,7 @@ async def run(a: argparse.Namespace) -> list[dict]:
     out = open(a.out, "w") if a.out else None  # noqa: SIM115, ASYNC230 - streamed line by line
     rows: list[dict] = []
     async with async_playwright() as p:
-        browser = await p.chromium.launch(executable_path=a.chrome, headless=True,
+        browser = await p.chromium.launch(executable_path=a.chrome or None, headless=True,
                                           args=["--autoplay-policy=no-user-gesture-required", "--enable-precise-memory-info"])
         page = await browser.new_page()
         page.on("console", lambda m: m.type == "error" and print("console:", m.text))
@@ -262,7 +262,8 @@ async def run(a: argparse.Namespace) -> list[dict]:
             await route.fulfill(body=(fixtures / name).read_bytes(), content_type="audio/wav")
         await page.route("**/fixtures/*.wav", serve)
         q = f"source=file&mode={a.mode}&rt={a.rt}&turn={a.turn_mode}&vad_ms={a.vad_ms}"
-        q += "".join(f"&{k}={v}" for k, v in (("mt", a.mt), ("tts", a.tts), ("min_seg_ms", a.min_seg_ms))
+        q += "".join(f"&{k}={v}" for k, v in (("mt", a.mt), ("tts", a.tts), ("min_seg_ms", a.min_seg_ms),
+                                               ("rt_model", a.rt_model), ("pipeline", a.pipeline))
                      if v is not None)
         if a.session_record:
             q += "&record=1"  # A11: tick "Record session" (server must have recording.enabled)
@@ -355,6 +356,8 @@ def main() -> None:
     ap.add_argument("--rt", default="webrtc", choices=["webrtc", "relay", "auto"])
     ap.add_argument("--turn-mode", default="ptt", choices=["ptt", "vad"])
     ap.add_argument("--vad-ms", type=int, default=400, help="silence window (server_vad silence_duration_ms / cascade VAD)")
+    ap.add_argument("--rt-model", help="Realtime model for this run (gpt-realtime | gpt-realtime-mini; A13)")
+    ap.add_argument("--pipeline", help="cascade pipeline, e.g. loopback (no provider calls)")
     ap.add_argument("--mt")
     ap.add_argument("--tts")
     ap.add_argument("--dirs", default="en,es")
@@ -375,7 +378,7 @@ def main() -> None:
     ap.add_argument("--allow-elevenlabs", action="store_true")
     ap.add_argument("--el-char-cap", type=int, default=2500)
     ap.add_argument("--out")
-    ap.add_argument("--chrome", default="/usr/bin/google-chrome")
+    ap.add_argument("--chrome", default="/usr/bin/google-chrome", help="'' = Playwright's bundled Chromium")
     a = ap.parse_args()
     rows = asyncio.run(run(a))
     summarize(rows)
