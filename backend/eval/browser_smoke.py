@@ -29,6 +29,8 @@ async def run(a: argparse.Namespace) -> list[dict]:
                   f"--use-file-for-fake-audio-capture={a.wav}", "--autoplay-policy=no-user-gesture-required"])
         page = await browser.new_page()
         page.on("console", lambda m: m.type in ("error", "warning") and print("console:", m.text))
+        if a.block_webrtc:  # simulate a network that blocks the WebRTC SDP exchange (auto -> relay fallback)
+            await page.route("https://api.openai.com/v1/realtime/calls*", lambda r: r.abort())
         q = f"pipeline={a.pipeline}&mode={a.mode}&rt={a.rt}&turn={a.turn_mode}"
         await page.goto(f"{a.url}/?{q}")
         await page.click("[data-testid=start]")
@@ -112,6 +114,7 @@ def main() -> None:
     ap.add_argument("--mode", default="cascade", choices=["cascade", "realtime"])
     ap.add_argument("--rt", default="auto", choices=["webrtc", "relay", "auto"])
     ap.add_argument("--turn-mode", default="ptt", choices=["ptt", "vad"])
+    ap.add_argument("--block-webrtc", action="store_true", help="abort the SDP POST to test the relay fallback")
     ap.add_argument("--switches", type=int, default=0, help="mode switches for the leak check")
     ap.add_argument("--dump-events", help="write raw realtime events to this JSON file")
     ap.add_argument("--speaker", default="A", choices=["A", "B", "AB"])
