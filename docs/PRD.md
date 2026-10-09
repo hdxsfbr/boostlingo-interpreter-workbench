@@ -6,7 +6,7 @@
 | **Owner** | Andre Batista |
 | **Due** | Sunday 2026-10-11 (from Andre; the portal shows no due date) |
 | **Budget** | 3–4 days, about 15–20 hours (brief) |
-| **Status** | Draft v0.1, 2026-10-08 |
+| **Status** | v0.2, 2026-10-08: amended per DESIGN.md D10 (stack, providers, push-to-talk) |
 | **Sources** | [`sources/assignment.pdf`](../sources/assignment.pdf) (authoritative) and [`sources/portal-project.md`](../sources/portal-project.md) (portal capture) |
 
 **Conventions**
@@ -61,7 +61,7 @@ The PDF's numbered must-haves are FR-1 to FR-8. Items marked *(derived)* are nee
   - FR-1.3 Play translated audio with a playback queue: no overlapping utterances, and interruption handled.
 - **FR-2 Realtime mode.** Voice in, voice out using OpenAI Realtime API model `gpt-realtime` *[Brief]*.
   - FR-2.1 The backend mints short-lived client secrets (`POST /v1/realtime/client_secrets`). **The OpenAI key never reaches the browser.**
-  - FR-2.2 The session is instructed to act as an interpreter for the selected pair (translate only, no answering), with server VAD turn detection.
+  - FR-2.2 The session is instructed to act as an interpreter for the selected pair (translate only, no answering). *Amended (D2/D10):* turn-taking defaults to **push-to-talk** with Speaker A / Speaker B buttons (`turn_detection: null` + explicit commit); server VAD remains a selectable option and is benchmarked with matched silence windows.
   - FR-2.3 Source and target transcripts come from Realtime transcription and output-transcript events.
   - *[Assumption]* Transport is browser **WebRTC** directly to OpenAI, for the lowest latency. A server WebSocket relay is the fallback. The connection flow follows OpenAI's current GA Realtime docs and must be re-checked at build time.
 - **FR-3 Cascade mode.** STT → Translation → TTS, streaming end to end. There is no full-utterance blocking at any stage *[Brief]*.
@@ -141,7 +141,9 @@ The PDF's numbered must-haves are FR-1 to FR-8. Items marked *(derived)* are nee
   - Optional: deployed link (plus credentials if login-gated), demo video URL, notes.
   - Andre submits it himself.
 
-## 9. Proposed architecture *[Assumption — confirm in Q1]*
+## 9. Architecture *(decided: see DESIGN.md; amended per D10)*
+
+> **Amendment (2026-10-08, D10):** the backend is **Python / FastAPI**, not ASP.NET Core. Andre chose Python for faster iteration on streaming audio SDKs; the brief prefers .NET but accepts Python, and the README explains the choice (CQ-5). The diagram below keeps the original component split, which is unchanged.
 
 ```
 Browser (React + TypeScript + Vite)
@@ -151,7 +153,7 @@ Browser (React + TypeScript + Vite)
  │   └─ CascadeTransport: WebSocket to the backend; PCM up, audio/transcript/metric events down
  └─ AudioIO: mic capture (AudioWorklet) and a playback queue
 
-Backend (ASP.NET Core, C#)
+Backend (Python 3.12, FastAPI)  [was: ASP.NET Core, C#; amended per D10]
  ├─ POST /api/realtime/session  → mints the client secret (OpenAI key stays server-side)
  ├─ WS  /ws/cascade             → per-connection CascadeSession
  │     STT adapter ─▶ segmenter ─▶ Translator adapter ─▶ TTS adapter   (streams/channels, latency stamps)
@@ -161,17 +163,17 @@ Backend (ASP.NET Core, C#)
 
 ## 10. Open questions and assumptions (for Andre)
 
-- **Q1 Stack.** The brief prefers .NET/C# backend and TypeScript frontend; Python is acceptable.
+- **Q1 Stack.** *Resolved (D10): Python/FastAPI backend + React/Vite/TS frontend, Docker Compose on hdx-lab.* The brief prefers .NET/C# backend and TypeScript frontend; Python is acceptable.
   - *Proposal:* ASP.NET Core (.NET 8 LTS or .NET 9) plus React/Vite/TS.
   - Lab check (2026-10-08): **no .NET SDK is installed on hdx-lab**; Node is available via nvm (v22/v24). Andre may build on his Mac instead.
   - Decide: .NET (matches the partner's preference and stack) or Python (faster for audio SDKs).
-- **Q2 Cascade providers.**
+- **Q2 Cascade providers.** *Resolved (D4/D10): providers are limited to OpenAI, Anthropic, ElevenLabs (free tier), OpenRouter and local/free tools. Defaults: `gpt-live-transcribe` → OpenAI small model (chosen by measured TTFT) → `gpt-4o-mini-tts`; swaps: `claude-haiku-5-5` MT, ElevenLabs Flash TTS. Deepgram/DeepL/Azure below are superseded.*
   - *Proposal:* Deepgram (streaming STT) → OpenAI small chat model with streamed tokens (translation) → ElevenLabs or OpenAI TTS (streaming).
   - DeepL is a strong option for translation quality and glossaries, but it returns whole segments, not tokens.
   - Decide based on keys and accounts available and on the latency budget.
 - **Q3 API keys.**
   - **An OpenAI API key is required.** `gpt-realtime` is not available through OpenRouter, so a direct OpenAI account with Realtime access and billing is needed.
-  - Other keys depend on Q2: Deepgram, ElevenLabs, DeepL, Azure.
+  - Other keys depend on Q2: ~~Deepgram, DeepL, Azure~~ (superseded, D10) → Anthropic (optional, Haiku MT), ElevenLabs (free tier, benchmark subset + demo only), OpenRouter (optional).
   - OpenRouter could serve LLM translation in cascade mode if desired.
   - Decide which accounts exist and the spend cap.
 - **Q4 Model naming.** The brief says `gpt-realtime`. OpenAI's docs also show newer realtime model names.
