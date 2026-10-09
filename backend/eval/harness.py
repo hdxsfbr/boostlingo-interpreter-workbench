@@ -34,12 +34,13 @@ import yaml
 from playwright.async_api import async_playwright
 
 ROOT = Path(__file__).resolve().parents[2]
-SPEAKER = {"en": "A", "es": "B"}  # pair a=en, b=es
+SPEAKER = {"en": "A", "es": "B"}  # set from --pair in run(): pair a -> Speaker A, b -> Speaker B
 TERMINAL = "['done','skipped','failed']"
+FIXTURES = [ROOT / "data" / "fixtures"]  # --fixtures overrides
 
 
 def load_set(a: argparse.Namespace) -> list[dict]:
-    data = yaml.safe_load((ROOT / "docs" / "benchmarks" / "utterances.yaml").read_text())
+    data = yaml.safe_load(Path(a.utterances or ROOT / "docs" / "benchmarks" / "utterances.yaml").read_text())
     ids = {s for s in a.ids.split(",") if s}
     out = []
     for lang in a.dirs.split(","):
@@ -58,10 +59,11 @@ def load_set(a: argparse.Namespace) -> list[dict]:
 
 def interleave(items: list[dict]) -> list[dict]:
     """Alternate directions (A, B, A, ...) like a real two-party exchange."""
-    by = {"en": [u for u in items if u["lang"] == "en"], "es": [u for u in items if u["lang"] == "es"]}
+    langs = list(dict.fromkeys(u["lang"] for u in items))
+    by = {k: [u for u in items if u["lang"] == k] for k in langs}
     out = []
-    while by["en"] or by["es"]:
-        for k in ("en", "es"):
+    while any(by.values()):
+        for k in langs:
             if by[k]:
                 out.append(by[k].pop(0))
     return out
@@ -150,7 +152,7 @@ def speech_end_ms(uid: str, threshold: float = 0.012, frame: int = 480) -> float
         import array
         import math
         import wave
-        with wave.open(str(ROOT / "data" / "fixtures" / f"{uid}.wav")) as w:
+        with wave.open(str(FIXTURES[0] / f"{uid}.wav")) as w:
             rate = w.getframerate()
             pcm = array.array("h", w.readframes(w.getnframes()))
         step = frame * rate // 24000
@@ -245,7 +247,12 @@ def elevenlabs_guard(a: argparse.Namespace, items: list[dict]) -> None:
 async def run(a: argparse.Namespace) -> list[dict]:
     items = interleave(load_set(a)) * a.repeat
     elevenlabs_guard(a, items)
-    fixtures = ROOT / "data" / "fixtures"
+    pa, pb = a.pair.split(",")
+    SPEAKER.clear()
+    SPEAKER.update({pa: "A", pb: "B"})
+    if a.fixtures:
+        FIXTURES[0] = Path(a.fixtures)
+    fixtures = FIXTURES[0]
     missing = [u["id"] for u in items if not (fixtures / f"{u['id']}.wav").exists()]
     if missing:
         raise SystemExit(f"missing fixtures {missing[:5]}...: run `make fixtures`")
@@ -261,7 +268,7 @@ async def run(a: argparse.Namespace) -> list[dict]:
             name = route.request.url.rsplit("/", 1)[-1]
             await route.fulfill(body=(fixtures / name).read_bytes(), content_type="audio/wav")
         await page.route("**/fixtures/*.wav", serve)
-        q = f"source=file&mode={a.mode}&rt={a.rt}&turn={a.turn_mode}&vad_ms={a.vad_ms}"
+        q = f"source=file&mode={a.mode}&rt={a.rt}&turn={a.turn_mode}&vad_ms={a.vad_ms}&pair={pa}-{pb}"
         q += "".join(f"&{k}={v}" for k, v in (("mt", a.mt), ("tts", a.tts), ("min_seg_ms", a.min_seg_ms),
                                                ("rt_model", a.rt_model), ("pipeline", a.pipeline))
                      if v is not None)
@@ -330,7 +337,7 @@ def pct(xs: list[float], q: float) -> float:
 
 
 def summarize(rows: list[dict]) -> None:
-    groups = [(lang, None) for lang in ("en", "es")] + [(None, sz) for sz in ("short", "medium", "long")] + [(None, None)]
+    groups = [(lang, None) for lang in dict.fromkeys(r["lang"] for r in rows)] + [(None, sz) for sz in ("short", "medium", "long")] + [(None, None)]
     for lang, size in groups:
         rs = [r for r in rows if (lang is None or r["lang"] == lang) and (size is None or r["size"] == size)]
         hs = [r["H_ms"] for r in rs if r.get("H_ms") is not None and r["status"] == "done"]
@@ -360,7 +367,10 @@ def main() -> None:
     ap.add_argument("--pipeline", help="cascade pipeline, e.g. loopback (no provider calls)")
     ap.add_argument("--mt")
     ap.add_argument("--tts")
-    ap.add_argument("--dirs", default="en,es")
+    ap.add_argument("--dirs", default="en,es", help="top-level language keys of the utterance file to use")
+    ap.add_argument("--pair", default="en,es", help="session pair a,b (languages.yaml); a = Speaker A")
+    ap.add_argument("--utterances", default="", help="utterance YAML (default docs/benchmarks/utterances.yaml)")
+    ap.add_argument("--fixtures", default="", help="fixture WAV directory (default data/fixtures)")
     ap.add_argument("--sizes", default="")
     ap.add_argument("--per-size", type=int, default=0, help="first N utterances of each size per direction (0 = all)")
     ap.add_argument("--ids", default="")
