@@ -100,7 +100,7 @@ export class InterpreterSession implements InterpreterSessionApi {
     this.pipeline = cfg.pipeline;
     this.turnMode = cfg.turnMode ?? "ptt";
     this.providers = { ...(cfg.providers ?? {}) };
-    this.turns = new TurnController(cfg.pair, cfg.pauseCommitMs ?? 300, cfg.pauseHintMs === undefined ? 150 : cfg.pauseHintMs);
+    this.turns = new TurnController(cfg.pair, cfg.pauseCommitMs ?? 300, cfg.pauseHintMs ?? null);
     this.vadSeg = new VadSegmenter(cfg.silenceDurationMs ?? 400);
     const hook = harnessHook();
     hook.setVadSpeaker = (sp) => this.setVadSpeaker(sp);
