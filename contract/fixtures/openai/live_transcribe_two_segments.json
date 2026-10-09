@@ -1,0 +1,264 @@
+[
+ {
+  "type": "session.created",
+  "event_id": "event_EWsKIrdcps1vyuq2UIACY",
+  "session": {
+   "type": "transcription",
+   "note": "elided"
+  }
+ },
+ {
+  "type": "session.updated",
+  "event_id": "event_EWsKJbAk8GYg7ZTIYBz0M",
+  "session": {
+   "type": "transcription",
+   "note": "elided"
+  }
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "event_id": "event_EWsKJWkarQx4ta7BrMdjW",
+  "item_id": "item_EWsKJq3o1Gl4yUjVafnME",
+  "content_index": 0,
+  "delta": " Could"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "event_id": "event_EWsKJ3D6jpX824Z1MvVmo",
+  "item_id": "item_EWsKJq3o1Gl4yUjVafnME",
+  "content_index": 0,
+  "delta": " morning"
+ },
+ {
+  "type": "input_audio_buffer.committed",
+  "event_id": "event_EWsKJdEw7Y1pHRgsByJ2J",
+  "previous_item_id": null,
+  "item_id": "item_EWsKJq3o1Gl4yUjVafnME"
+ },
+ {
+  "type": "conversation.item.added",
+  "event_id": "event_EWsKJDOSbMiSgt9wqWcjs",
+  "previous_item_id": null,
+  "item": {
+   "id": "item_EWsKJq3o1Gl4yUjVafnME",
+   "type": "message",
+   "status": "completed",
+   "role": "user",
+   "content": [
+    {
+     "type": "input_audio",
+     "transcript": null
+    }
+   ]
+  }
+ },
+ {
+  "type": "conversation.item.done",
+  "event_id": "event_EWsKJFQL7fQ1HVJp2nUFm",
+  "previous_item_id": null,
+  "item": {
+   "id": "item_EWsKJq3o1Gl4yUjVafnME",
+   "type": "message",
+   "status": "completed",
+   "role": "user",
+   "content": [
+    {
+     "type": "input_audio",
+     "transcript": null
+    }
+   ]
+  }
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "event_id": "event_EWsKJK0YcODABXMChjYx7",
+  "item_id": "item_EWsKJq3o1Gl4yUjVafnME",
+  "content_index": 0,
+  "delta": " I"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "event_id": "event_EWsKJ24l6Qtb63caDTZgW",
+  "item_id": "item_EWsKJq3o1Gl4yUjVafnME",
+  "content_index": 0,
+  "delta": " have"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "event_id": "event_EWsKJvf4ai5VvZpQOnFRl",
+  "item_id": "item_EWsKJq3o1Gl4yUjVafnME",
+  "content_index": 0,
+  "delta": " had"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "event_id": "event_EWsKJeDWAvhwHb8vwh9mX",
+  "item_id": "item_EWsKJq3o1Gl4yUjVafnME",
+  "content_index": 0,
+  "delta": " a"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "event_id": "event_EWsKJp6LPRR7CpHvy3UIl",
+  "item_id": "item_EWsKJq3o1Gl4yUjVafnME",
+  "content_index": 0,
+  "delta": " headache"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "event_id": "event_EWsKJoY74KKF7fd0XO75c",
+  "item_id": "item_EWsKJq3o1Gl4yUjVafnME",
+  "content_index": 0,
+  "delta": " for"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "event_id": "event_EWsKKmrBMjJ7q1MFGRlPu",
+  "item_id": "item_EWsKJ5PEOzFx2RZ53VQ4B",
+  "content_index": 0,
+  "delta": " And"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "event_id": "event_EWsKKKVRUHBKVbnQ1vWMu",
+  "item_id": "item_EWsKJq3o1Gl4yUjVafnME",
+  "content_index": 0,
+  "delta": " three"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "event_id": "event_EWsKKTw8HjdPtRZo6m2SK",
+  "item_id": "item_EWsKJ5PEOzFx2RZ53VQ4B",
+  "content_index": 0,
+  "delta": " I"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "event_id": "event_EWsKK25vr0V20vhRm2NPj",
+  "item_id": "item_EWsKJq3o1Gl4yUjVafnME",
+  "content_index": 0,
+  "delta": " days"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "event_id": "event_EWsKKus4nGzFFp6pJ9IcY",
+  "item_id": "item_EWsKJq3o1Gl4yUjVafnME",
+  "content_index": 0,
+  "delta": "."
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "event_id": "event_EWsKK0gEx3kMQWasiGY1l",
+  "item_id": "item_EWsKJ5PEOzFx2RZ53VQ4B",
+  "content_index": 0,
+  "delta": " took"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "event_id": "event_EWsKKTwnsq4VyqGsBaMvA",
+  "item_id": "item_EWsKJ5PEOzFx2RZ53VQ4B",
+  "content_index": 0,
+  "delta": " two"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "event_id": "event_EWsKKcvTdXa29GcMe3w7q",
+  "item_id": "item_EWsKJ5PEOzFx2RZ53VQ4B",
+  "content_index": 0,
+  "delta": " tablets"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.completed",
+  "event_id": "event_EWsKKRXm9gUQlWITCUUrZ",
+  "item_id": "item_EWsKJq3o1Gl4yUjVafnME",
+  "content_index": 0,
+  "transcript": "Could morning I have had a headache for three days.",
+  "usage": {
+   "type": "duration",
+   "seconds": 4
+  }
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "event_id": "event_EWsKKpD4verfhVbCChiRu",
+  "item_id": "item_EWsKJ5PEOzFx2RZ53VQ4B",
+  "content_index": 0,
+  "delta": " of"
+ },
+ {
+  "type": "input_audio_buffer.committed",
+  "event_id": "event_EWsKKEj5juN0vV33SwXvt",
+  "previous_item_id": "item_EWsKJq3o1Gl4yUjVafnME",
+  "item_id": "item_EWsKJ5PEOzFx2RZ53VQ4B"
+ },
+ {
+  "type": "conversation.item.added",
+  "event_id": "event_EWsKKuWSdNYKpMz4F3WBQ",
+  "previous_item_id": "item_EWsKJq3o1Gl4yUjVafnME",
+  "item": {
+   "id": "item_EWsKJ5PEOzFx2RZ53VQ4B",
+   "type": "message",
+   "status": "completed",
+   "role": "user",
+   "content": [
+    {
+     "type": "input_audio",
+     "transcript": null
+    }
+   ]
+  }
+ },
+ {
+  "type": "conversation.item.done",
+  "event_id": "event_EWsKKMG0G7MjAetPdV0zU",
+  "previous_item_id": "item_EWsKJq3o1Gl4yUjVafnME",
+  "item": {
+   "id": "item_EWsKJ5PEOzFx2RZ53VQ4B",
+   "type": "message",
+   "status": "completed",
+   "role": "user",
+   "content": [
+    {
+     "type": "input_audio",
+     "transcript": null
+    }
+   ]
+  }
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "event_id": "event_EWsKKl4V4MJ1NKKtw24ee",
+  "item_id": "item_EWsKJ5PEOzFx2RZ53VQ4B",
+  "content_index": 0,
+  "delta": " ib"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.delta",
+  "event_id": "event_EWsKK9UDwIceHGPVfwbHp",
+  "item_id": "item_EWsKJ5PEOzFx2RZ53VQ4B",
+  "content_index": 0,
+  "delta": "uprofen"
+ },
+ {
+  "type": "conversation.item.input_audio_transcription.completed",
+  "event_id": "event_EWsKLYwdCrikdYq7AHrhl",
+  "item_id": "item_EWsKJ5PEOzFx2RZ53VQ4B",
+  "content_index": 0,
+  "transcript": "And I took two tablets of ibuprofen",
+  "usage": {
+   "type": "duration",
+   "seconds": 4
+  }
+ },
+ {
+  "type": "error",
+  "event_id": "event_EWsKLEprg4bD5P3dKZUvJ",
+  "error": {
+   "type": "invalid_request_error",
+   "code": "input_audio_buffer_commit_empty",
+   "message": "Error committing input audio buffer: buffer too small. Expected at least 100ms of audio, but buffer only has 0.00ms of audio.",
+   "param": null,
+   "event_id": null
+  }
+ }
+]
