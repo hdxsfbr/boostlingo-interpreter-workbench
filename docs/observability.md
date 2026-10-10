@@ -59,3 +59,19 @@ Check what arrived: `python3 scripts/langfuse/count.py --since <UTC ISO>`; rende
 - **Transcripts are sent by default** (`send_text: true`) because this is a local test tool with synthetic or consented speech. In a real clinical setting the transcripts are PHI.
 - Before tracing real patient conversations you would need, at least: a **BAA** with the observability vendor (or **self-host** Langfuse inside your own boundary), **redaction** of identifiers before sending (or `send_text: false`), and a **retention** limit configured in Langfuse that matches your policy. Also restrict who has access to the Langfuse project.
 - Keys are secrets: keep them in files or a secret store, never in `app.yaml` or git.
+
+## Charts from Langfuse
+
+`make langfuse-charts SINCE=<UTC ISO>` runs `scripts/langfuse/charts.py`. The script is read-only and takes the keys from `~/.config/agentforge/`. It writes these PNGs to `docs/images/langfuse/charts/`:
+
+| File | What it shows |
+|---|---|
+| `latency-p50-p90-by-setup.png` | Headline H (speech end to the first audio of the last sentence, A21), p50 and p90 per setup |
+| `cascade-stage-breakdown.png` | Median STT final, MT 1st token, TTS 1st byte and audio sent after speech end, per cascade setup (early/speculative stages excluded) |
+| `cost-by-setup.png` | Estimated cost per turn and per minute of speech (realtime includes the side transcription) |
+| `quality-vs-latency.png` | Experiment traces: chrF and source WER against headline H, per setup |
+| `latency-drift-in-session.png` | H turn by turn in the longest sessions (drift check) |
+| `latency-by-setup-and-pair.png` | H distribution by setup × language pair (EN-ES, EN-FR) |
+
+Each chart's footer names its source (the Langfuse public API), n and the date. The live numbers are the same as the Latency card: they come from the per-turn span metadata.
+The committed set comes from a local run on 2026-10-10. It is small (a few to a few dozen turns per setup), so read it as an illustration, not as a benchmark. M5 remains the benchmark.

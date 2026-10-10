@@ -6,7 +6,7 @@ export GID := $(shell id -g)
 # A13: stamped into the image so experiments record the code they ran
 export GIT_COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
 
-.PHONY: up up-langfuse down logs env test test-docker dev-backend dev-frontend health fixtures
+.PHONY: langfuse-charts up up-langfuse down logs env test test-docker dev-backend dev-frontend health fixtures
 
 ## One setup command: write .env from key files, build, start, wait for health.
 up: env
@@ -52,3 +52,6 @@ dev-frontend:
 ## Benchmark fixtures (OpenAI TTS, non-pipeline voices) -> data/fixtures/*.wav (gitignored; skips existing files).
 fixtures:
 	set -a && source .env && set +a && backend/.venv/bin/python scripts/make_fixtures.py
+
+langfuse-charts:  ## A20: regenerate docs/images/langfuse/charts from the Langfuse API (SINCE=<UTC ISO>)
+	python3 scripts/langfuse/charts.py --since $${SINCE:-2026-10-10T20:00:00Z}

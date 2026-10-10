@@ -23,14 +23,15 @@ def _auth() -> str:
 def get(path: str, **params) -> dict:
     q = urllib.parse.urlencode({k: v for k, v in params.items() if v is not None}, doseq=True)
     req = urllib.request.Request(f"{HOST}{path}{'?' + q if q else ''}", headers={"Authorization": _auth()})
-    for attempt in range(6):
+    for attempt in range(9):
         try:
             with urllib.request.urlopen(req, timeout=20) as r:
                 return json.loads(r.read())
         except urllib.error.HTTPError as e:
-            if e.code != 429 or attempt == 5:
+            if e.code not in (429, 502, 503) or attempt == 8:
                 raise
-            time.sleep(2 ** attempt)
+            ra = e.headers.get("Retry-After", "")
+            time.sleep(float(ra) if ra.isdigit() else min(60, 2 ** (attempt + 1)))
 
 
 def all_pages(path: str, **params) -> list[dict]:
