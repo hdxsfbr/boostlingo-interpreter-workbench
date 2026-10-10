@@ -1,4 +1,4 @@
-import { earlyReason, isEarly, LIMIT_MS, stageMs, TARGET_MS } from "../store/metrics";
+import { earlyReason, isEarly, isSplit, LIMIT_MS, responseMs, stageMs, TARGET_MS } from "../store/metrics";
 import type { TurnView } from "../store/reducer";
 import { Term } from "./Term";
 
@@ -18,6 +18,7 @@ export const LABEL: Record<string, string> = {
   audio_first_sent: "audio sent",
   tail_tts_first_byte: "last seg TTS 1st",
   first_audible: "first audible",
+  last_sentence_audible: "last sentence audible",
 };
 
 export const beforeSpeechEnd = (ms: number) =>
@@ -33,11 +34,15 @@ export function LatencyWaterfall({ turn }: { turn: TurnView }) {
     const v = stageMs(turn, m);
     if (v !== undefined) rows.push({ key: m, ms: v, est: true });
   }
-  if (turn.latencyMs !== undefined) rows.push({ key: "first_audible", ms: turn.latencyMs, est: false, head: true });
+  // A21: on a split turn the headline is the last sentence's first audio; first audible is a secondary row
+  const split = isSplit(turn);
+  if (turn.latencyMs !== undefined) rows.push({ key: "first_audible", ms: turn.latencyMs, est: false, head: !split });
+  const resp = responseMs(turn);
+  if (split && resp !== undefined) rows.push({ key: "last_sentence_audible", ms: resp, est: resp !== turn.latencyMs, head: true });
   const limit = LIMIT_MS[turn.mode];
   const scale = Math.max(limit, ...rows.map((r) => r.ms)) * 1.05;
   const pct = (ms: number) => `${Math.max(0, (ms / scale) * 100)}%`;
-  const h = turn.latencyMs;
+  const h = resp;
   const verdict = h === undefined ? "" : h <= TARGET_MS[turn.mode] ? "ok" : h <= limit ? "warn" : "bad";
   const why = earlyReason(turn);
   return (
