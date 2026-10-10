@@ -186,6 +186,11 @@ This repo is built by an agentic coding assistant (Grok Bot executor agents) dir
   - Colours only via `/brand/tokens.css` variables; `src/theme.test.ts` is the literal grep plus a WCAG contrast check. Add a colour by adding a token (and a contrast pair) first.
   - `python -m eval.screenshots [--chrome PATH]` regenerates `docs/design/redress/relay/after/` (3 cascade turns, about a cent). On hdx-lab the venv's Playwright expects a newer headless shell, so pass `--chrome ~/.cache/ms-playwright/chromium-1181/chrome-linux/chrome`.
   - Agent finding: putting the SPEAKING label on its own line made the held card taller and shifted the page on every press; it is inline now.
+- **Langfuse (A20, branch `feat/langfuse` only; not on main or Railway):**
+  - Keys: `~/.config/agentforge/langfuse_public_key` / `langfuse_secret_key` (pk-lf / sk-lf). They are **Langfuse Cloud US** keys (`https://us.cloud.langfuse.com`, EU returns 401). There is no host file and no local Langfuse.
+  - `make up-langfuse` = the app with tracing (file secrets overlay). `make up` = untraced main config.
+  - `scripts/langfuse/count.py --since <UTC>` counts what arrived. `render_trace.py <id> out.png` draws one trace (the UI needs a user login, so we render from the API). The public API rate-limits fast pagination (429); `lf_api.get` backs off.
+  - The trace is built from the browser turn record, so it inherits the record's clocks. Server marks are commit-anchored estimates and can land after `first_audible` (e.g. `stt_final`), just as in the Latency card.
 - **Latency card + Docs tab (A18, A19):**
   - Negative stage values were not a clock bug: on multi-segment cascade turns the "first" MT/TTS marks belong to an earlier segment processed while the speaker was still talking (measured −3.2 s to −7.5 s vs commit on es-m01/en-l01). They are now "early … before speech end", and stage stats are on the speech-end clock with an early count.
   - `python -m eval.screenshots_a18 [--chrome PATH]` makes the tooltip / latency / Docs screenshots in `docs/design/redress/relay/after/a18-a19/` and prints each turn's marks.
