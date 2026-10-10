@@ -57,7 +57,7 @@ The detail view shows the code version, the model ids, and a table per setup:
 | n / done | Turns planned / completed |
 | H p50, H p90 | Delay from speech end to first audio, typical and slower case (ms) |
 | H−gap p50, H−gap p90 | The same with the 0.45 s button-release pause subtracted |
-| tail p50 | Typical delay to the *last* sentence's audio on multi-sentence turns |
+| tail p50 | Cascade only: the server's estimate of when audio for the turn's final sentence started (typical; excludes network and playback) |
 | chrF en→es, es→en, all | Translation score per direction and overall (0–100, higher is better) |
 | WER en, WER es | Speech-to-text word error rate per language (lower is better) |
 | $/min, $ total | Cost per minute of speech, and in total |
