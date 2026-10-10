@@ -1,0 +1,26 @@
+# Realtime default model evidence (2026-10-10 14:20 PDT, main 53ce6f0, rebuilt Docker app)
+# Client secrets in responses replaced with [REDACTED].
+
+## config/app.yaml (realtime section)
+3:realtime:
+4-  model: gpt-realtime        # brief default (A14); gpt-realtime-mini via ?rt_model=gpt-realtime-mini, Experiments default to mini for cost
+
+## Captured from headless Chromium driving the UI (shot_live.py)
+### UI page: http://localhost:8740/  (Realtime mode, Start session)
+POST /api/realtime/session request body: {"a":"en","b":"es","turn_mode":"ptt","silence_duration_ms":400}
+HTTP 200 response: {"value": "[REDACTED]","expires_at":1791667816,"model":"gpt-realtime","turn_mode":"ptt"}
+pair-select disabled while running: True
+status at screenshot: ready · realtime
+session length ~2.1s, then Stop session
+
+### UI page: http://localhost:8740/?rt_model=gpt-realtime-mini  (Realtime mode, Start session)
+POST /api/realtime/session request body: {"a":"en","b":"es","turn_mode":"ptt","silence_duration_ms":400,"model":"gpt-realtime-mini"}
+HTTP 200 response: {"value": "[REDACTED]","expires_at":1791667818,"model":"gpt-realtime-mini","turn_mode":"ptt"}
+pair-select disabled while running: True
+session length ~0.0s, then Stop session
+
+## Server access log lines (docker compose logs app; the app logs no model field, so the model proof is the mint response above)
+app-1  | INFO:     192.168.128.1:53880 - "POST /api/realtime/session HTTP/1.1" 200 OK
+app-1  | INFO:     192.168.128.1:46394 - "POST /api/realtime/session HTTP/1.1" 200 OK
+app-1  | INFO:     192.168.128.1:46394 - "GET /?rt_model=gpt-realtime-mini HTTP/1.1" 200 OK
+app-1  | INFO:     192.168.128.1:46384 - "POST /api/realtime/session HTTP/1.1" 200 OK
