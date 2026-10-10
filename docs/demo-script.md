@@ -1,7 +1,7 @@
 # Demo video script: Interpreter Workbench
 
 Target **3:00**, hard max **4:00**. Built for the Boostlingo AI Interpreter assignment; not a Boostlingo product.
-Narration: first person (Andre), about **455 words ≈ 3:00 at 150 wpm**. Live audio playback adds roughly 15–25 s, so expect 3:15–3:30 total.
+Narration: first person (Andre), about **385 words ≈ 2:35 at 150 wpm**. The four live turns plus playback add roughly 25–35 s, so expect about 3:00–3:10 total.
 All numbers come from [comparison.md](comparison.md) and [KEY_METRICS.md](KEY_METRICS.md) (M5 runs, 8 Oct 2026).
 
 ## Before you hit record
@@ -60,13 +60,4 @@ All numbers come from [comparison.md](comparison.md) and [KEY_METRICS.md](KEY_ME
 
 ## Word count
 
-| Scene | Words |
-|---|---|
-| 1 | 62 |
-| 2 | 60 |
-| 3 | 72 |
-| 4 | 75 |
-| 5 | 94 |
-| 6 | 44 |
-| 7 | 33 |
-| **Total** | **~440 words ≈ 2:56 narration**, plus ~15–25 s of live audio |
+Narration only (excluding the four demo lines): **~385 words ≈ 2:35 at 150 wpm**. Live turns and playback: ~25–35 s. **Expected total: ~3:00–3:10** (well under the 4:00 max). If running long, trim scene 5's recording sentence first.
