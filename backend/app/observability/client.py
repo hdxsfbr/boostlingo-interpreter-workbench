@@ -44,6 +44,8 @@ class LangfuseConfig:
     timeout_s: float = 3.0
     release: str = "unknown"  # git commit
     project_id: str = ""  # only for building UI links in logs/docs
+    retention_days: int = 0  # >0: a daily sweep deletes this app's traces older than this (public API)
+    retry_backoff_s: float = 0.5  # one retry on 429/5xx/timeouts, then drop
 
     @property
     def ready(self) -> bool:
@@ -57,6 +59,8 @@ class Stats:
     dropped_full: int = 0
     dropped_error: int = 0
     rejected: int = 0  # 207 per-event errors from Langfuse
+    retried: int = 0
+    deleted: int = 0  # scores/traces deleted (review deletes, retention)
     flushes: int = 0
     last_error: str = ""
     errors: list[str] = field(default_factory=list)
@@ -66,6 +70,8 @@ class Langfuse:
     def __init__(self, cfg: LangfuseConfig, transport: httpx.AsyncBaseTransport | None = None):
         self.cfg = cfg
         self.q: deque[dict] = deque()
+        self.deletes: deque[str] = deque()  # API paths to DELETE (best effort)
+        self._last_sweep = 0.0
         self.stats = Stats()
         self._transport = transport
         self._task: asyncio.Task | None = None
@@ -91,6 +97,19 @@ class Langfuse:
                     self._loop.call_soon_threadsafe(self._wake.set)
         except Exception:  # noqa: BLE001 - tracing must never break the caller
             self.stats.dropped_error += 1
+
+    def delete(self, path: str) -> None:
+        """Queue a best-effort DELETE (e.g. /api/public/scores/<id>); never blocks or raises."""
+        if self.enabled and len(self.deletes) < self.cfg.max_queue:
+            self.deletes.append(path)
+
+    def status(self) -> dict:
+        """For the protected /api/health (no secrets)."""
+        s = self.stats
+        return {"enabled": self.enabled, "configured": self.cfg.enabled, "host": self.cfg.host if self.cfg.enabled else None,
+                "send_text": self.cfg.send_text, "retention_days": self.cfg.retention_days, "queued_now": len(self.q),
+                "queued": s.queued, "sent": s.sent, "retried": s.retried, "rejected": s.rejected,
+                "dropped": s.dropped_full + s.dropped_error, "deleted": s.deleted, "last_error": s.last_error or None}
 
     def text(self, s: str | None) -> str | None:
         return s if self.cfg.send_text else None
@@ -126,17 +145,17 @@ class Langfuse:
                 await asyncio.wait_for(self._wake.wait(), self.cfg.flush_interval_s)
             self._wake.clear()
             await self.flush()
+            await self.run_deletes()
+            if self.cfg.retention_days > 0 and time.time() - self._last_sweep > 24 * 3600:
+                self._last_sweep = time.time()
+                await self.sweep()
 
     async def flush(self) -> None:
         while self.q:
             batch = [self.q.popleft() for _ in range(min(self.cfg.max_batch, len(self.q)))]
             try:
-                # hard deadline on top of httpx's timeouts (a stalled host can't hold the flusher)
-                r = await asyncio.wait_for(self._client.post("/api/public/ingestion", json={"batch": batch}),
-                                           self.cfg.timeout_s + 0.5)
+                r = await self._call("POST", "/api/public/ingestion", json={"batch": batch})
                 self.stats.flushes += 1
-                if r.status_code >= 400:
-                    raise httpx.HTTPStatusError(f"HTTP {r.status_code}", request=r.request, response=r)
                 errs = (r.json() or {}).get("errors") or [] if r.status_code == 207 else []
                 self.stats.rejected += len(errs)
                 self.stats.sent += len(batch) - len(errs)
@@ -147,11 +166,57 @@ class Langfuse:
                 self._warn(f"{type(e).__name__}: {str(e)[:120]}")
                 return  # don't hammer a dead host; the rest waits for the next tick
 
+    async def _call(self, method: str, path: str, **kw) -> httpx.Response:
+        """One request with ONE retry on 429/5xx/transport errors (backoff, honours a short Retry-After)."""
+        for attempt in (0, 1):
+            try:
+                # hard deadline on top of httpx's timeouts (a stalled host can't hold the flusher)
+                r = await asyncio.wait_for(self._client.request(method, path, **kw), self.cfg.timeout_s + 0.5)
+                if r.status_code == 429 or r.status_code >= 500:
+                    raise httpx.HTTPStatusError(f"HTTP {r.status_code}", request=r.request, response=r)
+                if r.status_code >= 400:
+                    raise _Fatal(f"HTTP {r.status_code}")
+                return r
+            except (TimeoutError, httpx.HTTPError) as e:
+                if attempt:
+                    raise
+                self.stats.retried += 1
+                ra = getattr(getattr(e, "response", None), "headers", {}).get("retry-after", "")
+                await asyncio.sleep(min(float(ra), 2.0) if ra.replace(".", "", 1).isdigit() else self.cfg.retry_backoff_s)
+        raise AssertionError("unreachable")
+
+    async def run_deletes(self) -> None:
+        while self.deletes:
+            path = self.deletes.popleft()
+            try:
+                await self._call("DELETE", path)
+                self.stats.deleted += 1
+            except Exception as e:  # noqa: BLE001 - best effort
+                self._warn(f"delete {path.rsplit('/', 1)[-1]}: {type(e).__name__}")
+
+    async def sweep(self) -> None:
+        """Retention: delete traces older than retention_days (project-wide; best effort, bounded)."""
+        cutoff = iso(time.time() - self.cfg.retention_days * 86400)
+        try:
+            for _ in range(10):  # at most 10 x 100 traces per sweep
+                r = await self._call("GET", "/api/public/traces", params={"toTimestamp": cutoff, "limit": 100})
+                ids = [t["id"] for t in (r.json() or {}).get("data", [])]
+                if not ids:
+                    return
+                await self._call("DELETE", "/api/public/traces", json={"traceIds": ids})
+                self.stats.deleted += len(ids)
+        except Exception as e:  # noqa: BLE001
+            self._warn(f"retention sweep: {type(e).__name__}")
+
     def _warn(self, msg: str) -> None:
         self.stats.last_error = msg
         if time.monotonic() - self._last_log > 60:
             self._last_log = time.monotonic()
             log.warning("Langfuse: %s (dropped so far: %d)", msg, self.stats.dropped_error)
+
+
+class _Fatal(Exception):
+    """A 4xx other than 429: not retried."""
 
 
 _INSTANCE: Langfuse | None = None

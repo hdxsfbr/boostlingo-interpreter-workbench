@@ -72,7 +72,7 @@ export function summarize(turns: TurnView[], mode: Mode, window = 50) {
 
 export type TurnRecord = {
   turn_id: number; mode: Mode; speaker: string; src: string; tgt: string; status: string; reason?: string;
-  latency_ms?: number; response_ms?: number; browser_marks: Record<string, number>; server_marks: Record<string, number>;
+  latency_ms?: number; response_ms?: number; speech_ms?: number; browser_marks: Record<string, number>; server_marks: Record<string, number>;
   source_text: string; target_text: string; usage?: Record<string, unknown>;
   recording?: Record<string, string>;
 };
@@ -81,7 +81,8 @@ export function toRecord(t: TurnView): TurnRecord {
   const txt = (segs: TurnView["source"]) => Object.keys(segs).map(Number).sort((a, b) => a - b).map((k) => segs[k].text).join(" ").trim();
   return {
     turn_id: t.id, mode: t.mode, speaker: t.speaker, src: t.src, tgt: t.tgt, status: t.status, reason: t.reason,
-    latency_ms: t.latencyMs, response_ms: responseMs(t), browser_marks: t.browserMarks, server_marks: t.serverMarks,
+    latency_ms: t.latencyMs, response_ms: responseMs(t),
+    speech_ms: t.tSpeechEnd !== undefined ? Math.round(t.tSpeechEnd - t.startedAt) : undefined, browser_marks: t.browserMarks, server_marks: t.serverMarks,
     source_text: txt(t.source), target_text: txt(t.target), usage: t.usage,
     ...(t.recording ? { recording: t.recording } : {}),
   };

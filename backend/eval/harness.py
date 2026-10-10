@@ -25,6 +25,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import os
 import statistics
 import subprocess
 import time
@@ -274,6 +275,8 @@ async def run(a: argparse.Namespace) -> list[dict]:
         q += "".join(f"&{k}={v}" for k, v in (("mt", a.mt), ("tts", a.tts), ("min_seg_ms", a.min_seg_ms),
                                                ("rt_model", a.rt_model), ("pipeline", a.pipeline))
                      if v is not None)
+        if os.environ.get("WB_EXPERIMENT_ID"):  # A20: link this run's session turns to the experiment (tracing)
+            q += f"&exp={os.environ['WB_EXPERIMENT_ID']}"
         if a.session_record:
             q += "&record=1"  # A11: tick "Record session" (server must have recording.enabled)
         await page.goto(f"{a.url}/?{q}")

@@ -75,8 +75,8 @@ def test_cascade_turn_tree_matches_ui_numbers():
     assert all(g["costDetails"]["total"] > 0 for g in gens.values())
     assert all(g["parentObservationId"] == turn["id"] and g["traceId"] == tr["id"] for g in gens.values())
     assert any(s["name"] == "playback" for s in by_type(l, "span-create"))
-    (h,) = by_type(l, "score-create")
-    assert h["name"] == "H_ms" and h["value"] == 709.2
+    sc = {s["name"]: s["value"] for s in by_type(l, "score-create")}
+    assert sc == {"H_ms": 709.2, "first_audible_ms": 709.2}  # no response_ms in this record: headline = first audible
     # deterministic session trace id: later turns upsert the same trace
     l2 = lf()
     traces.turn_events(l2, "2026-10-10T01-26-17-474Z-7xb90", {**CASCADE, "turn_id": 4}, META)
@@ -189,7 +189,7 @@ def test_experiment_rows_become_traces_with_scores():
     assert tr["sessionId"] == "exp-e1" and "experiment:e1" in tr["tags"] and "setup:cascade-openai" in tr["tags"]
     assert tr["metadata"]["prompt_version"] and tr["metadata"]["config"] == {"passes": 1}
     assert {s["name"]: s["value"] for s in by_type(l, "score-create")} == {
-        "H_ms": 1200.5, "H_minus_lag_ms": 750.5, "src_wer": 0.0, "chrF": 71.2, "cost_usd": 0.0008}
+        "H_ms": 1200.5, "first_audible_ms": 1200.5, "H_minus_lag_ms": 750.5, "src_wer": 0.0, "chrF": 71.2, "cost_usd": 0.0008}
 
 
 def test_review_rating_becomes_human_scores():
@@ -199,3 +199,145 @@ def test_review_rating_becomes_human_scores():
     traces.review_events(l, "m5", item, "andre", {"accuracy": 5, "naturalness": 4, "overall": None}, "good")
     assert {s["name"]: s["value"] for s in by_type(l, "score-create")} == {"human_accuracy": 5.0, "human_naturalness": 4.0}
     assert "/x.ogg" not in json.dumps(list(l.q))
+
+
+
+# ----- pre-merge list (A20)
+def test_split_turn_scores_headline_and_first_audible_separately():
+    l = lf()
+    traces.turn_events(l, "s", {**CASCADE, "latency_ms": 510.0, "response_ms": 1707.0}, META)
+    assert {s["name"]: s["value"] for s in by_type(l, "score-create")} == {"H_ms": 1707.0, "first_audible_ms": 510.0}
+
+
+def test_realtime_cost_includes_side_transcription():
+    l = lf()
+    traces.turn_events(l, "s", {**REALTIME, "speech_ms": 6000}, {"providers": {"realtime": "gpt-realtime-mini"}})
+    (g,) = by_type(l, "generation-create")
+    side = g["metadata"]["side_transcription_usd"]
+    assert side == pytest.approx(6 / 60 * 0.006, abs=1e-6)
+    turn = next(s for s in by_type(l, "span-create") if "parentObservationId" not in s)
+    assert turn["metadata"]["cost_usd"] == pytest.approx(g["costDetails"]["total"] + side, abs=1e-6)
+
+
+def test_experiment_session_turns_are_tagged():
+    l = lf()
+    traces.turn_events(l, "s", CASCADE, {**META, "harness": True, "experiment": "exp-1"})
+    (tr,) = by_type(l, "trace-create")
+    assert "experiment:exp-1" in tr["tags"] and tr["metadata"]["experiment"] == "exp-1"
+
+
+def test_shared_pricing_matches_the_m5_row_cost():
+    from app.core import pricing
+    from eval import metrics
+    r = {"usage": [{"stt_audio_s": 3, "mt_input_tokens": 300, "mt_output_tokens": 20, "tts_chars": 40, "tts_audio_s": 2.5}]}
+    assert metrics.row_cost(r, metrics.PROFILES["cascade-openai"]) == pricing.row_cost(r, metrics.PROFILES["cascade-openai"]) > 0
+    rt = {"usage": [REALTIME["usage"]], "speech_s": 6}
+    assert pricing.row_cost(rt, metrics.PROFILES["realtime-mini"]) == pytest.approx(
+        pricing.realtime_cost(REALTIME["usage"]["realtime"], "gpt-realtime-mini") + 6 / 60 * 0.006)
+
+
+def _run(l, handler):
+    async def go():
+        l._transport = httpx.MockTransport(handler)
+        l.cfg.retry_backoff_s = 0.01
+        await l.start()
+        await l.flush()
+        await l.run_deletes()
+        await l.stop()
+    asyncio.run(go())
+
+
+def test_one_retry_on_429_then_success():
+    calls = []
+
+    def handler(req):
+        calls.append(req)
+        return httpx.Response(429 if len(calls) == 1 else 207, json={"successes": [], "errors": []})
+    l = lf()
+    l.emit("trace-create", {"id": "x"})
+    _run(l, handler)
+    assert len(calls) == 2 and l.stats.retried == 1 and l.stats.sent == 1 and l.stats.dropped_error == 0
+
+
+def test_5xx_twice_drops_and_400_is_not_retried():
+    calls = []
+
+    def h500(req):
+        calls.append(req)
+        return httpx.Response(503)
+    l = lf()
+    l.emit("trace-create", {"id": "x"})
+    _run(l, h500)
+    assert len(calls) == 2 and l.stats.dropped_error == 1
+    calls.clear()
+
+    def h400(req):
+        calls.append(req)
+        return httpx.Response(400)
+    l2 = lf()
+    l2.emit("trace-create", {"id": "x"})
+    _run(l2, h400)
+    assert len(calls) == 1 and l2.stats.dropped_error == 1 and l2.stats.retried == 0
+
+
+def test_deleting_review_ratings_deletes_their_langfuse_scores(app_with):
+    inst = app_with(httpx.MockTransport(lambda r: httpx.Response(204)))
+    with TestClient(create_app()) as c:
+        sets = c.get("/api/review/sets").json()
+        if not sets:
+            pytest.skip("no review set in this environment")
+        sid = sets[0]["id"]
+        item = c.get(f"/api/review/sets/{sid}", params={"rater": "lf-test"}).json()["items"][0]["item_id"]
+        assert c.put(f"/api/review/sets/{sid}/items/{item}/rating", json={"rater": "lf-test", "adequacy": 4}).status_code == 200
+        inst.deletes.clear()
+        assert c.delete(f"/api/review/sets/{sid}/ratings", params={"rater": "lf-test"}).json()["deleted"] == 1
+        expect = {f"/api/public/scores/{x}" for x in traces.review_score_ids(sid, item, "lf-test", ["adequacy", "fluency", "naturalness"])}
+        queued = set(inst.deletes)
+        time.sleep(0.3)  # the flusher runs the deletes
+    assert expect == queued or inst.stats.deleted >= 1
+    assert all(p.startswith("/api/public/scores/") for p in expect)
+
+
+def test_health_reports_tracing_status_without_secrets(app_with):
+    inst = app_with(httpx.MockTransport(lambda r: httpx.Response(207, json={"successes": [], "errors": []})))
+    with TestClient(create_app()) as c:
+        t = c.get("/api/health").json()["tracing"]["langfuse"]
+    assert t["enabled"] is True and {"sent", "dropped", "queued", "retried"} <= set(t)
+    assert "sk-lf" not in json.dumps(t) and "pk-lf" not in json.dumps(t)
+    set_langfuse(None)
+    get_settings.cache_clear()
+    with TestClient(create_app()) as c:
+        assert c.get("/api/health").json()["tracing"]["langfuse"]["enabled"] is False
+    assert inst
+
+
+def test_hosted_defaults_send_text_off(monkeypatch):
+    monkeypatch.setenv("RAILWAY_ENVIRONMENT", "production")
+    get_settings.cache_clear()
+    assert get_settings().langfuse_config().send_text is False
+    monkeypatch.setenv("LANGFUSE_SEND_TEXT", "1")
+    get_settings.cache_clear()
+    assert get_settings().langfuse_config().send_text is True
+    monkeypatch.delenv("RAILWAY_ENVIRONMENT")
+    monkeypatch.delenv("LANGFUSE_SEND_TEXT")
+    get_settings.cache_clear()
+    assert get_settings().langfuse_config().send_text is True  # local default
+
+
+def test_retention_sweep_deletes_old_traces():
+    calls = []
+
+    def handler(req):
+        calls.append((req.method, req.url.path))
+        if req.method == "GET":
+            return httpx.Response(200, json={"data": [{"id": "a"}, {"id": "b"}]} if len(calls) == 1 else {"data": []})
+        return httpx.Response(200, json={})
+    l = lf(retention_days=30)
+
+    async def go():
+        l._transport = httpx.MockTransport(handler)
+        await l.start()
+        await l.sweep()
+        await l.stop()
+    asyncio.run(go())
+    assert ("DELETE", "/api/public/traces") in calls and l.stats.deleted == 2

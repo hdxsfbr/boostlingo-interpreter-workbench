@@ -150,10 +150,19 @@ class Settings(BaseSettings):
             host=str(pick(self.langfuse_host, "host", "https://us.cloud.langfuse.com")),
             public_key=secret(self.langfuse_public_key, self.langfuse_public_key_file),
             secret_key=secret(self.langfuse_secret_key, self.langfuse_secret_key_file),
-            send_text=bool(pick(self.langfuse_send_text, "send_text", True)),
+            # hosted (Railway sets PORT / RAILWAY_*): transcripts off unless LANGFUSE_SEND_TEXT says otherwise
+            send_text=bool(self.langfuse_send_text if self.langfuse_send_text is not None
+                           else (False if hosted() else c.get("send_text", True))),
+            retention_days=int(c.get("retention_days", 0) or 0),
             flush_interval_s=float(c.get("flush_interval_s", 2.0)), max_batch=int(c.get("max_batch", 50)),
             max_queue=int(c.get("max_queue", 2000)), timeout_s=float(c.get("timeout_s", 3.0)),
             release=self.git_commit, project_id=str(c.get("project_id", "")))
+
+
+def hosted() -> bool:
+    import os
+    # PORT is set by the platform (our compose file does not set it); RAILWAY_HOME alone is just the CLI
+    return "PORT" in os.environ or any(k in os.environ for k in ("RAILWAY_ENVIRONMENT", "RAILWAY_PROJECT_ID", "RAILWAY_SERVICE_ID"))
 
 
 @lru_cache

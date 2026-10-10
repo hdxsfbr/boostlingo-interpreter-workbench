@@ -17,7 +17,8 @@ export function useTurnSink(state: State): void {
           session_id: SESSION_ID, record: toRecord(t), user_agent: navigator.userAgent,
           // A20: context for optional server-side tracing (Langfuse); not written to the JSONL log
           meta: { providers: state.providers, pipeline: state.pipeline, pair: `${t.src}-${t.tgt}`,
-                  harness: new URLSearchParams(location.search).get("source") === "file" },
+                  harness: new URLSearchParams(location.search).get("source") === "file",
+                  experiment: new URLSearchParams(location.search).get("exp") ?? undefined },
         }),
       }).catch(() => {});
     }

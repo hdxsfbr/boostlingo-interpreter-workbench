@@ -178,7 +178,8 @@ class ExperimentRunner:
                     proc = await asyncio.create_subprocess_exec(
                         *self.command(setup, ids, cfg, out, self.url), cwd=str(BACKEND_DIR), stdout=logf,
                         stderr=asyncio.subprocess.STDOUT, start_new_session=True,
-                        env={**os.environ, "HOME": os.environ.get("HOME") or "/tmp", "PYTHONUNBUFFERED": "1"})
+                        env={**os.environ, "HOME": os.environ.get("HOME") or "/tmp", "PYTHONUNBUFFERED": "1",
+                             "WB_EXPERIMENT_ID": exp_id})  # A20: the harness tags its session turns with it
                     cur["proc"] = proc
                     pos, seen = 0, 0
                     while True:

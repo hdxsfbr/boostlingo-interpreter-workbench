@@ -14,7 +14,7 @@ from pydantic import BaseModel, Field
 
 from app.core.config import get_settings
 from app.observability.client import get_langfuse
-from app.observability.traces import review_events
+from app.observability.traces import review_events, review_score_ids
 from app.review import results as res
 from app.review import sources
 from app.review.store import DIMS, MAX_NOTES, ReviewError, ReviewStore, norm_rater
@@ -189,7 +189,10 @@ def delete_ratings(set_id: str, rater: str) -> dict:
     st = get_review_store()
     try:
         st.get_set(set_id)
-        return {"deleted": st.delete_ratings(set_id, _rater(rater))}
+        mine = [x["item_id"] for x in st.ratings(set_id, _rater(rater))]
+        n = st.delete_ratings(set_id, _rater(rater))
+        _untrace_ratings(set_id, mine, _rater(rater))
+        return {"deleted": n}
     except ReviewError as e:
         raise _err(e) from e
 
@@ -227,3 +230,13 @@ def _trace_rating(st, set_id: str, item_id: str, body: RatingIn) -> None:
                       {d: getattr(body, d) for d in DIMS}, body.notes)
     except Exception:  # noqa: BLE001 - tracing is fail-open
         lf.stats.dropped_error += 1
+
+
+def _untrace_ratings(set_id: str, item_ids: list[str], rater: str) -> None:
+    """A20: delete the matching Langfuse human_* scores (queued, best effort, fail-open)."""
+    lf = get_langfuse()
+    if not lf.enabled:
+        return
+    for item in item_ids:
+        for sid in review_score_ids(set_id, item, rater, list(DIMS)):
+            lf.delete(f"/api/public/scores/{sid}")

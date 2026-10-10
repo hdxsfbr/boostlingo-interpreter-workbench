@@ -25,6 +25,17 @@ Not traced: the audio pipeline itself. The server never calls Langfuse while a t
 - If Langfuse is down, slow or rejects events, batches are dropped and counted; a warning is logged at most once a minute. A full queue (`max_queue` 2000) drops new events. The app keeps working (tested with an unreachable host and a stalled one).
 - Measured: no latency impact (see `docs/benchmarks/results/langfuse-ab/summary.md`).
 
+## Reliability and housekeeping
+
+- **One retry** on 429, 5xx or a timeout (0.5 s backoff, or a short `Retry-After`), then the batch is dropped. Other 4xx errors are not retried.
+- **Review deletes:** deleting a rater's ratings in the Review tab also deletes their `human_*` scores in Langfuse. Score ids are deterministic, and the deletes are queued, best effort and fail-open.
+- **Status:** the protected `/api/health` reports `tracing.langfuse` with `enabled`, host, `send_text`, `retention_days` and the counts `queued`, `sent`, `retried`, `rejected`, `dropped` and `deleted`. No keys.
+- **Retention:** `retention_days` (default 30) runs a daily sweep that deletes traces older than that through the public API. The sweep is **project-wide**, so give this app its own Langfuse project. Also set retention in Langfuse itself where your plan allows it.
+- **Hosted default:** when `PORT` or `RAILWAY_ENVIRONMENT/PROJECT_ID/SERVICE_ID` is set, `send_text` defaults to **off** unless `LANGFUSE_SEND_TEXT` says otherwise. Production (Railway) runs with tracing **disabled**.
+- **Experiments:** the harness that an Experiment launches tags its own session traces with `experiment:<id>`, so they link to that experiment's per-utterance traces (`sessionId exp-<id>`).
+- **Cost:** a single pricing module (`backend/app/core/pricing.py`) prices both the M5/Experiments rows and the live per-stage costs. Realtime cost includes the side transcription (`gpt-4o-transcribe`, billed per minute of the push-to-talk hold).
+- **Scores:** `H_ms` is the headline (first audio of the last sentence, A21); `first_audible_ms` is the literal first sound.
+
 ## Configure
 
 `config/app.yaml` → `observability.langfuse` (`enabled: false`, `host`, `send_text`, batching). Env overrides:

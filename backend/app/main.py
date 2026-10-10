@@ -65,6 +65,7 @@ def create_app() -> FastAPI:
             "swaps": settings.swap_options(),
             "recording": {"enabled": get_store().cfg.enabled, "retention_days": get_store().cfg.retention_days},
             "auth": {"enabled": credentials_from_env(warn=False) is not None},
+            "tracing": {"langfuse": get_langfuse().status()},  # A20: on/off + sent/dropped counts, no secrets
         }
 
     @app.get("/auth/logged-out", include_in_schema=False)

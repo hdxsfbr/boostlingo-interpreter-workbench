@@ -19,8 +19,7 @@ import uuid
 from functools import lru_cache
 from typing import Any
 
-import yaml
-
+from app.core import pricing
 from app.observability.client import Langfuse, iso
 
 NS = uuid.UUID("6f1d2a8e-6b9e-4f7e-9a39-6c1b0f4a2b11")
@@ -28,12 +27,6 @@ NS = uuid.UUID("6f1d2a8e-6b9e-4f7e-9a39-6c1b0f4a2b11")
 
 def tid(*parts: str) -> str:
     return str(uuid.uuid5(NS, "/".join(parts)))
-
-
-@lru_cache
-def pricing() -> dict:
-    from app.core.config import get_settings
-    return yaml.safe_load((get_settings().config_dir / "pricing.yaml").read_text())
 
 
 @lru_cache
@@ -61,34 +54,8 @@ def models_for(providers: dict[str, str]) -> dict[str, str]:
     return out
 
 
-PRICE_KEY = {"eleven_flash_v2_5": "elevenlabs-flash"}
-
-
-def stage_costs(usage: dict, models: dict[str, str]) -> dict[str, float]:
-    pr = pricing()
-    p1m, out = pr["per_1m_tokens"], {}
-    if "realtime" in (usage or {}) and models.get("realtime") in p1m:
-        rt, p = usage["realtime"] or {}, p1m[models["realtime"]]
-        i, o = rt.get("input_token_details") or {}, rt.get("output_token_details") or {}
-        cd = i.get("cached_tokens_details") or {}
-        ca, ct = cd.get("audio_tokens", 0), cd.get("text_tokens", 0)
-        out["realtime"] = ((i.get("audio_tokens", 0) - ca) * p["audio_in"] + ca * p["audio_cached_in"]
-                           + (i.get("text_tokens", 0) - ct) * p["text_in"] + ct * p["text_cached_in"]
-                           + o.get("audio_tokens", 0) * p["audio_out"] + o.get("text_tokens", 0) * p["text_out"]) / 1e6
-        return out
-    if models.get("stt") in pr["per_minute"]:
-        out["stt"] = usage.get("stt_audio_s", 0) / 60 * pr["per_minute"][models["stt"]]
-    if models.get("mt") in p1m:
-        pm = p1m[models["mt"]]
-        out["mt"] = (usage.get("mt_input_tokens", 0) * pm["text_in"] + usage.get("mt_output_tokens", 0) * pm["text_out"]) / 1e6
-    tts = PRICE_KEY.get(models.get("tts", ""), models.get("tts", ""))
-    if tts == "elevenlabs-flash":
-        out["tts"] = usage.get("tts_chars", 0) / 1000 * pr["per_1k_chars"]["elevenlabs-flash"]
-    elif tts in p1m:
-        a, pt = pr["assumptions"], p1m[tts]
-        out["tts"] = (usage.get("tts_chars", 0) / a["chars_per_token"] * pt["text_in"]
-                      + usage.get("tts_audio_s", 0) * a["tts_audio_tokens_per_s"] * pt["audio_out"]) / 1e6
-    return out
+def stage_costs(usage: dict, models: dict[str, str], speech_s: float | None = None) -> dict[str, float]:
+    return pricing.stage_costs(usage, models, speech_s)
 
 
 def _stage(rec: dict, mark: str) -> float | None:
@@ -110,35 +77,41 @@ def turn_events(lf: Langfuse, session_id: str, rec: dict, meta: dict | None, rec
     models = models_for(providers)
     trace = tid("session", session_id)
     commit = lf.cfg.release
-    tags = [f"mode:{mode}", f"pair:{pair}", f"commit:{commit}"] + (["source:harness"] if meta.get("harness") else [])
+    exp = meta.get("experiment")
+    tags = ([f"mode:{mode}", f"pair:{pair}", f"commit:{commit}"] + (["source:harness"] if meta.get("harness") else [])
+            + ([f"experiment:{exp}"] if exp else []))
     lf.emit("trace-create", {
         "id": trace, "name": "interpreter-session", "sessionId": session_id, "timestamp": iso(now), "release": commit,
         "tags": tags, "metadata": {"mode": mode, "pair": pair, "providers": providers, "models": models,
-                                   "pipeline": meta.get("pipeline"), "prompt_version": prompt_version()}})
+                                   "pipeline": meta.get("pipeline"), "prompt_version": prompt_version(),
+                                   **({"experiment": exp} if exp else {})}})
     # anchor: the record arrives after playback; put speech end at (received - last mark)
     marks_ms = [v for v in bm.values() if isinstance(v, int | float)] + [s for m in sm if (s := _stage(rec, m)) is not None]
     t0 = now - max([0.0, *marks_ms]) / 1000 - 0.05
     at = lambda ms: iso(t0 + ms / 1000)
     span = str(uuid.uuid4())
-    H = rec.get("latency_ms")
+    H = rec.get("latency_ms")  # literal first audible (browser)
+    R = rec.get("response_ms", H)  # A21 headline: first audio of the last sentence
     usage = rec.get("usage") or {}
-    costs = stage_costs(usage, models)
+    speech_s = (rec.get("speech_ms") or 0) / 1000
+    costs = stage_costs(usage, models, speech_s)
     stage_ms = {m: round(v, 1) for m in sm if (v := _stage(rec, m)) is not None}
     lf.emit("span-create", {
         "id": span, "traceId": trace, "name": f"turn {rec.get('turn_id')} · {mode} · {rec.get('src')}→{rec.get('tgt')}",
-        "startTime": at(min([0.0, *stage_ms.values()])), "endTime": at(H if H is not None else max([0.0, *marks_ms])),
+        "startTime": at(min([0.0, *stage_ms.values()])), "endTime": at(max(x for x in (H, R, 0.0) if x is not None) if H is not None else max([0.0, *marks_ms])),
         "input": lf.text(rec.get("source_text")), "output": lf.text(rec.get("target_text")),
         "level": "DEFAULT" if rec.get("status") == "done" else "WARNING",
         "statusMessage": rec.get("reason") or rec.get("status"),
         "metadata": {"turn_id": rec.get("turn_id"), "speaker": rec.get("speaker"), "status": rec.get("status"),
-                     "latency_ms": H, "browser_marks": bm, "server_marks": sm,
+                     "latency_ms": H, "headline_ms": R, "speech_ms": rec.get("speech_ms"), "browser_marks": bm, "server_marks": sm,
                      "stage_ms_after_speech_end": stage_ms,
                      "early_stages": sorted(k for k, v in stage_ms.items() if v < 0),
                      "clock": "ms after speech end (browser); * server marks = commit_sent + server duration",
                      "cost_usd": round(sum(costs.values()), 6), "usage": usage}})
-    if H is not None:
-        lf.emit("score-create", {"id": str(uuid.uuid4()), "traceId": trace, "observationId": span, "name": "H_ms",
-                                 "value": round(H, 1), "dataType": "NUMERIC"})
+    for name, v in (("H_ms", R), ("first_audible_ms", H)):  # H_ms = the A21 headline, as in the UI
+        if v is not None:
+            lf.emit("score-create", {"id": str(uuid.uuid4()), "traceId": trace, "observationId": span, "name": name,
+                                     "value": round(v, 1), "dataType": "NUMERIC"})
 
     def gen(name: str, start: float | None, first: float | None, end: float | None, **kw: Any) -> None:
         if start is None and end is None:
@@ -158,7 +131,7 @@ def turn_events(lf: Langfuse, session_id: str, rec: dict, meta: dict | None, rec
             usageDetails={k: v for k, v in {"input": rt.get("input_tokens"), "output": rt.get("output_tokens"),
                                             "total": rt.get("total_tokens")}.items() if v is not None},
             costDetails={"total": round(costs.get("realtime", 0.0), 6)},
-            metadata={"marks": bm, "transport": providers.get("transport"), "provider": "openai"})
+            metadata={"marks": bm, "side_transcription_usd": round(costs.get("transcription", 0.0), 6), "transport": providers.get("transport"), "provider": "openai"})
         return
     s = lambda m: stage_ms.get(m)
     gen("stt", 0.0 if s("stt_final") is not None else None, None, s("stt_final"), model=models.get("stt"),
@@ -199,8 +172,9 @@ def experiment_events(lf: Langfuse, exp_id: str, name: str, setup: str, rows: li
             "metadata": {"experiment": exp_id, "experiment_name": name, "setup": setup, "models": prof,
                          "utterance": r.get("id"), "size": r.get("size"), "status": r.get("status"),
                          "prompt_version": prompt_version(), "config": config, "reference": lf.text(r.get("reference")),
-                         "H_ms": r.get("H_ms"), "H_minus_lag_ms": r.get("H_minus_lag_ms"), "cost_usd": r.get("cost_usd")}})
-        for k, v in (("H_ms", r.get("H_ms")), ("H_minus_lag_ms", r.get("H_minus_lag_ms")), ("src_wer", r.get("src_wer")),
+                         "H_ms": r.get("H_fair_ms", r.get("H_ms")), "first_audible_ms": r.get("H_ms"), "H_minus_lag_ms": r.get("H_minus_lag_ms"), "cost_usd": r.get("cost_usd")}})
+        for k, v in (("H_ms", r.get("H_fair_ms", r.get("H_ms"))), ("first_audible_ms", r.get("H_ms")),
+                     ("H_minus_lag_ms", r.get("H_fair_minus_lag_ms", r.get("H_minus_lag_ms"))), ("src_wer", r.get("src_wer")),
                      ("chrF", r.get("chrf")), ("cost_usd", r.get("cost_usd")), ("judge", r.get("judge"))):
             if isinstance(v, int | float):
                 lf.emit("score-create", {"id": str(uuid.uuid4()), "traceId": trace, "name": k, "value": round(float(v), 6),
@@ -219,3 +193,8 @@ def review_events(lf: Langfuse, set_id: str, item: dict, rater: str, scores: dic
         if v is not None:
             lf.emit("score-create", {"id": tid("review-score", trace, rater, dim), "traceId": trace, "name": f"human_{dim}",
                                      "value": float(v), "dataType": "NUMERIC", "comment": f"rater {rater}" + (f": {notes}" if notes and lf.cfg.send_text else "")})
+
+
+def review_score_ids(set_id: str, item_id: str, rater: str, dims: list[str]) -> list[str]:
+    trace = tid("review", set_id, str(item_id))
+    return [tid("review-score", trace, rater, d) for d in dims]
