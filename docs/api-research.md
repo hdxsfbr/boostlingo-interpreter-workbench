@@ -35,11 +35,11 @@
 6. **Plan for echo.**
    - Use headphones for demos and benchmarks, and keep `echoCancellation` on.
    - In Cascade mode (audio played via Web Audio, not a WebRTC remote track), also mute or gate the mic while TTS plays. Browser AEC is aimed at remote peer audio ([MDN echoCancellation](https://developer.mozilla.org/en-US/docs/Web/API/MediaTrackConstraints/echoCancellation)); how well it cancels Web Audio playback is unverified.
-7. **Expected cost per minute of interpreted speech (estimates, math in §5):**
-   - `gpt-realtime`: about $0.10, audio only, before history re-reads.
-   - `gpt-realtime-mini`: about $0.03.
+7. **Expected cost per minute of interpreted speech (pre-build estimates, now superseded by the measured numbers in §5.2):**
+   - `gpt-realtime`: about $0.10 (measured: $0.179), audio only, before history re-reads.
+   - `gpt-realtime-mini`: about $0.03 (measured: $0.052).
    - `gpt-realtime-translate`: $0.034.
-   - Cascade (`gpt-live-transcribe` + nano/Haiku + ElevenLabs Flash): about $0.05.
+   - Cascade (`gpt-live-transcribe` + nano/Haiku + ElevenLabs Flash): about $0.05 (measured: $0.059 with ElevenLabs, $0.049 all-OpenAI).
    - Keep prices in a dated config file, as the PRD requires.
 8. **Quality evaluation:**
    - STT accuracy: `jiwer` WER on Whisper-normalized text (`EnglishTextNormalizer` for EN, `BasicTextNormalizer` for ES), using a scripted set of about 20 utterances per direction.
@@ -401,6 +401,16 @@ OpenAI's latency guide recommends **streaming** ("the single most effective appr
 Uncertain: whether ElevenLabs' per-1K-character API prices depend on the subscription plan (the pricing page shows these as API prices; plan inclusion and overage rules weren't checked).
 
 ### 5.2 Per-minute estimates (show-the-math; **all estimates**)
+
+> **Superseded by measured numbers (Oct 9, 2026).** The estimates below were written before the build. Quote the measured per-minute costs instead, which are estimated from usage, not invoices. They were computed from per-run token usage priced with `config/pricing.yaml` as of Oct 8, over the 48-sentence M5 run:
+> - `gpt-realtime`: $0.179/min. This is above the estimate below, mainly because the input transcription is billed on top.
+> - `gpt-realtime-mini`: $0.052/min.
+> - Cascade, all OpenAI: $0.049/min.
+> - Cascade with Haiku via OpenRouter: $0.048/min.
+> - Cascade with ElevenLabs: $0.059/min at list price.
+>
+> See the measured cost table in the repo (CTO's M5 results) for the source of truth.
+
 Assumption A: one minute of source speech produces about one minute of translated speech. Assumption B (not sourced): about 150 spoken words/min, about 900 characters/min of Spanish/English text, and about 200 text tokens/min. Replace these with measured values.
 
 **Realtime `gpt-realtime`, audio tokens only** (token rates from the [cost guide](https://developers.openai.com/api/docs/guides/voice-latency-cost)):
