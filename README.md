@@ -155,6 +155,7 @@ STT uses `data/fixtures/en-s01.wav` (`make fixtures`). A full run costs well und
 Live: **https://workbench-production-c1ea.up.railway.app**. The user is `andre`; the password is in `~/.config/agentforge/boostlingo_app_password` on hdx-lab (mode 600).
 
 - **Password gate.** Set `APP_USERNAME` and `APP_PASSWORD` and every route asks for HTTP Basic, then uses a signed session cookie (covers WebSocket and SSE, also in Safari). Only `/healthz` is open and returns `{"status":"ok"}`. Unset = no gate (local dev); a hosted run without it logs a loud warning.
+- **Logout:** the header's **Logout** button (shown only when the gate is on) ends the session server-side and opens a "Logged out" page with a "Log in again" link. Browsers may keep the typed password cached until they restart; after logout, close the browser on shared machines.
 - **Railway setup.** Project `boostlingo-interpreter-workbench`, service `workbench`:
   - Built from the `Dockerfile` (`railway.json`). It listens on `$PORT` and Railway health-checks `/healthz`.
   - A 5 GB volume is mounted on `/data`, so sessions, Review ratings and experiments **persist across redeploys** (checked by redeploying). On a fresh volume, the blind set, Andre's 48 ratings and the M5 baseline are seeded at startup.

@@ -166,6 +166,12 @@ Decided or recorded during M4 (2026-10-08):
     - Production defaults: recording off, ElevenLabs off, `gpt-realtime`, cost confirmation kept.
     - Plan: Hobby (peak ≈ 490 MB with Chromium), about $5/month.
   - **Not done:** rate limiting and login throttling (Andre: none for now), per-user accounts.
+- **A16: Logout.**
+  - **Header button.** A Logout button appears when `/api/health` reports `auth.enabled`.
+  - **`POST /auth/logout`.** Same-origin only: an `Origin` header is required and must match, on top of SameSite=Strict, and it answers 403 otherwise. It expires `wb_session` with the same flags and revokes it server-side.
+    - Cookies are now `exp.nonce.sig`. A logout adds the nonce to a revocation set, persisted atomically to `DATA_DIR/auth_revoked.json` (pruned when entries expire), so it survives restarts.
+  - **Logged-out page.** The open, static `/auth/logged-out` page sends one request with a bogus Basic pair (user `logged-out`). The server answers 401 **without** a `WWW-Authenticate` challenge and never sets a cookie, so there is no prompt and no loop. The page then offers "Log in again" (`/`, which challenges).
+  - **Verified** with `scripts/auth_probe/logout_check.py` in Chromium and WebKit, locally and on Railway.
 
 ## 1. Transport per mode
 
