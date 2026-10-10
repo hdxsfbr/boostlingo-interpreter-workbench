@@ -170,15 +170,20 @@ class AuthGate:
             # the logout page's bogus credentials get a 401 without a challenge: replaces the
             # browser's cached Basic entry where it can, and never pops a prompt (no loop)
             return await _deny_http(send, challenge=not self.is_logout_probe(headers.get("authorization")))
-        if has_cookie:
-            return await self.app(scope, receive, send)
-        cookie = _cookie_header(self.make_cookie(), COOKIE_TTL_S, _is_https(scope, headers))
+        cookie = None if has_cookie else _cookie_header(self.make_cookie(), COOKIE_TTL_S, _is_https(scope, headers))
 
-        async def send_with_cookie(msg: dict) -> None:
+        async def send_gated(msg: dict) -> None:
             if msg["type"] == "http.response.start":
-                msg = {**msg, "headers": [*msg.get("headers", []), (b"set-cookie", cookie.encode())]}
+                hs = list(msg.get("headers", []))
+                # gated content must be revalidated through the gate: without this, browsers served
+                # index.html from heuristic cache after logout (seen on Railway, A16)
+                if not any(k.lower() == b"cache-control" for k, _ in hs):
+                    hs.append((b"cache-control", b"private, no-cache"))
+                if cookie:
+                    hs.append((b"set-cookie", cookie.encode()))
+                msg = {**msg, "headers": hs}
             await send(msg)
-        return await self.app(scope, receive, send_with_cookie)
+        return await self.app(scope, receive, send_gated)
 
 
     async def _logout(self, scope: Scope, headers: dict[str, str], raw_cookie: str | None, send: Callable) -> None:

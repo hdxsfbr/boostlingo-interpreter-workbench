@@ -215,3 +215,10 @@ def test_health_reports_gate_off_when_unset(tmp_path, monkeypatch):
     from app.main import create_app
     assert TestClient(create_app()).get("/api/health").json()["auth"] == {"enabled": False}
     get_settings.cache_clear()
+
+
+def test_gated_responses_must_be_revalidated(gated):
+    tok = _login(gated)
+    for path in ("/", "/assets/app.js", "/api/languages"):
+        r = gated.get(path, headers={"Cookie": f"{COOKIE}={tok}"})
+        assert r.status_code == 200 and "no-cache" in r.headers["cache-control"], path

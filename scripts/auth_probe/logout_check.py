@@ -38,8 +38,10 @@ async def engine(p, name: str) -> list[tuple[str, bool]]:
     for path in ("/api/health", "/api/languages", "/api/experiments"):
         out.append((f"after logout: {path} 401", await pg.evaluate(FETCH, path) == 401))
     r = await pg.goto(URL + "/")
-    out.append(("reload /: 401 with a Basic challenge (prompts again)",
-                r.status == 401 and "basic" in (await r.header_value("www-authenticate") or "").lower()))
+    hdrs = await r.all_headers()
+    challenge = hdrs.get("www-authenticate", "")
+    print(f"{name:8} info  reload status={r.status} challenge={bool(challenge)}")
+    out.append(("reload /: 401 with a Basic challenge (prompts again)", r.status == 401 and "basic" in challenge.lower()))
     replay = await ctx.request.get(URL + "/api/health", headers={"Cookie": f"wb_session={old}"})
     out.append(("old cookie replayed: 401 (revoked server-side)", replay.status == 401))
     probe = await ctx.request.get(URL + "/api/health", headers={
