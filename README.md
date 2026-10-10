@@ -1,6 +1,6 @@
 # AI Interpreter Workbench: Realtime API vs Cascade Pipeline
 
-A Gauntlet partner project for **Boostlingo**. A browser workbench that interprets a live English ↔ Spanish conversation through two architectures and measures them the same way:
+Built for the Boostlingo AI Interpreter assignment (Gauntlet partner project); not a Boostlingo product. A browser workbench that interprets a live English ↔ Spanish conversation through two architectures and measures them the same way:
 - **Realtime mode:** OpenAI Realtime API (`gpt-realtime`; `gpt-realtime-mini` in dev), voice-to-voice over browser WebRTC with an ephemeral secret minted by the backend.
 - **Cascade mode:** a streaming STT → Translation → TTS pipeline in FastAPI with swappable providers (`gpt-live-transcribe` → small OpenAI LLM → `gpt-4o-mini-tts`; Haiku / ElevenLabs as swaps).
 

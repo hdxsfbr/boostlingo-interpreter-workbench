@@ -1,6 +1,6 @@
 # Interpreter Workbench user guide
 
-The Interpreter Workbench is a testing tool from Boostlingo. It lets you hold a spoken two-language conversation through an AI interpreter and measures how fast and how well it works. It compares two ways of building that interpreter:
+The Interpreter Workbench is a testing workbench built for the Boostlingo AI Interpreter assignment (Gauntlet), not a Boostlingo product. It lets you hold a spoken two-language conversation through an AI interpreter and measures how fast and how well it works. It compares two ways of building that interpreter:
 
 - **Realtime:** one OpenAI model (`gpt-realtime`) hears the speaker and speaks the translation itself ("voice to voice").
 - **Cascade:** three services in a chain. **Speech-to-text** writes down what was said, a **translation model** translates the text, and **text-to-speech** reads the translation aloud.
