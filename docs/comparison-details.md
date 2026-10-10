@@ -39,7 +39,7 @@ Earlier tuning work is in [`m4-tuning.md`](benchmarks/m4-tuning.md) and [`m2-rea
 **Percentiles.**
 - **p50 (typical):** the median; half of the turns were faster.
 - **p90 (slower case):** 9 in 10 turns were faster. p95: 19 in 20 were faster.
-- With an even number of turns, the median is the average of the two middle values. Haiku's 1654 ms, for example, sits between 1576 and 1733 ms, because its short and long sentences behave very differently.
+- With an even number of turns, the median is the average of the two middle values. Haiku's 2060 ms, for example, sits between 2048 and 2071 ms.
 
 **Runs.**
 - Each setup ran its 48 sentences once, one setup at a time, on one lab machine (hdx-lab) on 8 Oct 2026.
@@ -65,14 +65,16 @@ All 348 turns completed with **0 failures**.
 |---|---|---|---|---|---|---|---|
 | realtime | 48 | 1002 / 1355 | 548 / 898 | 1024 | 1033 | 990 | – |
 | realtime-mini | 48 | 1013 / 1367 | 560 / 911 | 1223 | 973 | 1174 | – |
-| cascade-openai | 96 | 545 / 2030 | 83 / 1572 | 1791 | 530 | 525 | 1715 / 2149 |
-| cascade-openai-nomerge | 96 | 534 / 1943 | 77 / 1487 | 1571 | 529 | 531 | 1638 / 2114 |
-| cascade-haiku | 48 | 1654 / 2485 | 1198 / 2033 | 2287 | 819 | 520 | 2039 / 2671 |
-| cascade-elevenlabs | 12 | 528 / 1551 | 74 / 1098 | 1461 (n=4) | 527 (n=4) | 526 (n=4) | 1430 / 1560 |
+| cascade-openai | 96 | 1744 / 2196 | 1286 / 1742 | 1791 | 1750 | 1684 | 1715 / 2149 |
+| cascade-openai-nomerge | 96 | 1647 / 2143 | 1189 / 1690 | 1664 | 1647 | 1638 | 1638 / 2114 |
+| cascade-haiku | 48 | 2060 / 2671 | 1604 / 2214 | 2287 | 2042 | 1993 | 2039 / 2671 |
+| cascade-elevenlabs | 12 | 1443 / 1607 | 988 / 1154 | 1461 (n=4) | 1424 (n=4) | 1444 (n=4) | 1430 / 1560 |
 
-- **Why the cascade's overall median looks fast.** The cascade cuts a turn into pieces at the speaker's pauses and starts translating the first piece while the person is still talking. For long turns, the first piece is ready almost as soon as they stop.
-- **The fair comparison** is therefore short sentences, plus the **last-part delay**: the server's estimate of when the final piece's audio is ready, not counting the last network hop.
+- **Delay = speech end to the first audio of the last sentence (DESIGN A21).** The cascade cuts a turn into pieces at the speaker's pauses and starts translating the first piece while the person is still talking; that piece is held until they let go and is heard almost at once. On such split turns the delay is taken at the last piece's audio (the last-part estimate below), so long turns are no longer flattered.
+- **Literal first sound¹:** cascade-openai 545 / 2030 ms (medium 530, long 525), no-merge 534 / 1943, Haiku 1654 / 2485 (medium 819, long 520), ElevenLabs 528 / 1551 (system delay 83 / 1572, 77 / 1487, 1198 / 2033, 74 / 1098). On split turns that is the held first piece, mostly the 0.45 s release; Realtime is unchanged (it never splits).
+- **Last-part delay:** the server's estimate of when the final piece's audio is ready, not counting the last network hop.
 - **Short sentences at p90:** 2247 ms for cascade-openai and 2844 ms for cascade-haiku.
+¹ Before 10 Oct 2026 these literal figures were published as the headline.
 - **Brief targets:** Realtime under 1.5 s; cascade under 3 s, ideally under 2 s.
   - Both Realtime setups meet theirs at p90 for every sentence length.
   - cascade-openai meets the 2 s aim at p50 but not at p90.

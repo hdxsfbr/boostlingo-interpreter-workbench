@@ -39,7 +39,7 @@ This page explains each one in plain terms. For each it covers how this repo mea
 
 **Definition.**
 - Latency is the delay from the moment the speaker stops talking to the moment the listener first hears the translation.
-- We measure it in the browser, on one clock, the same way for both designs. The start is the last moment the microphone picks up voice; the end is the first audible sound of the translation, detected by a small audio monitor in the page's playback path.
+- We measure it in the browser, on one clock, the same way for both designs. The start is the last moment the microphone picks up voice; the end is the first audible sound of the translation's **last sentence**, detected by a small audio monitor in the page's playback path. For a cascade turn split into several sentences, the end is the server's estimate of when the last sentence's audio starts (DESIGN A21).
 - Speakers use **push-to-talk**: they hold a button while talking. The test robot lets go 0.45 s after the last word, as a person would, and every figure below includes that 0.45 s.
 
 **Percentiles.**
@@ -65,11 +65,12 @@ This page explains each one in plain terms. For each it covers how this repo mea
 |---|---|---|---|
 | realtime | 48 | 1002 / 1355 | 1024 / 1360 |
 | realtime-mini | 48 | 1013 / 1367 | 1223 / 1367 |
-| cascade-openai | 96 | 545 / 2030 | 1791 / 2247 |
-| cascade-haiku | 48 | 1654 / 2485 | 2287 / 2844 |
-| cascade-elevenlabs | 12 | 528 / 1551 | 1461 (4 turns) / 1607 |
+| cascade-openai | 96 | 1744 / 2196 | 1791 / 2247 |
+| cascade-haiku | 48 | 2060 / 2671 | 2287 / 2844 |
+| cascade-elevenlabs | 12 | 1443 / 1607 | 1461 (4 turns) / 1607 |
 
-- **The cascade's "all turns" median flatters it.** It starts translating the first sentence of a long turn while the person is still talking. Short single sentences are the fair comparison.
+- **Headline = first audio of the last sentence (DESIGN A21).** On a long turn the cascade translates the first sentence while the person is still talking and holds it until they let go, so its literal first sound comes about 0.5 s after speech end, mostly the 0.45 s release. For those split turns the figure above is when the last sentence's audio starts (server estimate, excluding ~50 ms network and playback).¹
+- ¹ Literal first audible, all turns p50 / p90: cascade-openai 545 / 2030, cascade-haiku 1654 / 2485, cascade-elevenlabs 528 / 1551 ms (published as the headline before 10 Oct 2026). Realtime and every short-sentence figure are unchanged.
 - **Recording check (8 Oct 2026, default cascade).**
   - We compared recording off and on, alternating, with 24 scored turns per arm (20 of them short).
   - Short-sentence p50 was 1785 ms off vs 1781 ms on, and p90 was 2190 vs 2077 ms.
@@ -238,7 +239,7 @@ Details are in [comparison-details.md](comparison-details.md#cost-breakdown).
 | Metric | Target | Result | Status |
 |---|---|---|---|
 | Latency, Realtime | < 1.5 s | p90 1355 ms (`gpt-realtime`), 1367 ms (mini) | Met |
-| Latency, Cascade | < 3 s; aim < 2 s | p90 2030 ms (OpenAI); short sentences p50 1791 / p90 2247 ms | Met < 3 s; partial on < 2 s |
+| Latency, Cascade | < 3 s; aim < 2 s | p90 2196 ms (OpenAI); short sentences p50 1791 / p90 2247 ms | Met < 3 s; partial on < 2 s |
 | Recording overhead | None measurable | Short-sentence p50 1785 → 1781 ms | Met |
 | Cost per minute | Reported | $0.179 Realtime; $0.052 mini; $0.048–0.059 cascade | Met (reported) |
 | WER | Reported | 0.006–0.011 English; 0.011–0.036 Spanish | Met (reported) |

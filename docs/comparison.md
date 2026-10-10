@@ -19,11 +19,11 @@
 |---|---|---|---|---|
 | Realtime, `gpt-realtime` | 1.0 s / 1.4 s | 1.0 s | 76.1 / 81.2 | $0.179 |
 | Realtime, `gpt-realtime-mini` | 1.0 s / 1.4 s | 1.2 s | 73.3 / 81.7 | $0.052 |
-| Cascade, OpenAI translator | 0.5 s* / 2.0 s | 1.8 s | 72.9 / 78.4 | $0.049 |
-| Cascade, Claude Haiku translator | 1.7 s / 2.5 s | 2.3 s | 81.3 / 83.6 | $0.048 |
-| Cascade, ElevenLabs voice (12 sentences only) | 0.5 s* / 1.6 s | 1.5 s | 64.6 / 80.7 | $0.059 |
+| Cascade, OpenAI translator | 1.7 s* / 2.2 s | 1.8 s | 72.9 / 78.4 | $0.049 |
+| Cascade, Claude Haiku translator | 2.1 s* / 2.7 s | 2.3 s | 81.3 / 83.6 | $0.048 |
+| Cascade, ElevenLabs voice (12 sentences only) | 1.4 s* / 1.6 s | 1.5 s | 64.6 / 80.7 | $0.059 |
 
-\*The cascade translates a long turn's first sentence while the person is still talking, which flatters this figure; compare short sentences.
+\*Measured to the first audio of the **last** sentence (DESIGN A21). The cascade translates a long turn's first sentence while the person is still talking and holds it until they let go, so the literal first sound comes sooner: 0.5 s / 2.0 s (OpenAI), 1.7 s / 2.5 s (Haiku), 0.5 s / 1.6 s (ElevenLabs). That mostly measures the 0.45 s release and is not comparable with Realtime.
 
 **Latency.**
 - **Realtime** stays near 1.0 s for short and long turns alike, under its 1.5 s limit even in slower cases. **The cascade** on short sentences takes 1.8 s typical with the OpenAI translator (2.2 s in slower cases) and 2.3 s with Haiku. **Hands-free mode** (detecting silence instead of a button press) adds that wait and broke up long monologues, so push-to-talk is better.

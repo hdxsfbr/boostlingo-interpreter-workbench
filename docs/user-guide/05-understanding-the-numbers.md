@@ -8,7 +8,7 @@
 
 - Everything is measured **in your browser, on one clock**, the same way in both modes, so Realtime and Cascade can be compared fairly.
 - **Start:** the last moment the microphone picked up voice.
-- **End:** the first audible sound of the translation, detected by a small audio monitor in the page's playback path (not when the data arrived, but when it actually started to sound).
+- **End:** the first audible sound of the translation's **last sentence**, detected by a small audio monitor in the page's playback path (not when the data arrived, but when it actually started to sound). On a Cascade turn split into several sentences, the first sentence was translated while you were still talking and is heard almost as soon as you let go; that literal **first audible** (about 0.5 s, mostly the button release) is shown as a secondary number, and the headline uses the server's estimate of when the last sentence's audio started (marked \*).
 - With **push-to-talk**, the delay includes the short pause between your last word and letting go of the button. In benchmarks and experiments, the test robot always lets go **0.45 s** (450 ms) after the last word, like a person would. **H−gap** is the same delay with that 0.45 s subtracted.
 - Server step times (rows marked \* in the Interpreter) are estimates from the server's own clock; see [Reading the latency bars](02-interpreter.md#reading-the-latency-bars).
 
