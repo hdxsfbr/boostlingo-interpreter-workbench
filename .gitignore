@@ -68,3 +68,8 @@ data/
 
 # --- Session recordings (A11), always local-only ---
 data/recordings/
+
+# Third-party Boostlingo site capture (their logo, CSS, DOM, screenshots): local reference only, never committed
+docs/design/redress/boostlingo-study/*
+!docs/design/redress/boostlingo-study/README.md
+!docs/design/redress/boostlingo-study/study.py

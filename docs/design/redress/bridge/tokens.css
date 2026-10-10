@@ -1,0 +1,23 @@
+:root{
+  --c-bg: #FAF7F2;
+  --c-surface: #FFFFFF;
+  --c-border: #E3DCD0;
+  --c-text: #1B2236;
+  --c-muted: #5A5F6E;
+  --c-primary: #1F2D57;
+  --c-onprimary: #FFFFFF;
+  --c-accent: #A65F0A;
+  --c-onaccent: #FFFFFF;
+  --c-primarysoft: #ECEEF5;
+  --c-success: #2E7D32;
+  --c-warn: #8F5B00;
+  --c-error: #B42318;
+  --c-bar: #1F2D57;
+  --c-bar2: #D9A35A;
+  --font-sans: 'Source Sans 3', system-ui, sans-serif;
+  --font-mono: 'Source Code Pro', ui-monospace, monospace;
+  --font-display: 'Source Serif 4', var(--font-sans);
+  --radius: 14px;
+  --shadow: 0 1px 2px #1020200d, 0 4px 16px #1020200a;
+}
+/* Google Fonts: https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,600&family=Source+Code+Pro:wght@400;500&display=swap */

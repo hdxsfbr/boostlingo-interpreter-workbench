@@ -1,0 +1,23 @@
+:root{
+  --c-bg: #F4F7F7;
+  --c-surface: #FFFFFF;
+  --c-border: #D5DEDE;
+  --c-text: #13201F;
+  --c-muted: #4E5E5D;
+  --c-primary: #0B5E5A;
+  --c-onprimary: #FFFFFF;
+  --c-accent: #C2462E;
+  --c-onaccent: #FFFFFF;
+  --c-primarysoft: #E1EFEE;
+  --c-success: #1E7A3C;
+  --c-warn: #8A5A00;
+  --c-error: #B3261E;
+  --c-bar: #0B5E5A;
+  --c-bar2: #5FA8A3;
+  --font-sans: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --font-display: 'IBM Plex Sans', var(--font-sans);
+  --radius: 10px;
+  --shadow: 0 1px 2px #1020200d, 0 4px 16px #1020200a;
+}
+/* Google Fonts: https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap */

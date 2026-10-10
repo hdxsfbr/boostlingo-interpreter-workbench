@@ -1,0 +1,25 @@
+:root{
+  --c-bg: #F4F7FD;
+  --c-surface: #FFFFFF;
+  --c-border: #D9E1EE;
+  --c-text: #252224;
+  --c-muted: #585C66;
+  --c-primary: #1462F0;
+  --c-onprimary: #FFFFFF;
+  --c-accent: #DD3900;
+  --c-onaccent: #FFFFFF;
+  --c-primarysoft: #E8F0FE;
+  --c-navy: #051E4D;
+  --c-teal: #82C5BF;
+  --c-success: #1E7A3C;
+  --c-warn: #8A5A00;
+  --c-error: #B42318;
+  --c-bar: #1462F0;
+  --c-bar2: #82C5BF;
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --font-display: 'Inter', var(--font-sans);
+  --radius: 10px;
+  --shadow: 0 1px 2px #1020200d, 0 4px 16px #1020200a;
+}
+/* Google Fonts: https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap */
