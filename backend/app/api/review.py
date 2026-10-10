@@ -13,6 +13,8 @@ from fastapi.responses import FileResponse, PlainTextResponse
 from pydantic import BaseModel, Field
 
 from app.core.config import get_settings
+from app.observability.client import get_langfuse
+from app.observability.traces import review_events
 from app.review import results as res
 from app.review import sources
 from app.review.store import DIMS, MAX_NOTES, ReviewError, ReviewStore, norm_rater
@@ -95,6 +97,7 @@ def save_rating(set_id: str, item_id: str, body: RatingIn) -> dict:
     st = get_review_store()
     try:
         saved = st.save_rating(set_id, item_id, body.rater, {d: getattr(body, d) for d in DIMS}, body.notes)
+        _trace_rating(st, set_id, item_id, body)
         return {"saved": saved, "progress": st.progress(set_id, norm_rater(body.rater))}
     except ReviewError as e:
         raise _err(e) from e
@@ -211,3 +214,16 @@ def import_session(session_id: str) -> dict:
 
 
 __all__ = ["get_review_store", "router"]
+
+
+def _trace_rating(st, set_id: str, item_id: str, body: RatingIn) -> None:
+    """A20: human ratings as Langfuse scores (no-op unless tracing is on; never fails the save)."""
+    lf = get_langfuse()
+    if not lf.enabled:
+        return
+    try:
+        import dataclasses
+        review_events(lf, set_id, dataclasses.asdict(st.item(set_id, item_id)), norm_rater(body.rater),
+                      {d: getattr(body, d) for d in DIMS}, body.notes)
+    except Exception:  # noqa: BLE001 - tracing is fail-open
+        lf.stats.dropped_error += 1

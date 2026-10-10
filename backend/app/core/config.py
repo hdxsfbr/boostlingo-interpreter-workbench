@@ -33,6 +33,16 @@ class Settings(BaseSettings):
     elevenlabs_api_key: SecretStr | None = None  # hosted (Railway variable); the file secret wins when both are set
     elevenlabs_enabled: bool = False
 
+    # A20 Langfuse tracing (off by default; None = config/app.yaml observability.langfuse)
+    langfuse_enabled: bool | None = None
+    langfuse_host: str | None = None
+    langfuse_send_text: bool | None = None
+    langfuse_public_key: SecretStr | None = None
+    langfuse_secret_key: SecretStr | None = None
+    langfuse_public_key_file: Path | None = None
+    langfuse_secret_key_file: Path | None = None
+    git_commit: str = "unknown"
+
     config_dir: Path = REPO_ROOT / "config"
     data_dir: Path = REPO_ROOT / "data"
     static_dir: Path | None = None  # built SPA; served when present
@@ -123,6 +133,27 @@ class Settings(BaseSettings):
         except OSError:
             key = ""
         return key or (self.elevenlabs_api_key.get_secret_value() if self.elevenlabs_api_key else "")
+
+    def langfuse_config(self):
+        from app.observability.client import LangfuseConfig
+
+        def secret(v: SecretStr | None, f: Path | None) -> str:
+            try:
+                key = Path(f).read_text().strip() if f else ""
+            except OSError:
+                key = ""
+            return key or (v.get_secret_value() if v else "")
+        c = (self.app_config().get("observability") or {}).get("langfuse") or {}
+        pick = lambda env, k, d: env if env is not None else c.get(k, d)
+        return LangfuseConfig(
+            enabled=bool(pick(self.langfuse_enabled, "enabled", False)),
+            host=str(pick(self.langfuse_host, "host", "https://us.cloud.langfuse.com")),
+            public_key=secret(self.langfuse_public_key, self.langfuse_public_key_file),
+            secret_key=secret(self.langfuse_secret_key, self.langfuse_secret_key_file),
+            send_text=bool(pick(self.langfuse_send_text, "send_text", True)),
+            flush_interval_s=float(c.get("flush_interval_s", 2.0)), max_batch=int(c.get("max_batch", 50)),
+            max_queue=int(c.get("max_queue", 2000)), timeout_s=float(c.get("timeout_s", 3.0)),
+            release=self.git_commit, project_id=str(c.get("project_id", "")))
 
 
 @lru_cache

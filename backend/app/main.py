@@ -23,6 +23,7 @@ from app.api.turns import router as turns_router
 from app.core.auth import LOGGED_OUT_HTML, AuthGate, credentials_from_env
 from app.core.config import get_settings
 from app.core.recording import get_store
+from app.observability.client import get_langfuse
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
@@ -39,8 +40,11 @@ def create_app() -> FastAPI:
             await asyncio.to_thread(get_review_store)
         with contextlib.suppress(OSError):  # A13: mark stale runs, import the M5 baseline (idempotent)
             await asyncio.to_thread(get_experiments)
+        lf = get_langfuse()  # A20: Langfuse flusher (no-op when off)
+        await lf.start()
         yield
         task.cancel()
+        await lf.stop()
 
     app = FastAPI(title="AI Interpreter Workbench", version="0.1.0", lifespan=lifespan)
 

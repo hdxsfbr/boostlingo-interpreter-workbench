@@ -57,6 +57,16 @@ experiments:              # A13: in-product experiment runner (Experiments tab)
   confirm_above_usd: 1.0  # estimated cost above this needs an explicit confirmation
   self_url: http://127.0.0.1:8740   # the harness drives this app from inside the container
 
+observability:            # A20: Langfuse tracing; off the audio path (async, batched, fail-open), never audio
+  langfuse:
+    enabled: false        # env LANGFUSE_ENABLED=1; keys: LANGFUSE_PUBLIC_KEY/_SECRET_KEY or *_FILE (never in this file)
+    host: https://us.cloud.langfuse.com   # env LANGFUSE_HOST (self-hosted for PHI: see docs/observability.md)
+    send_text: true       # env LANGFUSE_SEND_TEXT=0 strips transcripts/translations (numbers only)
+    flush_interval_s: 2
+    max_batch: 50
+    max_queue: 2000       # events beyond this are dropped, never block
+    timeout_s: 3
+
 timeouts_s:
   stt_final: 3
   mt_first_token: 3
