@@ -59,12 +59,16 @@ All numbers come from [comparison.md](comparison.md) and [KEY_METRICS.md](KEY_ME
 **Screen:** CTO's Langfuse clip (`langfuse-demo-clip.mp4`, silent, sped 1.23x to 21 s, scaled to 1728x1080 and padded to 1080p in the app background #F2F5FE): Tracing list → cascade session trace with translation span → gpt-realtime session attributes/latency → Scores table (H_ms, chrF, cost).
 **Narration (s6b, Chatterbox standard, Andre ref voice, exaggeration 0.35, cfg 0.55):** "Under the hood, every turn and every experiment is traced step by step in Langfuse, with latency, cost and quality scores. Tracing is off by default, and it never slows down the audio."
 
+### 6c. Langfuse charts — inserted in final-v3 at 3:42.2–3:53.6 (11.4 s)
+**Screen:** three full-frame 1080p slides (padded in #F2F5FE) from `docs/images/langfuse/charts/`: `latency-p50-p90-by-setup.png` → `cascade-stage-breakdown.png` → `quality-vs-latency.png`.
+**Narration (s6c, Chatterbox standard, Andre ref voice, exaggeration 0.35, cfg 0.55):** "Those traces feed charts like these: latency by setup, where each cascade stage spends its time, and translation quality against latency."
+
 ### 7. Close — 2:55–3:05
 **Screen:** Back to Interpreter tab.
 **Narration:** "So: Realtime when speed matters most, the cascade when control matters most. It's live on Railway, and the code and full write-up are in the repo. Thanks for watching."
 
 ## Word count
 
-_final-v2 (with scene 6b): 3:55.2 total, under the 4:00 max._
+_final-v2 (with scene 6b): 3:55.2 total. final-v3 (adds charts scene 6c; close now at 3:53.6): 4:06.8 total._
 
 Narration only (excluding the four demo lines): **~385 words ≈ 2:35 at 150 wpm**. Live turns and playback: ~25–35 s. **Expected total: ~3:00–3:10** (well under the 4:00 max). If running long, trim scene 5's recording sentence first.
