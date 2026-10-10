@@ -141,3 +141,77 @@ def test_experiment_self_url_follows_port(monkeypatch):
     from app.api.experiments import exp_cfg
     monkeypatch.setenv("PORT", "9123")
     assert exp_cfg()["self_url"] == "http://127.0.0.1:9123"
+
+
+# ----- A16 logout
+def _login(gated):
+    r = gated.get("/", headers={"Authorization": GOOD})
+    gated.cookies.clear()
+    return r.headers["set-cookie"].split(";")[0].split("=", 1)[1]
+
+
+def test_logout_expires_cookie_and_revokes_it_server_side(gated, tmp_path):
+    tok = _login(gated)
+    h = {"Cookie": f"{COOKIE}={tok}"}
+    assert gated.get("/api/health", headers=h).json()["auth"] == {"enabled": True}
+    r = gated.post("/auth/logout", headers={**h, "Origin": "https://wb.example"})
+    assert r.status_code == 200 and r.json() == {"logged_out": True, "revoked": True}
+    sc = r.headers["set-cookie"]
+    assert sc.startswith(f"{COOKIE}=;") and "Max-Age=0" in sc and "1970" in sc
+    assert "HttpOnly" in sc and "SameSite=Strict" in sc and "Secure" in sc and "Path=/" in sc
+    for path in ("/", "/api/health", "/api/languages"):  # the old cookie replayed is rejected
+        assert gated.get(path, headers=h).status_code == 401
+    with pytest.raises(WebSocketDenialResponse), gated.websocket_connect(
+            "/ws/realtime", headers={**h, "Origin": "http://testserver"}):
+        pass
+    # persisted: a restarted app (new gate instance, same data dir) still rejects it
+    get_settings.cache_clear()
+    from app.main import create_app
+    fresh = TestClient(create_app(), base_url="https://wb.example")
+    assert fresh.get("/api/health", headers=h).status_code == 401
+    assert fresh.get("/api/health", headers={"Authorization": GOOD}).status_code == 200  # password still works
+
+
+@pytest.mark.parametrize("origin", [None, "https://evil.example"])
+def test_logout_refuses_cross_site_and_originless(gated, origin):
+    tok = _login(gated)
+    h = {"Cookie": f"{COOKIE}={tok}", **({"Origin": origin} if origin else {})}
+    assert gated.post("/auth/logout", headers=h).status_code == 403
+    assert gated.get("/api/health", headers={"Cookie": f"{COOKIE}={tok}"}).status_code == 200  # still valid
+    assert gated.get("/auth/logout").status_code == 405
+
+
+def test_logout_probe_credentials_are_refused_without_a_prompt(gated):
+    probe = "Basic " + base64.b64encode(b"logged-out:x").decode()
+    r = gated.get("/api/health", headers={"Authorization": probe})
+    assert r.status_code == 401 and "www-authenticate" not in r.headers and "set-cookie" not in r.headers
+    assert "www-authenticate" in gated.get("/", headers={"Authorization": BAD}).headers  # real failures still prompt
+
+
+def test_logged_out_page_is_open_static_and_has_no_secrets(gated):
+    r = gated.get("/auth/logged-out")
+    assert r.status_code == 200 and "Logged out" in r.text and 'href="/"' in r.text
+    assert PW not in r.text and "set-cookie" not in r.headers
+    assert gated.post("/auth/logged-out").status_code == 401  # only GET is open
+
+
+def test_revocation_prunes_expired_entries(tmp_path):
+    t = [1000.0]
+    path = tmp_path / "revoked.json"
+    g = AuthGate(None, USER, PW, now=lambda: t[0], revoked_path=path)
+    a = g.make_cookie()
+    assert g.revoke(a) and not g.cookie_ok(a) and len(g.revoked) == 1
+    t[0] += 13 * 3600
+    g.revoke(g.make_cookie())
+    assert len(g.revoked) == 1  # the expired nonce was pruned
+    assert not g.revoke("garbage")
+
+
+def test_health_reports_gate_off_when_unset(tmp_path, monkeypatch):
+    monkeypatch.delenv("APP_USERNAME", raising=False)
+    monkeypatch.delenv("APP_PASSWORD", raising=False)
+    monkeypatch.setenv("DATA_DIR", str(tmp_path))
+    get_settings.cache_clear()
+    from app.main import create_app
+    assert TestClient(create_app()).get("/api/health").json()["auth"] == {"enabled": False}
+    get_settings.cache_clear()

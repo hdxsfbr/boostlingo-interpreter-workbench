@@ -7,6 +7,7 @@ import contextlib
 import logging
 
 from fastapi import FastAPI
+from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.api.cascade_ws import router as cascade_router
@@ -19,7 +20,7 @@ from app.api.recordings import router as recordings_router
 from app.api.review import get_review_store
 from app.api.review import router as review_router
 from app.api.turns import router as turns_router
-from app.core.auth import AuthGate, credentials_from_env
+from app.core.auth import LOGGED_OUT_HTML, AuthGate, credentials_from_env
 from app.core.config import get_settings
 from app.core.recording import get_store
 
@@ -59,7 +60,12 @@ def create_app() -> FastAPI:
             "realtime_model": cfg["realtime"]["model"],
             "swaps": settings.swap_options(),
             "recording": {"enabled": get_store().cfg.enabled, "retention_days": get_store().cfg.retention_days},
+            "auth": {"enabled": credentials_from_env(warn=False) is not None},
         }
+
+    @app.get("/auth/logged-out", include_in_schema=False)
+    async def logged_out() -> HTMLResponse:
+        return HTMLResponse(LOGGED_OUT_HTML, headers={"cache-control": "no-store"})
 
     app.include_router(cascade_router)
     app.include_router(turns_router)
@@ -74,7 +80,8 @@ def create_app() -> FastAPI:
         app.mount("/", StaticFiles(directory=settings.static_dir, html=True), name="spa")
     creds = credentials_from_env()
     if creds:  # A15: app-wide gate, outermost, so it covers SPA, /api, WS and SSE alike
-        app.add_middleware(AuthGate, username=creds[0], password=creds[1])
+        app.add_middleware(AuthGate, username=creds[0], password=creds[1],
+                           revoked_path=settings.data_dir / "auth_revoked.json")
         logging.getLogger("app.auth").info("password gate on (user %s)", creds[0])
     return app
 

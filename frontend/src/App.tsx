@@ -17,6 +17,20 @@ import { setLanguageNames } from "./session/realtimePrompt";
 type Action = { kind: "ev"; ev: SessionEvent } | { kind: "dismiss"; id: number };
 const appReducer = (s: State, a: Action): State => (a.kind === "ev" ? reduce(s, a.ev) : dismissError(s, a.id));
 
+/** A16: end the session server-side (cookie expired + revoked), then the logged-out page clears cached Basic. */
+export async function logout(stop?: () => Promise<void> | void, nav: (url: string) => void = (u) => location.assign(u)): Promise<void> {
+  try {
+    await stop?.();
+  } catch {
+    /* stopping is best-effort */
+  }
+  try {
+    await fetch("/auth/logout", { method: "POST", credentials: "same-origin", cache: "no-store" });
+  } finally {
+    nav("/auth/logged-out");
+  }
+}
+
 export default function App() {
   const params = new URLSearchParams(location.search);
   const [pipeline, setPipelineState] = useState<Pipeline>((params.get("pipeline") as Pipeline) ?? "cascade");
@@ -28,10 +42,14 @@ export default function App() {
   for (const k of ["mt", "tts"]) if (params.get(k)) initialProviders[k] = params.get(k)!;
   const [chosen, setChosen] = useState<Record<string, string>>(initialProviders);
   const [swaps, setSwaps] = useState<Swaps | null>(null);
+  const [authOn, setAuthOn] = useState(false); // A16: Logout only when the password gate is on
   useEffect(() => {
     fetch("/api/health")
       .then((r) => r.json())
-      .then((h) => setSwaps(h.swaps ?? null))
+      .then((h) => {
+        setSwaps(h.swaps ?? null);
+        setAuthOn(!!h.auth?.enabled);
+      })
       .catch(() => setSwaps(null));
   }, []);
   // A11: opt-in recording; the server flag gates the toggle (and the server refuses on its own).
@@ -166,6 +184,11 @@ export default function App() {
           </span>
         )}
         <span className={`state state-${state.sessionState}`}>{state.sessionState}</span>
+        {authOn && (
+          <button className="logout" onClick={() => void logout(() => sessionRef.current?.stop())} data-testid="logout">
+            Logout
+          </button>
+        )}
       </header>
       {tab === "review" ? (
         <ReviewTab />
