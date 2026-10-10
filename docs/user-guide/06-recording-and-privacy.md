@@ -38,4 +38,4 @@ For every turn, the server keeps the text (transcript and translation) and the t
 
 ## Limits
 
-The Workbench is an evaluation tool, not a production service. Its recording feature does not provide encryption at rest, per-participant consent records or access control on the recording files, which a production system handling medical or legal conversations would need. Don't use it for real patient or client conversations.
+The Workbench is an evaluation tool, not a production service. Its recording feature does not provide encryption at rest, per-participant consent records or access control on the recording files, which a production system handling medical or legal conversations would need. Keep that in mind before recording real patient or client conversations.
