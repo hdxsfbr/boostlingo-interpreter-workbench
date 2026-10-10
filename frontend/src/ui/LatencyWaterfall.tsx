@@ -13,7 +13,7 @@ const LABEL: Record<string, string> = {
   tts_request: "TTS request",
   tts_first_byte: "TTS 1st byte",
   audio_first_sent: "audio sent",
-  tail_tts_first_byte: "last seg TTS 1st byte",
+  tail_tts_first_byte: "last seg TTS 1st",
   first_audible: "first audible",
 };
 

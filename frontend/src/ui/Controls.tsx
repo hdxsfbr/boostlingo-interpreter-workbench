@@ -53,8 +53,10 @@ export function Controls(p: Props) {
     >
       <span className={`av av-${sp}`} aria-hidden="true">{sp}</span>
       <span className="ptt-text">
-        <strong>Speaker {sp}</strong>
-        {p.active === sp && <span className="live"> ● SPEAKING</span>}
+        <span className="who">
+          <strong>Speaker {sp}</strong>
+          {p.active === sp && <span className="live"> ● SPEAKING</span>}
+        </span>
         <span className="dir">{label}</span>
       </span>
       <kbd>hold {key}</kbd>

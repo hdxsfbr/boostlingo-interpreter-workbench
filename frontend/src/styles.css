@@ -55,6 +55,8 @@ input[type=checkbox], input[type=radio] { accent-color: var(--c-primary); }
 .controls { padding: 0 28px; }
 .ctl-card .ctl { align-items: flex-end; gap: 16px; }
 .field { display: flex; flex-direction: column; gap: 4px; }
+.ctl-card .ctl select { max-width: 230px; }
+.controls > .hint { margin: -8px 0 14px; }
 .field-label { font-size: 12px; font-weight: 500; color: var(--c-muted); }
 .providers { font: 12px var(--font-mono); color: var(--c-muted); align-self: center; }
 .record { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--c-border); font-size: 13px; }
@@ -103,7 +105,7 @@ main { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 20px; al
 
 /* latency waterfall */
 .waterfall { margin-top: 6px; font-size: 12px; }
-.wf-row { display: grid; grid-template-columns: 120px 1fr 64px; gap: 8px; align-items: center; margin: 6px 0; }
+.wf-row { display: grid; grid-template-columns: 136px 1fr 64px; gap: 8px; align-items: center; margin: 6px 0; }
 .wf-label { color: var(--c-muted); }
 .wf-track { position: relative; height: 10px; background: var(--c-bg); border: 1px solid var(--c-border); border-radius: 99px; }
 .wf-bar { position: absolute; left: 0; top: 0; bottom: 0; background: var(--c-bar2); border-radius: 99px; }
@@ -126,7 +128,8 @@ main { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 20px; al
 /* ---------- Review tab (A12) ---------- */
 .review, .experiments { padding: 0 28px 28px; }
 .review h2, .experiments h2 { font-size: 16px; font-weight: 600; margin: 0 0 10px; }
-.review > h2, .review .results > h2 { margin-top: 16px; }
+.review h2 { margin-top: 22px; }
+.review .results-table + h2 { margin-top: 26px; }
 .review-head { gap: 16px; }
 .rate { max-width: 780px; }
 .rate-head { display: flex; justify-content: space-between; margin-top: 8px; font-size: 14px; }
@@ -206,7 +209,7 @@ main { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 20px; al
   main, .tab-body, .controls, .review, .experiments { padding-left: 14px; padding-right: 14px; }
   .errors, .app > .error { margin-left: 14px; margin-right: 14px; }
   .ptts { grid-template-columns: 1fr; gap: 10px; }
-  .ctl-card .ctl > .field, .ctl-card .ctl select { width: 100%; }
+  .ctl-card .ctl > .field, .ctl-card .ctl select { width: 100%; max-width: none; }
   .ctl-card .ctl .spacer { display: none; }
   .ctl-card .ctl > button { width: 100%; }
   .wf-row { grid-template-columns: 96px 1fr 56px; }
