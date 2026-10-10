@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useReducer, useRef, useState } from "react";
+// A19: the guide (Markdown + images) is a separate chunk, loaded when the Docs tab opens
+const DocsTab = lazy(() => import("./docs/DocsTab").then((m) => ({ default: m.DocsTab })));
 import { harnessHook, InterpreterSession, type RealtimeKind } from "./session/InterpreterSession";
 import type { TurnMode } from "./session/transports/realtimeWebrtc";
 import type { Mode, Pipeline, SessionEvent, Speaker } from "./session/protocol";
@@ -22,6 +24,7 @@ const TABS = [
   { id: "interpreter", label: "Interpreter" },
   { id: "review", label: "Review" },
   { id: "experiments", label: "Experiments" },
+  { id: "docs", label: "Docs" },
 ] as const;
 type Tab = (typeof TABS)[number]["id"];
 
@@ -71,6 +74,27 @@ export default function App() {
   }, []);
   const recording = recordWanted && !!recCfg?.enabled;
   const [tab, setTab] = useState<Tab>((TABS.some((t) => t.id === params.get("tab")) ? params.get("tab") : "interpreter") as Tab);
+  // A19: the Docs tab is deep-linkable (?tab=docs&page=…); other tabs keep the URL's session params
+  const openTab = (t: Tab) => {
+    const u = new URL(location.href);
+    if (t === "docs") {
+      if (u.searchParams.get("tab") !== "docs") history.pushState(null, "", "?tab=docs");
+    } else if (u.searchParams.get("tab") === "docs") {
+      u.searchParams.delete("tab");
+      u.searchParams.delete("page");
+      u.hash = "";
+      history.pushState(null, "", u.pathname + u.search);
+    }
+    setTab(t);
+  };
+  useEffect(() => {
+    const onPop = () => {
+      const q = new URLSearchParams(location.search).get("tab");
+      setTab((TABS.some((x) => x.id === q) ? q : "interpreter") as Tab);
+    };
+    addEventListener("popstate", onPop);
+    return () => removeEventListener("popstate", onPop);
+  }, []);
   // A14: pairs come from config/languages.yaml; ?pair= picks one (id or "a-b"), else the default pair.
   const [langs, setLangs] = useState<LanguagesConfig | null>(null);
   const [pairId, setPairId] = useState<string | null>(null);
@@ -184,7 +208,7 @@ export default function App() {
         </div>
         <nav className="seg tabs" role="tablist" aria-label="Workbench">
           {TABS.map((t) => (
-            <button key={t.id} role="tab" aria-selected={tab === t.id} className={tab === t.id ? "on" : ""} onClick={() => setTab(t.id)} data-testid={`tab-${t.id}`}>
+            <button key={t.id} role="tab" aria-selected={tab === t.id} className={tab === t.id ? "on" : ""} onClick={() => openTab(t.id)} data-testid={`tab-${t.id}`}>
               {t.label}
             </button>
           ))}
@@ -203,7 +227,9 @@ export default function App() {
           </button>
         )}
       </header>
-      {tab === "review" ? (
+      {tab === "docs" ? (
+        <Suspense fallback={<p className="hint docs">Loading the guide…</p>}><DocsTab /></Suspense>
+      ) : tab === "review" ? (
         <ReviewTab />
       ) : tab === "experiments" ? (
         <ExperimentsTab />

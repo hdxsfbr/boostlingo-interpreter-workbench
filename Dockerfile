@@ -6,6 +6,7 @@ COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci --no-audit --no-fund
 COPY frontend/ ./
 COPY contract/ /contract/
+COPY docs/user-guide/ /docs/user-guide/
 RUN npm run build
 
 # ---- python deps ----

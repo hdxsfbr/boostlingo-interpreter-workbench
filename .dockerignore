@@ -15,4 +15,6 @@ docs
 # A13 Experiments tab: the utterance set and the M5 per-turn rows (baseline import)
 !docs/benchmarks/utterances.yaml
 !docs/benchmarks/results/m5/raw
+# A19 Docs tab: the user guide is bundled into the SPA at build time
+!docs/user-guide
 sources
