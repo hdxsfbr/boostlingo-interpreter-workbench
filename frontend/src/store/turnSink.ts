@@ -13,7 +13,13 @@ export function useTurnSink(state: State): void {
       void fetch("/api/turns", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ session_id: SESSION_ID, record: toRecord(t), user_agent: navigator.userAgent }),
+        body: JSON.stringify({
+          session_id: SESSION_ID, record: toRecord(t), user_agent: navigator.userAgent,
+          // A20: context for optional server-side tracing (Langfuse); not written to the JSONL log
+          meta: { providers: state.providers, pipeline: state.pipeline, pair: `${t.src}-${t.tgt}`,
+                  harness: new URLSearchParams(location.search).get("source") === "file",
+                  experiment: new URLSearchParams(location.search).get("exp") ?? undefined },
+        }),
       }).catch(() => {});
     }
   }, [state.turns]);

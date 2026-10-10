@@ -1,0 +1,17 @@
+# A20 (branch feat/langfuse): local Langfuse tracing overlay. Keys are file secrets,
+# never in .env, argv or this file. Use: make up-langfuse  (main's `make up` stays untraced)
+services:
+  app:
+    environment:
+      LANGFUSE_ENABLED: "1"
+      LANGFUSE_HOST: "${LANGFUSE_HOST:-https://us.cloud.langfuse.com}"
+      LANGFUSE_SEND_TEXT: "${LANGFUSE_SEND_TEXT:-1}"
+      LANGFUSE_PUBLIC_KEY_FILE: /run/secrets/langfuse_public_key
+      LANGFUSE_SECRET_KEY_FILE: /run/secrets/langfuse_secret_key
+    secrets: [elevenlabs_api_key, langfuse_public_key, langfuse_secret_key]
+
+secrets:
+  langfuse_public_key:
+    file: ${LANGFUSE_PUBLIC_KEY_PATH:-${HOME}/.config/agentforge/langfuse_public_key}
+  langfuse_secret_key:
+    file: ${LANGFUSE_SECRET_KEY_PATH:-${HOME}/.config/agentforge/langfuse_secret_key}

@@ -178,7 +178,8 @@ class ExperimentRunner:
                     proc = await asyncio.create_subprocess_exec(
                         *self.command(setup, ids, cfg, out, self.url), cwd=str(BACKEND_DIR), stdout=logf,
                         stderr=asyncio.subprocess.STDOUT, start_new_session=True,
-                        env={**os.environ, "HOME": os.environ.get("HOME") or "/tmp", "PYTHONUNBUFFERED": "1"})
+                        env={**os.environ, "HOME": os.environ.get("HOME") or "/tmp", "PYTHONUNBUFFERED": "1",
+                             "WB_EXPERIMENT_ID": exp_id})  # A20: the harness tags its session turns with it
                     cur["proc"] = proc
                     pos, seen = 0, 0
                     while True:
@@ -252,7 +253,21 @@ class ExperimentRunner:
             prof = self.metrics.PROFILES.get(setup) or SETUPS[setup].models
             self.metrics.per_row(rows, prof)
             out.append(self.metrics.aggregate(setup, rows, prof))
+            self._trace(exp_id, cfg, setup, rows, prof)
         return out
+
+    def _trace(self, exp_id: str, cfg: ExperimentConfig, setup: str, rows: list[dict], prof: dict) -> None:
+        """A20: one Langfuse trace per utterance per setup with WER/chrF/H scores (fail-open)."""
+        from app.observability.client import get_langfuse
+        from app.observability.traces import experiment_events
+        lf = get_langfuse()
+        if not lf.enabled:
+            return
+        try:
+            e = self.store.get(exp_id) or {}
+            experiment_events(lf, exp_id, e.get("name", ""), setup, rows, prof, self.git_commit, cfg.model_dump())
+        except Exception:  # noqa: BLE001
+            lf.stats.dropped_error += 1
 
 
 def _read_new(path: Path, pos: int) -> tuple[int, list[dict]]:

@@ -39,8 +39,10 @@ import yaml
 from whisper_normalizer.basic import BasicTextNormalizer
 from whisper_normalizer.english import EnglishTextNormalizer
 
+from app.core import pricing
+
 ROOT = Path(__file__).resolve().parents[2]
-PRICING = yaml.safe_load((ROOT / "config" / "pricing.yaml").read_text())
+PRICING = pricing.PRICING
 UTT = yaml.safe_load((ROOT / "docs" / "benchmarks" / "utterances.yaml").read_text())
 TEXT = {u["id"]: u["text"] for lang in ("en", "es") for u in UTT[lang]}
 _NORM = {"en": EnglishTextNormalizer(), "es": BasicTextNormalizer(remove_diacritics=False)}
@@ -84,32 +86,8 @@ def clean(text: str) -> str:
 # ---------------------------------------------------------------- cost
 
 def row_cost(r: dict, prof: dict) -> float:
-    c = 0.0
-    p1m = PRICING["per_1m_tokens"]
-    for u in r.get("usage") or []:
-        if not u:
-            continue
-        if "realtime" in u and prof.get("realtime"):
-            rt, p = u["realtime"] or {}, p1m[prof["realtime"]]
-            i, o = rt.get("input_token_details") or {}, rt.get("output_token_details") or {}
-            cached = i.get("cached_tokens_details") or {}
-            ca, ct = cached.get("audio_tokens", 0), cached.get("text_tokens", 0)
-            c += ((i.get("audio_tokens", 0) - ca) * p["audio_in"] + ca * p["audio_cached_in"]
-                  + (i.get("text_tokens", 0) - ct) * p["text_in"] + ct * p["text_cached_in"]
-                  + o.get("audio_tokens", 0) * p["audio_out"] + o.get("text_tokens", 0) * p["text_out"]) / 1e6
-        else:
-            c += u.get("stt_audio_s", 0) / 60 * PRICING["per_minute"][prof["stt"]]
-            pm = p1m[prof["mt"]]
-            c += (u.get("mt_input_tokens", 0) * pm["text_in"] + u.get("mt_output_tokens", 0) * pm["text_out"]) / 1e6
-            if prof["tts"] == "elevenlabs-flash":
-                c += u.get("tts_chars", 0) / 1000 * PRICING["per_1k_chars"]["elevenlabs-flash"]
-            else:
-                a, pt = PRICING["assumptions"], p1m[prof["tts"]]
-                c += (u.get("tts_chars", 0) / a["chars_per_token"] * pt["text_in"]
-                      + u.get("tts_audio_s", 0) * a["tts_audio_tokens_per_s"] * pt["audio_out"]) / 1e6
-    if prof.get("realtime"):  # side transcription of the input (not in response usage)
-        c += r.get("speech_s", 0) / 60 * PRICING["per_minute"]["gpt-4o-transcribe"]
-    return c
+    """Shared with the live tracing cost (app/core/pricing.py)."""
+    return pricing.row_cost(r, prof)
 
 
 # ---------------------------------------------------------------- OpenAI helpers (benchmark only)

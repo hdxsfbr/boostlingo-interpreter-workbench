@@ -176,6 +176,10 @@ Live: **https://workbench-production-c1ea.up.railway.app**. The user is `andre`;
 - Model ids and active providers live in `config/app.yaml` (env overrides `REALTIME_MODEL`, `MT_MODEL`, `CASCADE_STT|MT|TTS`). Providers can also be swapped per session from the UI; see [`docs/provider-swaps.md`](docs/provider-swaps.md). Language pairs live in `config/languages.yaml` and are picked in the UI (**Language pair**); adding one is a config-only change ([KEY_METRICS §5](docs/KEY_METRICS.md#5-time-to-onboard-a-new-language-pair)).
 - Keys never reach the browser: Realtime uses short-lived client secrets; the cascade runs server-side.
 
+## Observability: Langfuse tracing (optional, off by default; DESIGN A20)
+
+`make up-langfuse` runs the app with tracing to Langfuse (keys as file secrets from `~/.config/agentforge/langfuse_public_key` / `langfuse_secret_key`; host `LANGFUSE_HOST`, default Langfuse Cloud US). Config: `config/app.yaml` → `observability.langfuse` (`enabled`, `host`, `send_text`) or `LANGFUSE_ENABLED`, `LANGFUSE_HOST`, `LANGFUSE_SEND_TEXT`, `LANGFUSE_PUBLIC_KEY_FILE`, `LANGFUSE_SECRET_KEY_FILE`. Traces: one per session (turn spans with STT/MT/TTS or Realtime children, the same latency marks as the UI), one per experiment utterance with WER/chrF scores, Review ratings as scores. Async, batched and fail-open, measured with no latency impact. Never audio; transcripts unless `send_text: false`. Not for real patient data without a BAA or self-hosting, redaction and retention: see [docs/observability.md](docs/observability.md).
+
 ## Architecture (short; full design in [`docs/DESIGN.md`](docs/DESIGN.md))
 
 ```

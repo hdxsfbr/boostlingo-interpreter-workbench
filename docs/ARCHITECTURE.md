@@ -190,6 +190,10 @@ sequenceDiagram
 5. **Finish / cancel:** after the last setup, or after `POST …/cancel` (which kills the process tree), it runs `eval.metrics.per_row` + `aggregate` per setup in a thread and stores the summary, cost, models, status and elapsed time.
 6. **Read:** `GET /api/experiments`, `/<id>`, `/<id>/turns`, `/<id>/export.json`, `/<id>/export.csv?kind=summary|turns`. Compare is client-side, from two details.
 
+### 5c. Observability (optional Langfuse tracing, A20)
+
+Off by default. When on, `POST /api/turns` (the browser's finished-turn record, sent after playback) also enqueues a Langfuse trace for the session, a span for the turn and STT/MT/TTS (or Realtime) generations with timings, models, usage and cost. The Experiments runner adds one trace per utterance per setup with WER/chrF/H scores, and the Review tab adds human ratings as scores. A single background task ships batches; nothing on the audio path waits on it, and failures only drop events. Audio is never sent; `send_text` controls transcripts. Details: [observability.md](observability.md).
+
 ## 6. Where latency is measured
 
 ```mermaid
