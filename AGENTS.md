@@ -180,3 +180,4 @@ This repo is built by an agentic coding assistant (Grok Bot executor agents) dir
   - Header button; `POST /auth/logout` (same-origin, 403 otherwise) expires and revokes the cookie nonce, with the revocation set persisted in `/data`. The open logged-out page sends bogus Basic, which gets a 401 without a challenge, so there is no loop.
   - `scripts/auth_probe/logout_check.py`: 12/12 checks in Chromium and WebKit, locally and on the live URL.
   - Caveat: Playwright cannot model a real browser's Basic-auth cache. Real Chrome may resend the cached password on the next visit until the browser restarts; the gate can't clear that.
+  - Agent finding: on Railway, the reload after logout first returned 200 because the browser served index.html from its heuristic cache (old Last-Modified, no Cache-Control). Gated responses now send `Cache-Control: private, no-cache`.
