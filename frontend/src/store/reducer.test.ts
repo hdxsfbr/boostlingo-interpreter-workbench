@@ -82,12 +82,13 @@ describe("metrics", () => {
       started,
       { type: "speech.ended", turn_id: 1, t_speech_end: 0 },
       { type: "latency.mark", turn_id: 1, mark: "first_audible", ms: 1500, clock: "browser" },
+      { type: "latency.mark", turn_id: 1, mark: "commit_sent", ms: 40, clock: "browser" },
       { type: "latency.mark", turn_id: 1, mark: "stt_final", ms: 250, clock: "server" },
       { type: "transcript.final", turn_id: 1, seg: 0, text: 'He said "hi", ok' },
     ]);
     const sum = summarize(Object.values(s.turns), "cascade");
     expect(sum.headline).toEqual({ n: 1, median: 1500, p90: 1500 });
-    expect(sum.stages.stt_final.median).toBe(250);
+    expect(sum.stages.stt_final.median).toBe(290); // A18: on the speech-end clock (commit 40 + 250)
     expect(summarize(Object.values(s.turns), "realtime").headline.n).toBe(0);
     const csv = toCsv([toRecord(s.turns[1])]);
     expect(csv.split("\n")[1]).toContain('"He said ""hi"", ok"');

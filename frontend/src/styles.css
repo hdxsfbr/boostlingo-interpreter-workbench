@@ -215,3 +215,44 @@ main { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 20px; al
   .wf-row { grid-template-columns: 96px 1fr 56px; }
 }
 .review .controls, .experiments .controls { padding: 0; }
+
+/* A18 term tooltips (hover + keyboard focus) and early (pre-speech-end) stages */
+.term { position: relative; cursor: help; text-decoration: underline dotted var(--c-border-strong); text-underline-offset: 3px; border-radius: 3px; }
+.term .tip { position: absolute; z-index: 20; left: 0; top: calc(100% + 6px); width: max-content; max-width: 260px; padding: 7px 10px;
+  background: var(--c-navy); color: var(--c-onnavy); font: 400 12px/1.4 var(--font-sans); letter-spacing: 0; text-transform: none; text-align: left;
+  border-radius: var(--radius-sm); box-shadow: var(--shadow); white-space: normal;
+  clip-path: inset(50%); opacity: 0; pointer-events: none; transition: opacity .12s; }
+.term:hover .tip, .term:focus-visible .tip, .term:focus .tip { clip-path: none; opacity: 1; }
+.metrics td:not(:first-child) .term .tip, .metrics th:not(:first-child) .term .tip { left: auto; right: 0; }
+.wf-early { font: 500 11px var(--font-mono); color: var(--c-primary); background: var(--c-primarysoft); border: 1px dashed var(--c-primary); border-radius: 99px; padding: 0 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wf-row.early .wf-ms { color: var(--c-primary); }
+
+/* A19 Docs tab */
+.docs { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 20px; align-items: start; padding: 0 28px 28px; }
+.docs-nav { position: sticky; top: 12px; }
+.docs-nav ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.docs-nav a { display: block; padding: 6px 10px; border-radius: var(--radius-sm); color: var(--c-text); text-decoration: none; }
+.docs-nav a:hover { background: var(--c-bg); }
+.docs-nav a[aria-current=page] { background: var(--c-primarysoft); color: var(--c-primary); font-weight: 600; }
+.doc { padding: 24px 32px; max-width: 900px; font-size: 15px; line-height: 1.6; }
+.doc h1 { font-size: 26px; font-weight: 600; letter-spacing: -.01em; margin: 0 0 14px; }
+.doc h2 { font-size: 19px; font-weight: 600; margin: 28px 0 8px; padding-top: 14px; border-top: 1px solid var(--c-border); }
+.doc h3 { font-size: 16px; font-weight: 600; margin: 20px 0 6px; }
+.doc h1, .doc h2, .doc h3 { scroll-margin-top: 16px; }
+.doc code { font-size: 13px; background: var(--c-bg); border: 1px solid var(--c-border); border-radius: 4px; padding: 0 4px; }
+.doc pre { background: var(--c-bg); border: 1px solid var(--c-border); border-radius: var(--radius-sm); padding: 12px; overflow-x: auto; }
+.doc pre code { border: 0; padding: 0; }
+.doc img { max-width: 100%; height: auto; border: 1px solid var(--c-border); border-radius: var(--radius-sm); box-shadow: var(--shadow); margin: 8px 0; }
+.doc blockquote { margin: 12px 0; padding: 8px 14px; border-left: 4px solid var(--c-primary); background: var(--c-primarysoft); border-radius: var(--radius-sm); }
+.doc-table { overflow-x: auto; margin: 12px 0; }
+.doc table { border-collapse: collapse; font-size: 14px; }
+.doc th, .doc td { border: 1px solid var(--c-border); padding: 6px 10px; text-align: left; vertical-align: top; }
+.doc th { background: var(--c-bg); font-weight: 600; }
+@media (max-width: 900px) {
+  .docs { grid-template-columns: 1fr; }
+  .docs-nav { position: static; }
+}
+@media (max-width: 600px) {
+  .docs { padding: 0 14px 14px; }
+  .doc { padding: 16px; }
+}

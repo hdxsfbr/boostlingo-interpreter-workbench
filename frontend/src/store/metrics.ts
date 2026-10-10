@@ -17,12 +17,37 @@ export const stat = (xs: number[]): Stat => ({ n: xs.length, median: quantile(xs
 export const TARGET_MS: Record<Mode, number> = { realtime: 1500, cascade: 2000 };
 export const LIMIT_MS: Record<Mode, number> = { realtime: 1500, cascade: 3000 };
 
+/** A18: a server stage on the speech-end clock = browser commit_sent + the server's
+ * duration from commit receipt (an estimate). undefined when the turn has no commit_sent. */
+export function stageMs(t: TurnView, mark: string): number | undefined {
+  const c = t.browserMarks.commit_sent, v = t.serverMarks[mark];
+  return c === undefined || v === undefined ? undefined : c + v;
+}
+
+/** A stage that happened before speech end: work started while the speaker was still
+ * talking (a speculative translation adopted at the final commit, or an earlier segment
+ * committed at an in-turn pause). Shown as "early", never as a negative bar. */
+export const isEarly = (ms: number | undefined): boolean => ms !== undefined && ms < 0;
+
+/** Why a turn's stage was early: speculation if the server adopted one (spec_hit), else an earlier segment. */
+export const earlyReason = (t: TurnView): "speculative" | "earlier segment" =>
+  t.serverMarks.spec_hit !== undefined ? "speculative" : "earlier segment";
+
+export type StageStat = Stat & { early: number };
+
 export function summarize(turns: TurnView[], mode: Mode, window = 50) {
-  const ts = turns.filter((t) => t.mode === mode && t.latencyMs !== undefined).slice(-window);
+  // headline H = first audible − speech end. Audio is only sent after the final commit
+  // (playback policy D8), which is after speech end, so H < 0 would be a measurement bug:
+  // such a turn is left out instead of silently pulling p50 down.
+  const ts = turns.filter((t) => t.mode === mode && t.latencyMs !== undefined && t.latencyMs >= 0).slice(-window);
   const marks = new Set<string>();
   ts.forEach((t) => Object.keys(t.serverMarks).forEach((m) => marks.add(m)));
-  const stages: Record<string, Stat> = {};
-  for (const m of marks) stages[m] = stat(ts.map((t) => t.serverMarks[m]).filter((v) => v !== undefined));
+  const stages: Record<string, StageStat> = {};
+  for (const m of marks) {
+    const vs = ts.map((t) => stageMs(t, m)).filter((v): v is number => v !== undefined);
+    // stats only over turns where the stage came after speech end; early ones are counted apart
+    stages[m] = { ...stat(vs.filter((v) => !isEarly(v))), early: vs.filter(isEarly).length };
+  }
   return { headline: stat(ts.map((t) => t.latencyMs!)), stages };
 }
 

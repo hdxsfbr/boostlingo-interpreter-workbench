@@ -2,6 +2,7 @@ import type { Mode } from "../session/protocol";
 import { LIMIT_MS, summarize, TARGET_MS, toCsv, toRecord } from "../store/metrics";
 import type { State } from "../store/reducer";
 import { LatencyWaterfall } from "./LatencyWaterfall";
+import { Term } from "./Term";
 
 const fmt = (v?: number) => (v === undefined ? "—" : `${Math.round(v)}`);
 
@@ -42,18 +43,24 @@ export function MetricsSummary({ state }: { state: State }) {
           <div key={m} className="mode-stats">
             <h3>{m} <small>target {TARGET_MS[m]} ms · limit {LIMIT_MS[m]} ms</small></h3>
             <table>
-              <thead><tr><th /><th>n</th><th>p50</th><th>p90</th></tr></thead>
+              <thead><tr><th /><th><Term k="n">n</Term></th><th><Term k="p50">p50</Term></th><th><Term k="p90">p90</Term></th><th><Term k="early">early</Term></th></tr></thead>
               <tbody>
-                <tr className="headline"><td>headline</td><td>{s.headline.n}</td><td>{fmt(s.headline.median)}</td><td>{fmt(s.headline.p90)}</td></tr>
+                <tr className="headline"><td><Term k="headline">headline</Term></td><td>{s.headline.n}</td><td>{fmt(s.headline.median)}</td><td>{fmt(s.headline.p90)}</td><td /></tr>
                 {Object.entries(s.stages).map(([k, v]) => (
-                  <tr key={k}><td>{k}*</td><td>{v.n}</td><td>{fmt(v.median)}</td><td>{fmt(v.p90)}</td></tr>
+                  <tr key={k} data-testid={`stage-${m}-${k}`}>
+                    <td><Term k={k}>{k}</Term><Term k="estimate">*</Term></td><td>{v.n}</td><td>{fmt(v.median)}</td><td>{fmt(v.p90)}</td>
+                    <td>{v.early || ""}</td>
+                  </tr>
                 ))}
               </tbody>
             </table>
           </div>
         );
       })}
-      <p className="wf-note">* server stage durations from commit receipt (ms).</p>
+      <p className="wf-note">
+        ms after speech end. <Term k="estimate">*</Term> server estimate (commit sent + the server&apos;s time from commit receipt).
+        p50/p90 of a stage use only turns where it came after speech end; <b>early</b> counts the others.
+      </p>
       <div className="row">
         <button onClick={() => exp("json")} disabled={!turns.length}>Export JSON</button>
         <button onClick={() => exp("csv")} disabled={!turns.length}>Export CSV</button>
