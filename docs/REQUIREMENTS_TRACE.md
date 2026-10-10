@@ -78,7 +78,7 @@ Updated 9 Oct 2026 after DESIGN A14 (config-driven pairs + EN↔FR, live provide
 | ID | Requirement (quoted) | Status | Evidence |
 |---|---|---|---|
 | B-PERF1 | "Realtime mode: under 1.5s end-to-end perceived latency" | Met | `gpt-realtime` H p50 1002 / p90 1355 ms; mini 1013 / 1367 ms ([`m5/summary.md`](benchmarks/results/m5/summary.md)) |
-| B-PERF2a | "Cascade mode: under 3s end-to-end" | Met | cascade-openai p90 2030 ms; short sentences p90 2247 ms; Haiku short p90 2844 ms |
+| B-PERF2a | "Cascade mode: under 3s end-to-end" | Met | cascade-openai p90 2196 ms (first audio of the last sentence, A21); short sentences p90 2247 ms; Haiku short p90 2844 ms |
 | B-PERF2b | "target under 2s with full streaming" | Partial | Met at p50 (short sentences 1791 ms) but not at p90 (short 2247 ms) |
 | B-PERF3 | "Stability: sustain a 5-minute back-and-forth conversation without disconnection, audio drift, or memory leaks" | Met | 5-minute soak in both modes: 0 failures/reconnects, flat backend memory, drift ≤ 42 ms ([`m4-tuning.md`](benchmarks/m4-tuning.md) "5-minute soak"). Run with `gpt-realtime-mini` and the default cascade |
 | B-KM1 | Impact metric: "End-to-end latency (ms)" | Met | [`KEY_METRICS.md`](KEY_METRICS.md) §1 |

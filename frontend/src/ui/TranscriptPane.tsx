@@ -1,3 +1,4 @@
+import { responseMs } from "../store/metrics";
 import { joinSegments, type State, type TurnView } from "../store/reducer";
 import { LatencyWaterfall } from "./LatencyWaterfall";
 
@@ -27,7 +28,7 @@ export function TranscriptPane({ state }: { state: State }) {
               <div className="meta">
                 #{t.id} · {t.mode} · <b>{t.status}</b>
                 {t.reason && <em> ({t.reason})</em>}
-                {t.latencyMs !== undefined && <> · <span className="mono">{Math.round(t.latencyMs)} ms</span></>}
+                {t.latencyMs !== undefined && <> · <span className="mono">{Math.round(responseMs(t)!)} ms{responseMs(t) !== t.latencyMs ? "*" : ""}</span></>}
               </div>
               {t.browserMarks.commit_sent !== undefined && (
                 <details className="timings">

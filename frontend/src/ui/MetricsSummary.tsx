@@ -36,7 +36,7 @@ export function MetricsSummary({ state }: { state: State }) {
         <div className="stat"><span>p50</span><b className={verdict(cur.headline.median)}>{fmtK(cur.headline.median)}</b></div>
         <div className="stat"><span>p90</span><b className={verdict(cur.headline.p90)}>{fmtK(cur.headline.p90)}</b></div>
       </div>
-      <h2 className="card-title sub">All turns (speech end → first audio)</h2>
+      <h2 className="card-title sub">All turns (speech end → first audio of the last sentence)</h2>
       {(["cascade", "realtime"] as Mode[]).map((m) => {
         const s = summarize(turns, m);
         return (
@@ -46,6 +46,7 @@ export function MetricsSummary({ state }: { state: State }) {
               <thead><tr><th /><th><Term k="n">n</Term></th><th><Term k="p50">p50</Term></th><th><Term k="p90">p90</Term></th><th><Term k="early">early</Term></th></tr></thead>
               <tbody>
                 <tr className="headline"><td><Term k="headline">headline</Term></td><td>{s.headline.n}</td><td>{fmt(s.headline.median)}</td><td>{fmt(s.headline.p90)}</td><td /></tr>
+                <tr className="first-audible" data-testid={`first-audible-${m}`}><td><Term k="first_audible_stat">first audible</Term></td><td>{s.firstAudible.n}</td><td>{fmt(s.firstAudible.median)}</td><td>{fmt(s.firstAudible.p90)}</td><td /></tr>
                 {Object.entries(s.stages).map(([k, v]) => (
                   <tr key={k} data-testid={`stage-${m}-${k}`}>
                     <td><Term k={k}>{k}</Term><Term k="estimate">*</Term></td><td>{v.n}</td><td>{fmt(v.median)}</td><td>{fmt(v.p90)}</td>

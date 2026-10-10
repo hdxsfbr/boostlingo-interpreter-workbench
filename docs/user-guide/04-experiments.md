@@ -55,7 +55,7 @@ The detail view shows the code version, the model ids, and a table per setup:
 | Column | Meaning |
 |---|---|
 | n / done | Turns planned / completed |
-| H p50, H p90 | Delay from speech end to first audio, typical and slower case (ms) |
+| H p50, H p90 | Delay from speech end to the first audio of the last sentence, typical and slower case (ms). **First audible** is the literal first sound (on split Cascade turns, the first sentence) |
 | H−gap p50, H−gap p90 | The same with the 0.45 s button-release pause subtracted |
 | tail p50 | Cascade only: the server's estimate of when audio for the turn's final sentence started (typical; excludes network and playback) |
 | chrF en→es, es→en, all | Translation score per direction and overall (0–100, higher is better) |

@@ -7,7 +7,7 @@ export type EstimateRow = { setup: string; utterances: number; source_min: numbe
 export type Estimate = { turns: number; per_setup: EstimateRow[]; usd: number; duration_s: number; pricing_as_of?: string; basis: string; confirm_above_usd: number; needs_confirmation: boolean; utterance_ids: string[] };
 export type Stats = { n: number; p50: number | null; p90: number | null; p95?: number | null };
 export type ProfileSummary = {
-  profile: string; n: number; done: number; H: Stats; H_minus_gap: Stats; tail?: Stats;
+  profile: string; n: number; done: number; H: Stats; H_minus_gap: Stats; tail?: Stats; H_fair?: Stats; H_fair_minus_gap?: Stats;
   quality: Record<string, { chrF?: number | null; src_WER_mean?: number | null; n?: number }>;
   cost?: { usd_total?: number; usd_per_min?: number | null; source_min?: number };
   failures?: { count: number; rate?: number; reasons?: Record<string, number> };
@@ -76,13 +76,16 @@ export const expApi = {
 // ----- pure helpers (unit-tested)
 export type SummaryRow = {
   setup: string; n: number; done: number; H_p50: number | null; H_p90: number | null; Hgap_p50: number | null; Hgap_p90: number | null;
-  tail_p50: number | null; chrF_en_es: number | null; chrF_es_en: number | null; chrF_all: number | null; WER_en: number | null; WER_es: number | null;
+  firstAudible_p50: number | null; firstAudible_p90: number | null; tail_p50: number | null; chrF_en_es: number | null; chrF_es_en: number | null; chrF_all: number | null; WER_en: number | null; WER_es: number | null;
   usd_per_min: number | null; usd_total: number | null; failures: number;
 };
 
 export function summaryRows(e: Pick<Experiment, "summary">): SummaryRow[] {
   return e.summary.map((p) => ({
-    setup: p.profile, n: p.n, done: p.done, H_p50: p.H.p50, H_p90: p.H.p90, Hgap_p50: p.H_minus_gap.p50, Hgap_p90: p.H_minus_gap.p90,
+    // A21: headline H = first audio of the last sentence (H_fair); older summaries fall back to H
+    setup: p.profile, n: p.n, done: p.done, H_p50: (p.H_fair ?? p.H).p50, H_p90: (p.H_fair ?? p.H).p90,
+    Hgap_p50: (p.H_fair_minus_gap ?? p.H_minus_gap).p50, Hgap_p90: (p.H_fair_minus_gap ?? p.H_minus_gap).p90,
+    firstAudible_p50: p.H.p50, firstAudible_p90: p.H.p90,
     tail_p50: p.tail?.p50 ?? null, chrF_en_es: p.quality["en->es"]?.chrF ?? null, chrF_es_en: p.quality["es->en"]?.chrF ?? null,
     chrF_all: p.quality.all?.chrF ?? null, WER_en: p.quality["en->es"]?.src_WER_mean ?? null, WER_es: p.quality["es->en"]?.src_WER_mean ?? null,
     usd_per_min: p.cost?.usd_per_min ?? null, usd_total: p.cost?.usd_total ?? null, failures: p.failures?.count ?? 0,

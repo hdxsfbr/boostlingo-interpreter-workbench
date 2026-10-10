@@ -10,7 +10,7 @@ export function SummaryTable({ e }: { e: Pick<Experiment, "summary" | "id"> }) {
     <table className="results-table" data-testid={`summary-${e.id}`}>
       <thead>
         <tr>
-          <th>Setup</th><th>n / done</th><th>H p50</th><th>H p90</th><th>H−gap p50</th><th>H−gap p90</th><th>tail p50</th>
+          <th>Setup</th><th>n / done</th><th>H p50</th><th>H p90</th><th>H−gap p50</th><th>H−gap p90</th><th title="literal first audible: on split cascade turns the held first sentence">first audible¹ p50 / p90</th><th>tail p50</th>
           <th>chrF en→es</th><th>chrF es→en</th><th>chrF all</th><th>WER en</th><th>WER es</th><th>$/min</th><th>$ total</th><th>failures</th>
         </tr>
       </thead>
@@ -18,7 +18,7 @@ export function SummaryTable({ e }: { e: Pick<Experiment, "summary" | "id"> }) {
         {rows.map((r) => (
           <tr key={r.setup} data-testid={`summary-row-${r.setup}`}>
             <td>{r.setup}</td><td>{r.n} / {r.done}</td><td>{fmtNum(r.H_p50)}</td><td>{fmtNum(r.H_p90)}</td><td>{fmtNum(r.Hgap_p50)}</td>
-            <td>{fmtNum(r.Hgap_p90)}</td><td>{fmtNum(r.tail_p50)}</td><td>{fmtNum(r.chrF_en_es, 1)}</td><td>{fmtNum(r.chrF_es_en, 1)}</td>
+            <td>{fmtNum(r.Hgap_p90)}</td><td>{fmtNum(r.firstAudible_p50)} / {fmtNum(r.firstAudible_p90)}</td><td>{fmtNum(r.tail_p50)}</td><td>{fmtNum(r.chrF_en_es, 1)}</td><td>{fmtNum(r.chrF_es_en, 1)}</td>
             <td>{fmtNum(r.chrF_all, 1)}</td><td>{fmtNum(r.WER_en, 3)}</td><td>{fmtNum(r.WER_es, 3)}</td><td>{fmtUsd(r.usd_per_min)}</td>
             <td>{fmtUsd(r.usd_total, 4)}</td><td>{r.failures}</td>
           </tr>

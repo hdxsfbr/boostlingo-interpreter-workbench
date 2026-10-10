@@ -38,6 +38,21 @@ export const earlyReason = (t: TurnView): "earlier segment" | "speculative" =>
 
 export type StageStat = Stat & { early: number };
 
+/** A21: a split cascade turn = more than one target segment with a last-segment audio mark.
+ * Its first audible is the FIRST sentence, translated while the speaker was talking and held
+ * until the commit (D8), so it mostly measures the PTT release gap. */
+export const isSplit = (t: TurnView): boolean =>
+  Object.keys(t.target).length > 1 && stageMs(t, "tail_tts_first_byte") !== undefined;
+
+/** A21 headline H: speech end -> first audio of the LAST sentence. The measured first audible
+ * for single-segment turns (and Realtime); on split turns the last segment's audio start
+ * (commit sent + tail_tts_first_byte, a server estimate) when that is later. */
+export function responseMs(t: TurnView): number | undefined {
+  const h = t.latencyMs;
+  if (h === undefined || !isSplit(t)) return h;
+  return Math.max(h, stageMs(t, "tail_tts_first_byte")!);
+}
+
 export function summarize(turns: TurnView[], mode: Mode, window = 50) {
   // headline H = first audible − speech end. Audio is only sent after the final commit
   // (playback policy D8), which is after speech end, so H < 0 would be a measurement bug:
@@ -51,12 +66,13 @@ export function summarize(turns: TurnView[], mode: Mode, window = 50) {
     // stats only over turns where the stage came after speech end; early ones are counted apart
     stages[m] = { ...stat(vs.filter((v) => !isEarly(v))), early: vs.filter(isEarly).length };
   }
-  return { headline: stat(ts.map((t) => t.latencyMs!)), stages };
+  // A21: headline = first audio of the last sentence; the literal first audible is kept as a second line
+  return { headline: stat(ts.map((t) => responseMs(t)!)), firstAudible: stat(ts.map((t) => t.latencyMs!)), stages };
 }
 
 export type TurnRecord = {
   turn_id: number; mode: Mode; speaker: string; src: string; tgt: string; status: string; reason?: string;
-  latency_ms?: number; browser_marks: Record<string, number>; server_marks: Record<string, number>;
+  latency_ms?: number; response_ms?: number; browser_marks: Record<string, number>; server_marks: Record<string, number>;
   source_text: string; target_text: string; usage?: Record<string, unknown>;
   recording?: Record<string, string>;
 };
@@ -65,7 +81,7 @@ export function toRecord(t: TurnView): TurnRecord {
   const txt = (segs: TurnView["source"]) => Object.keys(segs).map(Number).sort((a, b) => a - b).map((k) => segs[k].text).join(" ").trim();
   return {
     turn_id: t.id, mode: t.mode, speaker: t.speaker, src: t.src, tgt: t.tgt, status: t.status, reason: t.reason,
-    latency_ms: t.latencyMs, browser_marks: t.browserMarks, server_marks: t.serverMarks,
+    latency_ms: t.latencyMs, response_ms: responseMs(t), browser_marks: t.browserMarks, server_marks: t.serverMarks,
     source_text: txt(t.source), target_text: txt(t.target), usage: t.usage,
     ...(t.recording ? { recording: t.recording } : {}),
   };

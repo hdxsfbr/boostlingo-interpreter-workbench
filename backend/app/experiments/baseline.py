@@ -17,12 +17,17 @@ BASELINE_ID = "m5-baseline"
 
 
 def import_m5(store: ExperimentStore, bench_dir: Path, row_cost=None, profiles: dict | None = None) -> bool:
-    if store.get(BASELINE_ID):
-        return False
     res_p = bench_dir / "results" / "m5" / "results.json"
+    old = store.get(BASELINE_ID)
     if not res_p.is_file():
         return False
     res = json.loads(res_p.read_text())
+    if old:
+        if old.get("summary") == res["profiles"]:
+            return False
+        # results.json changed (e.g. A21 headline H): the read-only baseline is re-imported
+        store.delete(BASELINE_ID)
+        log.info("experiments: %s is stale, re-importing", BASELINE_ID)
     names = [p["profile"] for p in res["profiles"]]
     cfg = {"name": "M5 baseline", "setups": names, "utterances": "full", "directions": "both", "passes": 1,
            "source": "docs/benchmarks/results/m5/results.json", "note": "final M5 runs, one container per profile"}

@@ -94,13 +94,22 @@ class ExperimentStore:
             for setup, row, cost in items:
                 self._insert(db, exp_id, setup, row, cost)
 
+    def delete(self, exp_id: str) -> None:
+        with self._db() as db:
+            db.execute("DELETE FROM experiment_turns WHERE exp_id=?", (exp_id,))
+            db.execute("DELETE FROM experiments WHERE id=?", (exp_id,))
+
     @staticmethod
     def _insert(db: sqlite3.Connection, exp_id: str, setup: str, row: dict, cost: float) -> None:
+        # A21: h_ms is the headline (first audio of the last sentence); the literal first audible stays in row
+        h, t, g = row.get("H_ms"), row.get("tail_est_ms"), row.get("H_minus_lag_ms")
+        hf = max(h, t) if (h is not None and t is not None) else h
+        gf = (g + hf - h) if (g is not None and hf is not None) else g
         db.execute(
             "INSERT OR REPLACE INTO experiment_turns (exp_id,setup,n,utterance_id,lang,size,status,h_ms,h_minus_gap_ms,"
             "tail_ms,cost_usd,row) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
             (exp_id, setup, int(row.get("n") or 0), row.get("id", "?"), row.get("lang", "?"), row.get("size", "?"),
-             row.get("status", "?"), row.get("H_ms"), row.get("H_minus_lag_ms"), row.get("tail_est_ms"), cost,
+             row.get("status", "?"), hf, gf, t, cost,
              json.dumps(row, ensure_ascii=False)))
 
     def turns(self, exp_id: str, full: bool = False) -> list[dict]:

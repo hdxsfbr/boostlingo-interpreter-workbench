@@ -35,6 +35,8 @@ By direction (before → after, default):
 
 ## What each change bought (24-utterance subset, 4 per size per direction)
 
+> **Note (10 Oct 2026, DESIGN A21):** the **H** and **H−gap** columns here are the literal first audible sample. On split turns (most medium and long utterances) that is the first sentence, held until the commit, so their p50 (~525 ms / ~70 ms) mostly measures the 450 ms release. The headline is now speech end to first audio of the last sentence; for these runs the **tail** columns are the comparable figure. The tables are kept as measured.
+
 | Variant | n | H | H−gap | tail | tail−gap | short H | short H−gap |
 |---|---|---|---|---|---|---|---|
 | Before (M3) | 24 | 580 / 2164 | 123 / 1709 | 2097 / 2332 | 1641 / 1870 | 2031 / 2164 | 1574 / 1709 |

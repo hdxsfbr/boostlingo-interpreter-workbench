@@ -86,7 +86,8 @@ Each row is a bar on the same scale. Two vertical lines mark the **target** (amb
 | **TTS 1st byte\*** | When the first bit of synthesised audio came back. |
 | **audio sent\*** | When the server started sending that audio to your browser. |
 | **last seg TTS 1st\*** | For multi-sentence turns: when audio for the last sentence began arriving. |
-| **first audible** | **The headline number.** When you could first hear the translation. It turns green when within target, amber between target and limit, and red over the limit. |
+| **first audible** | **The headline number** on a single-sentence turn: when you could first hear the translation. It turns green when within target, amber between target and limit, and red over the limit. |
+| **last sentence audible\*** | Only on a Cascade turn split into several sentences: when the last sentence's audio started (server estimate). It is the headline there, because the first sentence was already translated while you talked and is heard almost as soon as you let go; **first audible** stays as a secondary row. |
 
 **Rows marked \* are server estimates.** The server times them from when it received the "finished" signal, and the app places them after the **commit sent** mark. The **commit sent** and **first audible** rows are measured exactly, in your browser.
 
@@ -97,7 +98,7 @@ In Realtime mode there are no server rows: the model does all steps at once, so 
 ### The summary under the bars
 
 - **turns**, **p50** and **p90** for the current mode. **p50** is the *typical* delay: half the turns were faster. **p90** is the *slower case*: 9 in 10 turns were faster. Both use the last 50 timed turns.
-- **All turns (speech end → first audio):** a table per mode with the headline delay and each server step, all in ms after speech end. **n** is the number of turns behind p50/p90. For each step, p50 and p90 use only turns where that step came after speech end; the **early** column counts the turns where it came before, so early steps never pull the typical delay down.
+- **All turns (speech end → first audio of the last sentence):** a table per mode with the headline delay, a **first audible** row (the literal first sound, for reference) and each server step, all in ms after speech end. **n** is the number of turns behind p50/p90. For each step, p50 and p90 use only turns where that step came after speech end; the **early** column counts the turns where it came before, so early steps never pull the typical delay down.
 
 See [Understanding the numbers](05-understanding-the-numbers.md) for more.
 
