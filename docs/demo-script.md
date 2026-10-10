@@ -55,10 +55,16 @@ All numbers come from [comparison.md](comparison.md) and [KEY_METRICS.md](KEY_ME
 **Screen/click:** Experiments tab → show cost estimate, then History/compare with the M5 baseline. Then Docs tab → open a guide page.
 **Narration:** "The Experiments tab reruns the same benchmark from the browser, with a cost estimate before you run and side-by-side comparisons against my baseline. And the Docs tab has a plain-language guide to every screen and number."
 
+### 6b. Observability (Langfuse) — inserted in final-v2 at 3:21.2–3:42.2 (21 s)
+**Screen:** CTO's Langfuse clip (`langfuse-demo-clip.mp4`, silent, sped 1.23x to 21 s, scaled to 1728x1080 and padded to 1080p in the app background #F2F5FE): Tracing list → cascade session trace with translation span → gpt-realtime session attributes/latency → Scores table (H_ms, chrF, cost).
+**Narration (s6b, Chatterbox standard, Andre ref voice, exaggeration 0.35, cfg 0.55):** "Under the hood, every turn and every experiment is traced step by step in Langfuse, with latency, cost and quality scores. Tracing is off by default, and it never slows down the audio."
+
 ### 7. Close — 2:55–3:05
 **Screen:** Back to Interpreter tab.
 **Narration:** "So: Realtime when speed matters most, the cascade when control matters most. It's live on Railway, and the code and full write-up are in the repo. Thanks for watching."
 
 ## Word count
+
+_final-v2 (with scene 6b): 3:55.2 total, under the 4:00 max._
 
 Narration only (excluding the four demo lines): **~385 words ≈ 2:35 at 150 wpm**. Live turns and playback: ~25–35 s. **Expected total: ~3:00–3:10** (well under the 4:00 max). If running long, trim scene 5's recording sentence first.
