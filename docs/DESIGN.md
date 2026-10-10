@@ -391,7 +391,19 @@ Dockerfile (node build → python runtime) · docker-compose.yml (app, eval prof
   - **chrF + BLEU:** `sacrebleu` vs references; COMET optional (D3).
   - "Answered instead of translated" rate; skip/failure rate.
   - **Cost/min** = Σ usage × `pricing.yaml` ÷ source-audio minutes, reported at 1 and 5 minutes of session for Realtime (history re-reads).
-- **Expected cost per minute** (R§5.2 estimates on prices captured 2026-10-08; assumes ~900 chars/min and 1 min out per min in; replaced by measured usage):
+- **Measured cost per minute (M5 eval, 48 sentences; estimated from usage, meaning token usage reported by each run × `config/pricing.yaml` as of 2026-10-08, not invoice figures). These supersede the estimates below:**
+
+| Profile | Measured $/min | Note |
+|---|---|---|
+| `realtime` (`gpt-realtime`) | **0.179** | Above the estimate, mainly because the side input transcription is billed on top; a cheaper transcription model is a config-only option (not changed, scope frozen) |
+| `realtime-mini` | **0.052** | |
+| `cascade-openai` | **0.049** | |
+| `cascade-haiku` (OpenRouter) | **0.048** | |
+| `cascade-elevenlabs` | **0.059** | At list price; the free tier bills credits instead |
+
+A 5-minute session is about $0.90 on `gpt-realtime` and about $0.25 on mini or cascade. Short turns cost more per minute because each turn has fixed overhead. History pruning shipped (keeps the last turn), so R3 re-billing is mitigated.
+
+- *Superseded pre-build estimates, kept for reference:* **Expected cost per minute** (R§5.2 estimates on prices captured 2026-10-08; assumes ~900 chars/min and 1 min out per min in; replaced by measured usage):
 
 | Profile | ≈ $/min | Basis |
 |---|---|---|
@@ -429,7 +441,7 @@ Commit per logical unit (PROC-3).
 
 - **R1 (resolved):** `gpt-live-transcribe` streams revisable partial deltas during speech, with latency tunable via `delay`, but it has **no VAD**, so we commit (PTT release, in-turn pauses, or browser VAD) (R§2.1–2.2). Residual: no published ms figures, and the transcription-session WS URL is undocumented (use the SDK).
 - **R2 (mitigated, not removed):** `gpt-realtime` may answer instead of translating. Mitigations: audio-only output, an explicit language-policy prompt, history pruning, `interrupt_response: false`, and the harness measures an "answered" rate. `gpt-realtime-translate` eliminates this failure mode, but it can't be Realtime mode (the brief mandates `gpt-realtime`), its language list is unpublished, and its simultaneous output makes "speech end → first audio" non-comparable (R§1.8). Optional variant only.
-- **R3:** Realtime re-bills the whole conversation per response (cache miss ≈ $0.29/turn by minute 5). Mitigation: prune items; report cost at 1 and 5 minutes.
+- **R3:** Realtime re-bills the whole conversation per response (cache miss ≈ $0.29/turn by minute 5). Mitigation: prune items; report cost at 1 and 5 minutes.  **Status: mitigated; pruning shipped in M2 and was confirmed in the 5-minute live run.**
 - **R4 (new):** headless Chrome WebRTC + file source must work for the harness. Fallback: relay path for Realtime, disclosed.
 - **R5:** browser AEC on Web Audio playout is unverified. Mitigation: half-duplex gating in both modes, headphones.
 - **R6:** the silence window counts against latency (and `speech_stopped` hides it). Mitigation: PTT default, matched VAD windows, both reported.
