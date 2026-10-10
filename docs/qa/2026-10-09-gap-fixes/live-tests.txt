@@ -1,0 +1,25 @@
+$ LIVE_TESTS=1 .venv/bin/pytest -m live tests/live -v -rs   (main a32179a, 2026-10-10 14:16 PDT)
+============================= test session starts ==============================
+platform linux -- Python 3.13.2, pytest-9.1.1, pluggy-1.6.0 -- /home/hdx/code/boostlingo-interpreter-workbench/backend/.venv/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/hdx/code/boostlingo-interpreter-workbench/backend
+configfile: pyproject.toml
+plugins: asyncio-1.4.0, anyio-4.15.1
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 6 items
+
+tests/live/test_live_providers.py::test_openai_stt_live PASSED           [ 16%]
+tests/live/test_live_providers.py::test_openai_mt_live PASSED            [ 33%]
+tests/live/test_live_providers.py::test_openai_tts_live PASSED           [ 50%]
+tests/live/test_live_providers.py::test_realtime_session_mint_live PASSED [ 66%]
+tests/live/test_live_providers.py::test_openrouter_mt_live PASSED        [ 83%]
+tests/live/test_live_providers.py::test_elevenlabs_tts_live_through_credit_guard PASSED [100%]
+
+=============================== warnings summary ===============================
+tests/live/test_live_providers.py::test_realtime_session_mint_live
+  /home/hdx/code/boostlingo-interpreter-workbench/backend/.venv/lib/python3.13/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================== 6 passed, 1 warning in 11.63s =========================
+exit=0
