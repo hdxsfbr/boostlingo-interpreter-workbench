@@ -17,6 +17,14 @@ import { setLanguageNames } from "./session/realtimePrompt";
 type Action = { kind: "ev"; ev: SessionEvent } | { kind: "dismiss"; id: number };
 const appReducer = (s: State, a: Action): State => (a.kind === "ev" ? reduce(s, a.ev) : dismissError(s, a.id));
 
+/** Header tabs. One more (the planned Docs tab) is one entry here plus a branch in the body (A17). */
+const TABS = [
+  { id: "interpreter", label: "Interpreter" },
+  { id: "review", label: "Review" },
+  { id: "experiments", label: "Experiments" },
+] as const;
+type Tab = (typeof TABS)[number]["id"];
+
 /** A16: end the session server-side (cookie expired + revoked), then the logged-out page clears cached Basic. */
 export async function logout(stop?: () => Promise<void> | void, nav: (url: string) => void = (u) => location.assign(u)): Promise<void> {
   try {
@@ -62,8 +70,7 @@ export default function App() {
       .catch(() => setRecCfg(null));
   }, []);
   const recording = recordWanted && !!recCfg?.enabled;
-  type Tab = "interpreter" | "review" | "experiments";
-  const [tab, setTab] = useState<Tab>((["review", "experiments"].includes(params.get("tab") ?? "") ? params.get("tab") : "interpreter") as Tab);
+  const [tab, setTab] = useState<Tab>((TABS.some((t) => t.id === params.get("tab")) ? params.get("tab") : "interpreter") as Tab);
   // A14: pairs come from config/languages.yaml; ?pair= picks one (id or "a-b"), else the default pair.
   const [langs, setLangs] = useState<LanguagesConfig | null>(null);
   const [pairId, setPairId] = useState<string | null>(null);
@@ -169,12 +176,16 @@ export default function App() {
 
   return (
     <div className="app">
-      <header>
-        <h1>AI Interpreter Workbench</h1>
-        <nav className="toggle tabs" role="tablist" aria-label="Workbench">
-          {(["interpreter", "review", "experiments"] as const).map((t) => (
-            <button key={t} role="tab" aria-selected={tab === t} className={tab === t ? "on" : ""} onClick={() => setTab(t)} data-testid={`tab-${t}`}>
-              {t === "interpreter" ? "Interpreter" : t === "review" ? "Review" : "Experiments"}
+      <header className="app-header">
+        <div className="brand">
+          <img src="/brand/logo-mark.svg" width="24" height="24" alt="" aria-hidden="true" />
+          <h1>Interpreter Workbench</h1>
+          <small className="pill">eval</small>
+        </div>
+        <nav className="seg tabs" role="tablist" aria-label="Workbench">
+          {TABS.map((t) => (
+            <button key={t.id} role="tab" aria-selected={tab === t.id} className={tab === t.id ? "on" : ""} onClick={() => setTab(t.id)} data-testid={`tab-${t.id}`}>
+              {t.label}
             </button>
           ))}
         </nav>
@@ -183,7 +194,9 @@ export default function App() {
             ● Recording
           </span>
         )}
-        <span className={`state state-${state.sessionState}`}>{state.sessionState}</span>
+        <span className={`state state-${state.sessionState}`} data-testid="session-state">
+          {state.sessionState} · {state.mode}
+        </span>
         {authOn && (
           <button className="logout" onClick={() => void logout(() => sessionRef.current?.stop())} data-testid="logout">
             Logout

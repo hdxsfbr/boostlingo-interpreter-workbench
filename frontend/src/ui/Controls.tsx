@@ -51,33 +51,44 @@ export function Controls(p: Props) {
       onPointerCancel={() => p.onUp(sp)}
       data-testid={`ptt-${sp}`}
     >
-      <strong>Speaker {sp}</strong>
-      <span>{label}</span>
+      <span className={`av av-${sp}`} aria-hidden="true">{sp}</span>
+      <span className="ptt-text">
+        <strong>Speaker {sp}</strong>
+        {p.active === sp && <span className="live"> ● SPEAKING</span>}
+        <span className="dir">{label}</span>
+      </span>
       <kbd>hold {key}</kbd>
     </button>
   );
   return (
     <section className="controls">
-      <div className="row">
-        <div className="toggle" role="group" aria-label="Mode">
+      <div className="card ctl-card">
+      <div className="row ctl">
+        <div className="field">
+        <span className="field-label" id="lbl-mode">Mode</span>
+        <div className="seg" role="group" aria-labelledby="lbl-mode">
           {(["cascade", "realtime"] as Mode[]).map((m) => (
             <button key={m} className={p.mode === m ? "on" : ""} onClick={() => p.onMode(m)} data-testid={`mode-${m}`}>
               {m === "cascade" ? "Cascade" : "Realtime"}
             </button>
           ))}
         </div>
+        </div>
         {p.mode === "realtime" && (
-          <div className="toggle" role="group" aria-label="Turn taking">
+          <div className="field">
+          <span className="field-label" id="lbl-turn">Turn taking</span>
+          <div className="seg" role="group" aria-labelledby="lbl-turn">
             {(["ptt", "vad"] as TurnMode[]).map((m) => (
               <button key={m} className={p.turnMode === m ? "on" : ""} onClick={() => p.onTurnMode(m)} data-testid={`turn-${m}`}>
                 {m === "ptt" ? "Push-to-talk" : "Auto (VAD)"}
               </button>
             ))}
           </div>
+          </div>
         )}
         {p.mode === "cascade" && (
-          <label>
-            Pipeline{" "}
+          <label className="field">
+            <span className="field-label">Pipeline</span>
             <select value={p.pipeline} onChange={(e) => p.onPipeline(e.target.value as Pipeline)} data-testid="pipeline">
               <option value="cascade">STT → MT → TTS</option>
               <option value="loopback">Loopback (latency floor)</option>
@@ -87,8 +98,8 @@ export function Controls(p: Props) {
         {p.mode === "cascade" && p.pipeline === "cascade" && p.swaps && (
           <>
             {(["mt", "tts"] as const).map((kind) => (
-              <label key={kind} title="Provider swap by config (FR-9)">
-                {kind === "mt" ? "Translator" : "Voice"}{" "}
+              <label key={kind} className="field" title="Provider swap by config (FR-9)">
+                <span className="field-label">{kind === "mt" ? "Translator" : "Voice"}</span>
                 <select value={p.chosen[kind] ?? p.swaps![kind][0]?.name} onChange={(e) => p.onProvider(kind, e.target.value)} data-testid={`swap-${kind}`}>
                   {p.swaps![kind].map((o) => (
                     <option key={o.name} value={o.name} disabled={!o.ready} title={o.reason}>
@@ -100,8 +111,8 @@ export function Controls(p: Props) {
             ))}
           </>
         )}
-        <label className="pair">
-          Pair:{" "}
+        <label className="field pair">
+          <span className="field-label">Language pair</span>
           <select
             value={p.pairs?.find((x) => x.a === p.pair.a && x.b === p.pair.b)?.id ?? ""}
             disabled={p.running || !p.pairs?.length}
@@ -121,12 +132,13 @@ export function Controls(p: Props) {
         )}
         <span className="spacer" />
         {p.running ? (
-          <button onClick={p.onStop} data-testid="stop">Stop</button>
+          <button className="danger" onClick={p.onStop} data-testid="stop">Stop session</button>
         ) : (
           <button className="primary" onClick={p.onStart} disabled={p.canStart === false} data-testid="start">Start session</button>
         )}
       </div>
       {p.recording && <RecordToggle {...p.recording} running={p.running} />}
+      </div>
       {p.turnMode === "vad" ? (
         <div className="row ptts">
           <p className="vad-hint" data-testid="vad-listening">

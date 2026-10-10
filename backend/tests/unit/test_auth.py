@@ -34,6 +34,8 @@ def gated(tmp_path, monkeypatch):
     (static / "assets").mkdir(parents=True)
     (static / "index.html").write_text("<html>spa</html>")
     (static / "assets" / "app.js").write_text("console.log(1)")
+    (static / "brand").mkdir()
+    (static / "brand" / "tokens.css").write_text(":root{}")
     monkeypatch.setenv("STATIC_DIR", str(static))
     monkeypatch.setenv("DATA_DIR", str(tmp_path / "data"))
     monkeypatch.setenv("OPENAI_API_KEY", "sk-test-not-real")
@@ -222,3 +224,10 @@ def test_gated_responses_must_be_revalidated(gated):
     for path in ("/", "/assets/app.js", "/api/languages"):
         r = gated.get(path, headers={"Cookie": f"{COOKIE}={tok}"})
         assert r.status_code == 200 and "no-cache" in r.headers["cache-control"], path
+
+
+def test_brand_assets_are_open_but_nothing_else_is(gated):
+    assert gated.get("/brand/tokens.css").status_code == 200  # logged-out page styling, no secrets
+    assert gated.get("/brand/../index.html").status_code in (401, 404)
+    assert gated.post("/brand/tokens.css").status_code == 401
+    assert gated.get("/brandx/a").status_code == 401 and gated.get("/assets/app.js").status_code == 401

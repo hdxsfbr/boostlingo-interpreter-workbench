@@ -1,6 +1,7 @@
 import type { Mode } from "../session/protocol";
 import { LIMIT_MS, summarize, TARGET_MS, toCsv, toRecord } from "../store/metrics";
 import type { State } from "../store/reducer";
+import { LatencyWaterfall } from "./LatencyWaterfall";
 
 const fmt = (v?: number) => (v === undefined ? "—" : `${Math.round(v)}`);
 
@@ -14,6 +15,11 @@ function download(name: string, body: string, type: string) {
 
 export function MetricsSummary({ state }: { state: State }) {
   const turns = Object.values(state.turns);
+  const last = [...turns].reverse().find((t) => t.browserMarks.commit_sent !== undefined && t.mode === state.mode)
+    ?? [...turns].reverse().find((t) => t.browserMarks.commit_sent !== undefined);
+  const cur = summarize(turns, state.mode);
+  const verdict = (v?: number) => (v === undefined ? "" : v <= TARGET_MS[state.mode] ? "ok" : v <= LIMIT_MS[state.mode] ? "warn" : "bad");
+  const fmtK = (v?: number) => (v === undefined ? "—" : Math.round(v).toLocaleString("en-US"));
   const exp = (kind: "json" | "csv") => {
     const recs = turns.map(toRecord);
     const stamp = new Date().toISOString().replace(/[:.]/g, "-");
@@ -21,8 +27,15 @@ export function MetricsSummary({ state }: { state: State }) {
     else download(`turns-${stamp}.csv`, toCsv(recs), "text/csv");
   };
   return (
-    <aside className="metrics" data-testid="metrics">
-      <h2>Latency (speech end → first audio)</h2>
+    <aside className="card metrics" data-testid="metrics" aria-label="Latency">
+      <h2 className="card-title">Latency · last turn</h2>
+      {last ? <LatencyWaterfall turn={last} /> : <p className="empty">No timed turn yet.</p>}
+      <div className="stats">
+        <div className="stat"><span>turns</span><b>{cur.headline.n}</b></div>
+        <div className="stat"><span>p50</span><b className={verdict(cur.headline.median)}>{fmtK(cur.headline.median)}</b></div>
+        <div className="stat"><span>p90</span><b className={verdict(cur.headline.p90)}>{fmtK(cur.headline.p90)}</b></div>
+      </div>
+      <h2 className="card-title sub">All turns (speech end → first audio)</h2>
       {(["cascade", "realtime"] as Mode[]).map((m) => {
         const s = summarize(turns, m);
         return (

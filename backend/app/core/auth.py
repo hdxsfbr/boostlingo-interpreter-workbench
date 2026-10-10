@@ -40,6 +40,7 @@ log = logging.getLogger("app.auth")
 COOKIE = "wb_session"
 COOKIE_TTL_S = 12 * 3600
 OPEN_PATHS = {"/healthz", "/auth/logged-out"}
+OPEN_PREFIXES = ("/brand/",)  # public brand assets (tokens.css, logo, OFL fonts) for the logged-out page (A17)
 LOGOUT_PATH = "/auth/logout"
 LOGOUT_USER = b"logged-out"  # the logout page's deliberately bogus Basic user: 401 without a challenge (no prompt loop)
 REALM = 'Basic realm="Interpreter Workbench", charset="UTF-8"'
@@ -149,7 +150,8 @@ class AuthGate:
         kind = scope["type"]
         if kind not in ("http", "websocket"):
             return await self.app(scope, receive, send)
-        if kind == "http" and scope["path"] in OPEN_PATHS and scope["method"] in ("GET", "HEAD"):
+        if (kind == "http" and scope["method"] in ("GET", "HEAD")
+                and (scope["path"] in OPEN_PATHS or (scope["path"].startswith(OPEN_PREFIXES) and ".." not in scope["path"]))):
             return await self.app(scope, receive, send)
         headers = {k.decode("latin-1").lower(): v.decode("latin-1") for k, v in scope.get("headers", [])}
         jar = SimpleCookie()
@@ -240,10 +242,22 @@ async def _deny_ws(scope: Scope, send: Callable) -> None:
 # pair (the server answers 401 *without* a challenge, so no prompt and no loop), then offers
 # a fresh login. "Log in again" goes to "/", whose 401 challenge prompts for the password.
 LOGGED_OUT_HTML = """<!doctype html><html lang="en"><head><meta charset="utf-8">
-<title>Logged out · AI Interpreter Workbench</title>
-<style>body{font:16px system-ui,sans-serif;max-width:32rem;margin:15vh auto;padding:0 1rem}</style></head>
-<body><h1>Logged out</h1><p id="status" data-testid="logout-status">Clearing saved credentials&hellip;</p>
-<p><a href="/" data-testid="login-again">Log in again</a></p>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Logged out · Interpreter Workbench</title>
+<link rel="icon" href="/brand/logo-mark.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/brand/tokens.css">
+<style>
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;background:var(--c-bg);color:var(--c-text);font:15px/1.5 var(--font-sans)}
+main{width:100%;max-width:28rem;background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius);box-shadow:var(--shadow);padding:28px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:16px;margin-bottom:18px}
+h1{font-size:22px;margin:0 0 8px}p{color:var(--c-muted);margin:0 0 18px}
+a.btn{display:inline-block;background:var(--c-primary);color:var(--c-onprimary);text-decoration:none;font-weight:600;padding:9px 18px;border-radius:var(--radius-sm)}
+a.btn:hover{background:var(--c-primary-hover)}a.btn:focus-visible{outline:none;box-shadow:var(--focus-ring)}
+</style></head>
+<body><main><div class="brand"><img src="/brand/logo-mark.svg" width="24" height="24" alt="">Interpreter Workbench</div>
+<h1>Logged out</h1><p id="status" data-testid="logout-status">Clearing saved credentials&hellip;</p>
+<p><a class="btn" href="/" data-testid="login-again">Log in again</a></p>
 <script>
 (async () => {
   const s = document.getElementById("status");
@@ -256,5 +270,5 @@ LOGGED_OUT_HTML = """<!doctype html><html lang="en"><head><meta charset="utf-8">
   s.textContent = "You are logged out. Close the browser to be sure no saved password is reused.";
   s.dataset.done = "1";
 })();
-</script></body></html>
+</script></main></body></html>
 """

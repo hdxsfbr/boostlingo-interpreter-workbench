@@ -12,20 +12,30 @@ const Segs = ({ segs }: { segs: TurnView["source"] }) => (
 export function TranscriptPane({ state }: { state: State }) {
   const items = [...state.timeline].reverse();
   return (
-    <section className="transcript" data-testid="transcript">
+    <section className="card transcript" data-testid="transcript" aria-label="Transcript">
+      <h2 className="card-title">Transcript</h2>
       {items.length === 0 && <p className="empty">Start a session, then hold a speaker button and talk.</p>}
       {items.map((it, i) => {
         if (it.kind === "switch") return <div key={`sw${i}`} className="switch">— switched {it.from} → {it.to} —</div>;
         const t = state.turns[it.id];
         return (
           <article key={t.id} className={`turn speaker-${t.speaker} status-${t.status}`} data-testid={`turn-${t.id}`}>
-            <div className="meta">
-              #{t.id} · {t.mode} · Speaker {t.speaker} · {t.src.toUpperCase()}→{t.tgt.toUpperCase()} · <b>{t.status}</b>
-              {t.reason && <em> ({t.reason})</em>}
+            <span className={`tag tag-${t.speaker}`} aria-label={`Speaker ${t.speaker}`}>{t.speaker}</span>
+            <div className="turn-body">
+              <div className="src"><label>{t.src.toUpperCase()}</label><Segs segs={t.source} /></div>
+              <div className="tgt"><label>{t.tgt.toUpperCase()}</label><Segs segs={t.target} /></div>
+              <div className="meta">
+                #{t.id} · {t.mode} · <b>{t.status}</b>
+                {t.reason && <em> ({t.reason})</em>}
+                {t.latencyMs !== undefined && <> · <span className="mono">{Math.round(t.latencyMs)} ms</span></>}
+              </div>
+              {t.browserMarks.commit_sent !== undefined && (
+                <details className="timings">
+                  <summary>Timings</summary>
+                  <LatencyWaterfall turn={t} />
+                </details>
+              )}
             </div>
-            <div className="src"><label>{t.src.toUpperCase()}</label><Segs segs={t.source} /></div>
-            <div className="tgt"><label>{t.tgt.toUpperCase()}</label><Segs segs={t.target} /></div>
-            <LatencyWaterfall turn={t} />
           </article>
         );
       })}

@@ -14,7 +14,7 @@ const LABEL: Record<string, string> = {
   tts_first_byte: "TTS 1st byte",
   audio_first_sent: "audio sent",
   tail_tts_first_byte: "last seg TTS 1st byte",
-  first_audible: "FIRST AUDIBLE",
+  first_audible: "first audible",
 };
 
 export function LatencyWaterfall({ turn }: { turn: TurnView }) {
@@ -41,7 +41,10 @@ export function LatencyWaterfall({ turn }: { turn: TurnView }) {
           <span className="wf-ms">{Math.round(r.ms)} ms</span>
         </div>
       ))}
-      <div className="wf-note">ms after speech end (last voiced mic frame). * server duration placed after commit (estimate).</div>
+      <div className="wf-note">
+        ms after speech end · <span className="lg-target">│ target {TARGET_MS[turn.mode]}</span> ·{" "}
+        <span className="lg-limit">│ limit {limit}</span> · * server estimate
+      </div>
     </div>
   );
 }

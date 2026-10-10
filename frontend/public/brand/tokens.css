@@ -1,0 +1,53 @@
+/* Relay design tokens (docs/design/redress/relay, DESIGN A17). The ONLY place colour
+   values live: the app (src/styles.css), the SVG chart and the logged-out page use
+   these variables. Served from /brand/ (open, no secrets) so the logged-out page can
+   use it too. Checked by src/theme.test.ts (no hex/rgb outside this file). */
+@font-face { font-family: "Inter"; font-weight: 400; font-display: swap; src: url("/brand/fonts/inter-latin-400-normal.woff2") format("woff2"); }
+@font-face { font-family: "Inter"; font-weight: 500; font-display: swap; src: url("/brand/fonts/inter-latin-500-normal.woff2") format("woff2"); }
+@font-face { font-family: "Inter"; font-weight: 600; font-display: swap; src: url("/brand/fonts/inter-latin-600-normal.woff2") format("woff2"); }
+@font-face { font-family: "JetBrains Mono"; font-weight: 400; font-display: swap; src: url("/brand/fonts/jetbrains-mono-latin-400-normal.woff2") format("woff2"); }
+@font-face { font-family: "JetBrains Mono"; font-weight: 500; font-display: swap; src: url("/brand/fonts/jetbrains-mono-latin-500-normal.woff2") format("woff2"); }
+
+:root {
+  /* palette (relay/README.md, contrast table there) */
+  --c-bg: #F4F7FD;
+  --c-surface: #FFFFFF;
+  --c-border: #D9E1EE;
+  --c-border-strong: #8A93A6;     /* 3.1:1 on surface: form-control outlines (WCAG 1.4.11) */
+  --c-text: #252224;
+  --c-muted: #585C66;
+  --c-primary: #1462F0;
+  --c-primary-hover: #0F4FC4;
+  --c-onprimary: #FFFFFF;
+  --c-primarysoft: #E8F0FE;
+  --c-accent: #DD3900;            /* live/speaking + the primary destructive action ONLY; no long text on it */
+  --c-accent-hover: #B82F00;
+  --c-onaccent: #FFFFFF;
+  --c-navy: #051E4D;
+  --c-onnavy: #FFFFFF;
+  --c-teal: #82C5BF;              /* decorative only (bars, mark): 1.96:1, never text */
+  --c-success: #1E7A3C;
+  --c-success-soft: #E7F4EC;
+  --c-warn: #8A5A00;
+  --c-warn-soft: #FFF4DB;
+  --c-error: #B42318;
+  --c-error-soft: #FDECEA;
+  --c-bar: #1462F0;
+  --c-bar2: #82C5BF;
+  /* chart series (distinct, all >= 3:1 on surface) */
+  --c-chart-1: #1462F0;
+  --c-chart-2: #051E4D;
+  --c-chart-3: #1E7A3C;
+  --c-chart-4: #7A3FC4;
+  --c-chart-5: #8A5A00;
+  --c-chart-6: #2C7A73;
+  --c-gridline: #E6EBF3;
+  /* type, shape */
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --font-display: var(--font-sans);
+  --radius: 10px;
+  --radius-sm: 6px;
+  --shadow: 0 1px 2px #1020200d, 0 4px 16px #1020200a;
+  --focus-ring: 0 0 0 2px var(--c-surface), 0 0 0 4px var(--c-primary);
+}
