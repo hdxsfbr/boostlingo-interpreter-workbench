@@ -192,8 +192,8 @@ class ExperimentRunner:
                             prog["cost_usd"] = round(prog["cost_usd"] + cost, 5)
                             if r.get("status") != "done":
                                 prog["failures"] += 1
-                            elif r.get("H_ms") is not None:
-                                hs.append(r["H_ms"])
+                            elif r.get("H_ms") is not None:  # A21 headline: first audio of the last sentence
+                                hs.append(max(r["H_ms"], r.get("tail_est_ms") or r["H_ms"]))
                             prog["p50_H_ms"] = round(statistics.median(hs)) if hs else None
                             prog["p50_by_setup"][setup] = prog["p50_H_ms"]
                             prog["utterance"] = order[seen] if seen < len(order) else None
@@ -235,6 +235,9 @@ class ExperimentRunner:
         ev = {"type": "progress", "id": exp_id, **prog}
         if last:
             ev["last"] = {k: last.get(k) for k in ("id", "status", "H_ms", "H_minus_lag_ms", "source", "target")}
+            if last.get("H_ms") is not None:  # A21: headline = first audio of the last sentence
+                ev["last"]["first_audible_ms"] = last["H_ms"]
+                ev["last"]["H_ms"] = max(last["H_ms"], last.get("tail_est_ms") or last["H_ms"])
         self.publish(ev)
 
     def _summarise(self, exp_id: str, cfg: ExperimentConfig) -> list[dict]:

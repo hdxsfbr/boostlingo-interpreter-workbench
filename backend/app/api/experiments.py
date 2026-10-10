@@ -197,16 +197,22 @@ async def events(exp_id: str, request: Request) -> StreamingResponse:
     return StreamingResponse(gen(), media_type="text/event-stream", headers={"Cache-Control": "no-cache"})
 
 
-SUMMARY_COLS = ["setup", "n", "done", "H_p50", "H_p90", "H_gap_p50", "H_gap_p90", "tail_p50", "chrF_all", "chrF_en_es",
+SUMMARY_COLS = ["setup", "n", "done", "H_p50", "H_p90", "H_gap_p50", "H_gap_p90", "first_audible_p50", "first_audible_p90", "tail_p50", "chrF_all", "chrF_en_es",
                 "chrF_es_en", "WER_en", "WER_es", "usd_total", "usd_per_min", "failures"]
+
+
+def _hl(p: dict, gap: bool = False) -> dict:
+    """Headline latency (A21): H_fair (first audio of the last sentence) when the summary has it."""
+    return p.get("H_fair_minus_gap" if gap else "H_fair") or p["H_minus_gap" if gap else "H"]
 
 
 def summary_rows(e: dict) -> list[dict]:
     out = []
     for p in e["summary"]:
         q = p.get("quality", {})
-        out.append({"setup": p["profile"], "n": p["n"], "done": p["done"], "H_p50": p["H"]["p50"], "H_p90": p["H"]["p90"],
-                    "H_gap_p50": p["H_minus_gap"]["p50"], "H_gap_p90": p["H_minus_gap"]["p90"],
+        out.append({"setup": p["profile"], "n": p["n"], "done": p["done"], "H_p50": _hl(p)["p50"], "H_p90": _hl(p)["p90"],
+                    "H_gap_p50": _hl(p, True)["p50"], "H_gap_p90": _hl(p, True)["p90"],
+                    "first_audible_p50": p["H"]["p50"], "first_audible_p90": p["H"]["p90"],
                     "tail_p50": p.get("tail", {}).get("p50"), "chrF_all": q.get("all", {}).get("chrF"),
                     "chrF_en_es": q.get("en->es", {}).get("chrF"), "chrF_es_en": q.get("es->en", {}).get("chrF"),
                     "WER_en": q.get("en->es", {}).get("src_WER_mean"), "WER_es": q.get("es->en", {}).get("src_WER_mean"),

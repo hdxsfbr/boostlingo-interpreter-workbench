@@ -217,6 +217,12 @@ def test_m5_baseline_matches_results_json(env):
     assert len(c.get("/api/experiments/m5-baseline/turns").json()) == n_raw
     table = {r["setup"]: r for r in expmod.summary_rows(e)}
     assert table["realtime"]["H_p50"] == 1002 and table["cascade-openai"]["chrF_en_es"] == 72.9
+    # A21 headline = first audio of the last sentence; the literal first audible stays a secondary column
+    assert table["cascade-openai"]["H_p50"] == 1744 and table["cascade-openai"]["H_p90"] == 2196
+    assert table["cascade-openai"]["first_audible_p50"] == 545 and table["cascade-haiku"]["H_p50"] == 2060
+    turns = c.get("/api/experiments/m5-baseline/turns").json()
+    split = next(t for t in turns if t["setup"] == "cascade-openai" and t["utterance_id"] == "en-l01")
+    assert split["h_ms"] >= 1000  # tail of the last segment, not the held first sentence (~0.5 s)
     assert c.post("/api/experiments/m5-baseline/cancel").status_code == 409  # read-only, not running
 
 
@@ -226,3 +232,23 @@ def test_stale_runs_marked_interrupted_on_restart(env):
     expmod._STATE.clear()
     store2, _ = expmod.get_experiments()
     assert store2.get("exp-stale")["status"] == "interrupted"
+
+
+def test_baseline_reimports_when_results_json_changes(tmp_path):
+    from app.experiments import baseline
+    from app.experiments.store import ExperimentStore
+    st = ExperimentStore(tmp_path / "e.sqlite")
+    assert baseline.import_m5(st, BENCH)
+    assert not baseline.import_m5(st, BENCH)  # unchanged: no-op
+    st.update("m5-baseline", summary=[{"profile": "stale"}])
+    assert baseline.import_m5(st, BENCH)  # stale summary: re-imported from results.json
+    res = json.loads((BENCH / "results/m5/results.json").read_text())
+    assert st.get("m5-baseline")["summary"] == res["profiles"]
+
+
+def test_h_fair_is_last_sentence_first_audio():
+    from eval.metrics import fair
+    assert fair({"H_ms": 510.0, "H_minus_lag_ms": 55.0, "tail_est_ms": 1707.0}) == (1707.0, 1252.0)  # split turn
+    assert fair({"H_ms": 1700.0, "H_minus_lag_ms": 1245.0, "tail_est_ms": 1650.0}) == (1700.0, 1245.0)  # single segment
+    assert fair({"H_ms": 1000.0, "H_minus_lag_ms": 545.0}) == (1000.0, 545.0)  # realtime: no tail
+    assert fair({"H_ms": None}) == (None, None)
