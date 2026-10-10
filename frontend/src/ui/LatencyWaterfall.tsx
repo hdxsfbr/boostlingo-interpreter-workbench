@@ -61,7 +61,7 @@ export function LatencyWaterfall({ turn }: { turn: TurnView }) {
                 <span className="wf-limit" style={{ left: pct(limit) }} title="limit" />
               </span>
             )}
-            <span className="wf-ms">{early ? "early" : `${Math.round(r.ms)} ms`}</span>
+            {!early && <span className="wf-ms">{Math.round(r.ms)} ms</span>}
           </div>
         );
       })}

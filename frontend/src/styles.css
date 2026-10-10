@@ -224,8 +224,7 @@ main { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 20px; al
   clip-path: inset(50%); opacity: 0; pointer-events: none; transition: opacity .12s; }
 .term:hover .tip, .term:focus-visible .tip, .term:focus .tip { clip-path: none; opacity: 1; }
 .metrics td:not(:first-child) .term .tip, .metrics th:not(:first-child) .term .tip { left: auto; right: 0; }
-.wf-early { font: 500 11px var(--font-mono); color: var(--c-primary); background: var(--c-primarysoft); border: 1px dashed var(--c-primary); border-radius: 99px; padding: 0 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.wf-row.early .wf-ms { color: var(--c-primary); }
+.wf-early { grid-column: 2 / 4; font: 500 11px/1.35 var(--font-mono); color: var(--c-primary); background: var(--c-primarysoft); border: 1px dashed var(--c-primary); border-radius: var(--radius-sm); padding: 1px 8px; }
 
 /* A19 Docs tab */
 .docs { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 20px; align-items: start; padding: 0 28px 28px; }

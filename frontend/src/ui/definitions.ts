@@ -15,10 +15,12 @@ export const DEFINITIONS: Record<string, string> = {
   headline: "The delay from speech end to the first audible translation (H), measured in your browser.",
   spec_start: "When the app started translating early (speculatively) from an unfinished transcript, while the speaker was still talking.",
   spec_hit: "When an early (speculative) translation turned out to match the final transcript and was used, so no time was lost redoing it.",
+  mt_hedge_fired: "The first translation request was slow, so a backup request was sent; whichever answers first is used.",
+  tts_hedge_fired: "The first text-to-speech request was slow, so a backup request was sent; whichever answers first is used.",
   n: "Number of turns behind the numbers in this row (the last 50 timed turns of this mode).",
   p50: "Typical delay (the median): half the turns were faster than this.",
   p90: "Slower case: 9 in 10 turns were faster than this.",
-  early: "Turns where this step happened before speech end (work started while the speaker was still talking). They are counted here, not in p50/p90.",
+  early: "Turns where this step happened before speech end: an earlier sentence of a long turn, or a speculative translation, was processed while the speaker was still talking. Counted here, not in p50/p90.",
   estimate: "Server estimate: timed on the server's clock from when it received \"finished\", then placed after the commit sent mark.",
 };
 

@@ -67,7 +67,7 @@ Each turn shows the speaker (A or B), what was said (with its language code), an
 
 The **Latency · last turn** card shows, for the most recent turn, how long each step took. **Latency** means delay. Every number is in **milliseconds after speech end**: counted from the moment you stopped talking.
 
-Each row is a bar on the same scale. Two vertical lines mark the **target** (orange) and the **limit** (red):
+Each row is a bar on the same scale. Two vertical lines mark the **target** (amber) and the **limit** (red). Hover over or Tab to any row name to see a short definition.
 
 | Mode | Target | Limit |
 |---|---|---|
@@ -88,14 +88,16 @@ Each row is a bar on the same scale. Two vertical lines mark the **target** (ora
 | **last seg TTS 1st\*** | For multi-sentence turns: when audio for the last sentence began arriving. |
 | **first audible** | **The headline number.** When you could first hear the translation. It turns green when within target, amber between target and limit, and red over the limit. |
 
-**Rows marked \* are server estimates.** The server times them from when it received the "finished" signal, and the app places them after the **commit sent** mark. The **commit sent** and **first audible** rows are measured exactly, in your browser. Because the Cascade may start translating early (before you let go), a step such as **MT 1st token** can appear *earlier* than **STT final**. That is expected.
+**Rows marked \* are server estimates.** The server times them from when it received the "finished" signal, and the app places them after the **commit sent** mark. The **commit sent** and **first audible** rows are measured exactly, in your browser.
+
+**Early steps.** The Cascade does not wait for you to finish a long turn: at a pause between sentences it already translates and voices the earlier sentence, and it may translate a sentence speculatively from the unfinished transcript. Those steps happen *before* speech end, so instead of a bar the row shows, for example, **early (earlier segment) · 3.6 s before speech end** (or **early (speculative)** for a one-sentence turn). The listener still hears nothing before you finish: audio is only played after speech end, so **first audible** is never early. A step such as **MT 1st token** can also appear earlier than **STT final**; that is expected.
 
 In Realtime mode there are no server rows: the model does all steps at once, so you see only **commit sent** and **first audible**.
 
 ### The summary under the bars
 
 - **turns**, **p50** and **p90** for the current mode. **p50** is the *typical* delay: half the turns were faster. **p90** is the *slower case*: 9 in 10 turns were faster. Both use the last 50 timed turns.
-- **All turns (speech end → first audio):** a table per mode with the headline delay and each server step (n = number of turns).
+- **All turns (speech end → first audio):** a table per mode with the headline delay and each server step, all in ms after speech end. **n** is the number of turns behind p50/p90. For each step, p50 and p90 use only turns where that step came after speech end; the **early** column counts the turns where it came before, so early steps never pull the typical delay down.
 
 See [Understanding the numbers](05-understanding-the-numbers.md) for more.
 

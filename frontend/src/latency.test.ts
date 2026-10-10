@@ -14,7 +14,7 @@ const turn = (id: number, commit: number, server: Record<string, number>, latenc
   ({ id, mode: "cascade", speaker: "A", src: "en", tgt: "es", source: {}, target: {}, status: "done", serverDone: true, audioEnded: true,
      browserMarks: { commit_sent: commit, first_audible: latency }, serverMarks: server, latencyMs: latency }) as unknown as TurnView;
 
-// speculative long turn: MT ran on a partial while the speaker was still talking, adopted at commit (spec_hit)
+// speculative single-segment turn: MT ran on a partial while the speaker was still talking, adopted at commit (spec_hit)
 const spec = turn(1, 460, { spec_start: -5200, spec_hit: 90, stt_final: 420, mt_first_token: -4037, mt_first_chunk: -3900, tts_request: -3890, tts_first_byte: -2948, audio_first_sent: 300 }, 1495);
 // ordinary short turn: everything after the commit
 const plain = turn(2, 450, { stt_final: 600, mt_first_token: 700, mt_first_chunk: 800, tts_request: 810, tts_first_byte: 1050, audio_first_sent: 1060 }, 1560);
@@ -56,8 +56,8 @@ describe("early (speculative) stages (A18)", () => {
     expect(html).toContain("1495 ms");
   });
 
-  it("an early stage without spec_hit is an earlier segment", () => {
-    const seg = turn(3, 400, { mt_first_token: -900 }, 1700);
+  it("an early stage on a multi-segment turn is an earlier segment (measured: en-l01, -6.8 s)", () => {
+    const seg = { ...turn(3, 400, { mt_first_token: -900, spec_hit: 380 }, 1700), target: { 0: {}, 1: {} } } as unknown as TurnView;
     expect(renderToStaticMarkup(h(LatencyWaterfall, { turn: seg }))).toContain("early (earlier segment) · 500 ms before speech end");
     expect(beforeSpeechEnd(-3577)).toBe("3.6 s before speech end");
   });

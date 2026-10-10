@@ -29,9 +29,12 @@ export function stageMs(t: TurnView, mark: string): number | undefined {
  * committed at an in-turn pause). Shown as "early", never as a negative bar. */
 export const isEarly = (ms: number | undefined): boolean => ms !== undefined && ms < 0;
 
-/** Why a turn's stage was early: speculation if the server adopted one (spec_hit), else an earlier segment. */
-export const earlyReason = (t: TurnView): "speculative" | "earlier segment" =>
-  t.serverMarks.spec_hit !== undefined ? "speculative" : "earlier segment";
+/** Why a turn's stage was early. Measured (A18): on long turns the first-stage marks belong
+ * to segment 0, committed at an in-turn pause and translated/synthesised while the speaker
+ * was still talking (-6.8 s on en-l01). Single-segment turns can only get there through a
+ * speculative run on a partial transcript. */
+export const earlyReason = (t: TurnView): "earlier segment" | "speculative" =>
+  Object.keys(t.target).length > 1 ? "earlier segment" : "speculative";
 
 export type StageStat = Stat & { early: number };
 

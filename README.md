@@ -6,7 +6,7 @@ A Gauntlet partner project for **Boostlingo**. A browser workbench that interpre
 
 Latency is measured **in the browser, on one clock**, from the last voiced microphone frame to the first audible output sample, identically in both modes.
 
-The app has three tabs: **Interpreter** (the live conversation), **Review** (blind human quality ratings) and **Experiments** (run the benchmark from the app and compare runs).
+The app has four tabs: **Interpreter** (the live conversation), **Review** (blind human quality ratings), **Experiments** (run the benchmark from the app and compare runs) and **Docs** (the [user guide](docs/user-guide/index.md), bundled into the app).
 
 ## Status (due Sun 2026-10-11)
 
@@ -64,9 +64,9 @@ The key is mounted as a file secret, never put in `.env`. The guard refuses past
 6. Press a speaker button while a translation plays to barge in. **Export JSON / CSV** downloads the session's turns and latencies.
 7. Open the **Review** tab, enter a name and rate a few blind clips with the keyboard, or open Results as `andre` (see "Review tab" below).
 
-**Language pair:** pick it in the **Pair** dropdown before starting a session. English ↔ Spanish is the default and the only benchmarked pair; English ↔ French is configured and smoke-tested only. Pairs come from `config/languages.yaml`: to add one, add its languages and the pair there and rebuild (KEY_METRICS §5).
+**Language pair:** pick it in the **Language pair** dropdown before starting a session (it works; it is locked while a session runs). English ↔ Spanish is the default and the only benchmarked pair; English ↔ French is configured and smoke-tested only. Pairs come from `config/languages.yaml`: to add one, add its languages and the pair there and rebuild (KEY_METRICS §5).
 
-URL options: `?pair=en-fr` (preselect a pair), `?tab=review|experiments`, `?mode=realtime`, `?rt_model=gpt-realtime|gpt-realtime-mini` (Realtime model for this session, from a server allowlist), `?rt=webrtc|relay|auto` (default `auto`: WebRTC, falling back to the relay), `?turn=vad` (VAD instead of PTT; `vad_ms=` sets the window), `?mt=openrouter`, `?tts=elevenlabs`.
+URL options: `?pair=en-fr` (preselect a pair), `?tab=review|experiments|docs` (`&page=05-understanding-the-numbers` deep-links a guide page), `?mode=realtime`, `?rt_model=gpt-realtime|gpt-realtime-mini` (Realtime model for this session, from a server allowlist), `?rt=webrtc|relay|auto` (default `auto`: WebRTC, falling back to the relay), `?turn=vad` (VAD instead of PTT; `vad_ms=` sets the window), `?mt=openrouter`, `?tts=elevenlabs`.
 
 Other targets: `make test` (backend pytest + frontend Vitest/tsc, no keys or network needed), `make test-docker` (both suites inside Docker with `--network none`), `make logs`, `make down`, `make dev-backend` / `make dev-frontend` (Vite dev server with proxy on :5180), `make fixtures` (benchmark audio).
 
@@ -133,7 +133,7 @@ Open the **Experiments** tab (or `http://localhost:8740/?tab=experiments`). It r
 1. **New experiment:** give it a name, then tick one or more setups. The defaults are `realtime-mini` + `cascade-openai`.
    - Ticking `realtime` (full) shows a costs-more warning.
    - `cascade-elevenlabs` needs an extra "I accept spending ElevenLabs credits" tick and only works when ElevenLabs is enabled. `cascade-haiku` needs `OPENROUTER_API_KEY`.
-   - Choose the utterances (full 48, short 16, or a custom subset by id), the directions and the number of passes.
+   - Choose the utterances (the default is **Short only (16)**; also Full set (48) or a custom subset by id), the directions and the number of passes.
 2. **Check the estimate:** a table shows turns, voiced minutes, cost and time per setup, based on the measured M5 cost of the same utterances priced with `config/pricing.yaml`. Above `experiments.confirm_above_usd` ($1) you must click **Run anyway**.
 3. **Run:** a live panel shows the setup, the utterance being played, done/total, the running H p50, failures and the cost so far. **Cancel** stops the browser and its provider sessions and keeps the partial results. Only one experiment runs at a time.
 4. **Results:** click an experiment in **History** to see the M5 summary columns (latency p50/p90 with and without the 450 ms release gap, tail, chrF, source WER, $/min, failures), a per-turn latency chart, the code version and model ids. You can download CSV or JSON. Tick two experiments and press **Compare** for a side-by-side view with deltas. **M5 baseline** (read-only) holds the final M5 numbers.
@@ -173,7 +173,7 @@ Live: **https://workbench-production-c1ea.up.railway.app**. The user is `andre`;
 
 - `.env` (gitignored, mode 600) holds `OPENAI_API_KEY` and `OPENROUTER_API_KEY` (Haiku runs via OpenRouter). The direct Anthropic adapter is disabled and its key is no longer loaded. `.env.example` lists the variables without values. `scripts/setup_env.py` fills them from key files and prints only "set"/"missing".
 - The ElevenLabs key is mounted as a Compose **file secret**, never put in `.env`, and only used when `ELEVENLABS_ENABLED=1` (free tier: tests always mock it). Even then, `core/budget.py` refuses before the call past 1,500 chars/session or 8,000 chars/month (ledger in `data/elevenlabs_ledger.json`).
-- Model ids and active providers live in `config/app.yaml` (env overrides `REALTIME_MODEL`, `MT_MODEL`, `CASCADE_STT|MT|TTS`). Providers can also be swapped per session from the UI; see [`docs/provider-swaps.md`](docs/provider-swaps.md). Language pairs live in `config/languages.yaml`, but the UI pair is fixed to English ↔ Spanish today (`frontend/src/App.tsx`); adding a pair still needs small code edits ([KEY_METRICS §5](docs/KEY_METRICS.md#5-time-to-onboard-a-new-language-pair)).
+- Model ids and active providers live in `config/app.yaml` (env overrides `REALTIME_MODEL`, `MT_MODEL`, `CASCADE_STT|MT|TTS`). Providers can also be swapped per session from the UI; see [`docs/provider-swaps.md`](docs/provider-swaps.md). Language pairs live in `config/languages.yaml` and are picked in the UI (**Language pair**); adding one is a config-only change ([KEY_METRICS §5](docs/KEY_METRICS.md#5-time-to-onboard-a-new-language-pair)).
 - Keys never reach the browser: Realtime uses short-lived client secrets; the cascade runs server-side.
 
 ## Architecture (short; full design in [`docs/DESIGN.md`](docs/DESIGN.md))

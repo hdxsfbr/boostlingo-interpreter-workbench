@@ -21,7 +21,11 @@
 
 ### Short vs long turns
 
-On a long turn, the Cascade starts speaking the first sentence while the person is still talking, so its delay can look very small. Compare **short, single sentences** for a fair picture.
+On a long turn, the Cascade translates and voices the first sentence while the person is still talking, and plays it as soon as they stop, so its delay can look very small. Compare **short, single sentences** for a fair picture.
+
+### Early (speculative) steps
+
+All step times are counted from **speech end**, the same reference as the headline. A step that happened *before* speech end (an earlier sentence of a long turn, or a speculative translation started from the unfinished transcript) is shown as **early** with how long before, for example "3.6 s before speech end", never as a negative number. In the per-step p50/p90 table, early turns are left out of p50/p90 and counted in a separate **early** column. The headline itself can't be early: the translation is only played after the speaker has finished.
 
 ## Typical and slower case: p50 and p90
 
