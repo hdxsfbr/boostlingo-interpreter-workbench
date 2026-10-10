@@ -48,10 +48,12 @@ describe("early (speculative) stages (A18)", () => {
     expect(stageMs(plain, "mt_first_token")).toBe(1150);
   });
 
-  it("render as 'early (speculative) · 3.6 s before speech end', never a negative bar or number", () => {
+  it("render as an 'early' tag + muted '−3577 ms' (no bar, no hyphen-minus); the full text is in the tooltip", () => {
     const html = renderToStaticMarkup(h(LatencyWaterfall, { turn: spec }));
-    expect(html).toContain("early (speculative) · 3.6 s before speech end");
+    expect(html).toContain("early (speculative) · 3.6 s before speech end"); // tooltip, via aria-describedby
     expect(html).toContain("early (speculative) · 2.5 s before speech end"); // TTS 1st byte -2488
+    expect(html).toMatch(/class="wf-ms wf-ms-early">\u22123577 ms</);
+    expect(html).not.toContain("wf-bar\" style=\"width:0%");
     expect(html).not.toMatch(/>-\d/);
     expect(html).toContain("1495 ms");
   });

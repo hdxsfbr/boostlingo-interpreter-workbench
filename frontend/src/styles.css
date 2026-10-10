@@ -224,7 +224,10 @@ main { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 20px; al
   clip-path: inset(50%); opacity: 0; pointer-events: none; transition: opacity .12s; }
 .term:hover .tip, .term:focus-visible .tip, .term:focus .tip { clip-path: none; opacity: 1; }
 .metrics td:not(:first-child) .term .tip, .metrics th:not(:first-child) .term .tip { left: auto; right: 0; }
-.wf-early { grid-column: 2 / 4; font: 500 11px/1.35 var(--font-mono); color: var(--c-primary); background: var(--c-primarysoft); border: 1px dashed var(--c-primary); border-radius: var(--radius-sm); padding: 1px 8px; }
+/* early (pre-speech-end) row: same height as a bar row; small muted tag in the track, value muted in the ms column */
+.wf-track-early { display: flex; align-items: center; height: 10px; min-width: 0; }
+.wf-early { display: inline-block; font: 500 11px/16px var(--font-sans); color: var(--c-muted); background: var(--c-bg); border: 1px solid var(--c-border); border-radius: 99px; padding: 0 8px; text-decoration: none; white-space: nowrap; }
+.wf-ms-early { color: var(--c-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* A19 Docs tab */
 .docs { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 20px; align-items: start; padding: 0 28px 28px; }

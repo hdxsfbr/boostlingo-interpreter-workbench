@@ -51,8 +51,10 @@ export function LatencyWaterfall({ turn }: { turn: TurnView }) {
               {r.est && <Term k="estimate">*</Term>}
             </span>
             {early ? (
-              <span className="wf-early" title={`Started while the speaker was still talking (${why})`}>
-                early ({why}) · {beforeSpeechEnd(r.ms)}
+              <span className="wf-track-early">
+                <Term k="early" className="wf-early" text={`early (${why}) · ${beforeSpeechEnd(r.ms)}. Started while the speaker was still talking, so it is not drawn as a bar.`}>
+                  early
+                </Term>
               </span>
             ) : (
               <span className="wf-track">
@@ -61,7 +63,7 @@ export function LatencyWaterfall({ turn }: { turn: TurnView }) {
                 <span className="wf-limit" style={{ left: pct(limit) }} title="limit" />
               </span>
             )}
-            {!early && <span className="wf-ms">{Math.round(r.ms)} ms</span>}
+            <span className={`wf-ms ${early ? "wf-ms-early" : ""}`}>{early ? `\u2212${Math.round(-r.ms)} ms` : `${Math.round(r.ms)} ms`}</span>
           </div>
         );
       })}
