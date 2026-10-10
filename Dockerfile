@@ -28,6 +28,7 @@ COPY docs/benchmarks/results/m5/results.json /app/docs/benchmarks/results/m5/res
 COPY docs/benchmarks/results/m5/raw/ /app/docs/benchmarks/results/m5/raw/
 COPY docs/benchmarks/utterances.yaml /app/docs/benchmarks/utterances.yaml
 COPY --from=web /web /app/frontend
+COPY docs/user-guide/ /app/docs/user-guide/
 RUN pip install -e '.[dev]'
 CMD ["sh", "-c", "cd /app/backend && pytest -q && cd /app/frontend && node node_modules/vitest/vitest.mjs run"]
 

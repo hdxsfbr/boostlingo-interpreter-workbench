@@ -9,11 +9,12 @@ The Workbench answers one question: **which way of building an AI interpreter wo
 
 Both modes are measured the same way, in your browser, so their numbers can be compared fairly.
 
-The app has three tabs:
+The app has four tabs:
 
 - **Interpreter:** hold a live conversation and watch the timings.
 - **Review:** rate recorded translations blind (without knowing which setup made them).
 - **Experiments:** run the standard test sentences through chosen setups and compare the results.
+- **Docs:** this user guide, inside the app.
 
 ## Logging in
 
