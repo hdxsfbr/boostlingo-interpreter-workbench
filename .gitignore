@@ -73,3 +73,6 @@ data/recordings/
 docs/design/redress/boostlingo-study/*
 !docs/design/redress/boostlingo-study/README.md
 !docs/design/redress/boostlingo-study/study.py
+
+# --- Demo video media (large) ---
+demo/

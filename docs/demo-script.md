@@ -28,7 +28,8 @@ All numbers come from [comparison.md](comparison.md) and [KEY_METRICS.md](KEY_ME
 
 ### 1. The problem — 0:00–0:20
 **Screen:** Interpreter tab, idle, header with logo visible.
-**Narration:** "Hi, I'm Andre. In a hospital or a courtroom, a language barrier isn't an inconvenience; it can mean a missed diagnosis. This is the Interpreter Workbench, which I built for the Boostlingo assignment. It answers one question: should a live AI interpreter use one voice-to-voice model, or a chain of three services?"
+*(No self-introduction: open straight on the problem.)*
+**Narration:** "In a hospital or a courtroom, a language barrier isn't an inconvenience; it can mean a missed diagnosis. This is the Interpreter Workbench, built for the Boostlingo assignment. It answers one question: should a live AI interpreter use one voice-to-voice model, or a chain of three services?"
 
 ### 2. Realtime live — 0:20–0:55
 **Screen/click:** Mode toggle → **Realtime**. Start session. Hold F for line A, then J for line B. Point the cursor at the latency card.
