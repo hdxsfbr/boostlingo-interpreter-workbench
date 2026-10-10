@@ -172,6 +172,13 @@ Decided or recorded during M4 (2026-10-08):
     - Cookies are now `exp.nonce.sig`. A logout adds the nonce to a revocation set, persisted atomically to `DATA_DIR/auth_revoked.json` (pruned when entries expire), so it survives restarts.
   - **Logged-out page.** The open, static `/auth/logged-out` page sends one request with a bogus Basic pair (user `logged-out`). The server answers 401 **without** a `WWW-Authenticate` challenge and never sets a cookie, so there is no prompt and no loop. The page then offers "Log in again" (`/`, which challenges).
   - **Verified** with `scripts/auth_probe/logout_check.py` in Chromium and WebKit, locally and on Railway.
+- **A17: Relay UI redress (Andre's pick of the four directions in `docs/design/redress/`).**
+  - **Tokens.** `frontend/public/brand/tokens.css` is the only place colour values live (relay palette plus a few derived tokens: hover shades, soft status backgrounds, a 3:1 control outline, six chart series). `src/theme.test.ts` fails on any hex/rgb/hsl literal in `src/` or `index.html`, and checks every fg/bg pair the UI uses (≥ 4.5:1 text, ≥ 3:1 non-text).
+  - **Accent `#DD3900`** only for the live state (● SPEAKING, ● Recording) and the primary destructive action (Stop session); short bold labels only. Teal is bars only.
+  - **Fonts.** Inter 400/500/600 and JetBrains Mono 400/500 (latin woff2 from Fontsource, OFL texts alongside) under `/brand/fonts`: no network font calls.
+  - **Our mark** (hand-off arrows) in the header and as the favicon; no Boostlingo logo or name in the UI. `/brand/*` is open (GET/HEAD, static, no secrets) so the logged-out page shares the tokens.
+  - **Layout** follows the mockup: header (brand, tab segment, state), controls card, Speaker A/B cards, transcript card + "Latency · last turn" card (waterfall, turns/p50/p90 coloured by target/limit), then the full per-mode table and exports. Tabs are one `TABS` array in `App.tsx`; a Docs tab is one entry. Breakpoints at 1100/900/600 px.
+  - **Deviations from the mockup:** Speaker B's avatar and transcript tag are navy, not orange (the brief keeps orange for live/destructive); per-turn waterfalls stay available under a "Timings" disclosure in each transcript turn; the provider line, record toggle and headphones hint are kept (the mockup omits them); selects are native, not custom.
 
 ## 1. Transport per mode
 

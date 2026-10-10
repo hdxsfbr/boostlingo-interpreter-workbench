@@ -181,3 +181,9 @@ This repo is built by an agentic coding assistant (Grok Bot executor agents) dir
   - `scripts/auth_probe/logout_check.py`: 12/12 checks in Chromium and WebKit, locally and on the live URL.
   - Caveat: Playwright cannot model a real browser's Basic-auth cache. Real Chrome may resend the cached password on the next visit until the browser restarts; the gate can't clear that.
   - Agent finding: on Railway, the reload after logout first returned 200 because the browser served index.html from its heuristic cache (old Last-Modified, no Cache-Control). Gated responses now send `Cache-Control: private, no-cache`.
+- **Relay UI redress (A17):**
+  - The design folder was committed on its own. `boostlingo-study/` keeps only its README and capture script in git: the captured Boostlingo logo SVGs, their CSS, DOM and site screenshots are gitignored (third-party).
+  - Colours only via `/brand/tokens.css` variables; `src/theme.test.ts` is the literal grep plus a WCAG contrast check. Add a colour by adding a token (and a contrast pair) first.
+  - `python -m eval.screenshots [--chrome PATH]` regenerates `docs/design/redress/relay/after/` (3 cascade turns, about a cent). On hdx-lab the venv's Playwright expects a newer headless shell, so pass `--chrome ~/.cache/ms-playwright/chromium-1181/chrome-linux/chrome`.
+  - Agent finding: putting the SPEAKING label on its own line made the held card taller and shifted the page on every press; it is inline now.
+
