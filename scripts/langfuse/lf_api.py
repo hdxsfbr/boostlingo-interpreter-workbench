@@ -47,5 +47,7 @@ def project_id() -> str:
     return get("/api/public/projects")["data"][0]["id"]
 
 
-def trace_url(trace_id: str) -> str:
-    return f"{HOST}/project/{project_id()}/traces/{trace_id}"
+def trace_url(trace_id: str, timestamp: str | None = None) -> str:
+    """Langfuse UI link. The UI needs ?timestamp=<trace ISO time> or it says 'trace not found'."""
+    ts = timestamp or get(f"/api/public/traces/{trace_id}")["timestamp"]
+    return f"{HOST}/project/{project_id()}/traces/{trace_id}?timestamp={urllib.parse.quote(ts, safe='')}"

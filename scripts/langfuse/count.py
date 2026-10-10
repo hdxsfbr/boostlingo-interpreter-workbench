@@ -22,4 +22,4 @@ by_name = {}
 for t in traces:
     by_name.setdefault(t["name"].split(" · ")[0], t)
 for k, t in by_name.items():
-    print("url", k, trace_url(t["id"]))
+    print("url", k, trace_url(t["id"], t["timestamp"]))

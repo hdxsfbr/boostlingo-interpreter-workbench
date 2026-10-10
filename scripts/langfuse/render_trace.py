@@ -63,7 +63,7 @@ ax.set_xlabel("seconds after speech end (turn clock; blue = generation, grey = s
 sc = [s for s in get("/api/public/scores", traceId=a.trace_id, limit=100).get("data", []) if s.get("traceId") == a.trace_id]
 sc_txt = ", ".join(f"{s['name']}={s['value']:.0f}" for s in sc[:8])
 fig.text(0.01, 0.995, f"RENDERING of Langfuse trace (from the public API, not a UI screenshot)\n{t['name']}  ·  tags {', '.join(t.get('tags') or [])}\n"
-             f"scores: {sc_txt}\n{trace_url(a.trace_id)}", fontsize=9, va="top", ha="left")
+             f"scores: {sc_txt}\n{trace_url(a.trace_id, t["timestamp"])}", fontsize=9, va="top", ha="left")
 plt.tight_layout(rect=(0, 0, 1, 1 - 0.75 / fig_h))
 plt.savefig(a.out)
 print("wrote", a.out)

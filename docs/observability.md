@@ -38,6 +38,8 @@ Not traced: the audio pipeline itself. The server never calls Langfuse while a t
 
 Locally: `make up-langfuse` (overlay `docker-compose.langfuse.yml` mounts `~/.config/agentforge/langfuse_*` as file secrets). `make up` stays untraced.
 
+Trace links need the trace time: `https://<host>/project/<project id>/traces/<trace id>?timestamp=<trace ISO time, URL-encoded>` (without it the Langfuse UI says "trace not found"); `scripts/langfuse/lf_api.trace_url()` builds them.
+
 Check what arrived: `python3 scripts/langfuse/count.py --since <UTC ISO>`; render one trace tree: `python3 scripts/langfuse/render_trace.py <trace_id> out.png`.
 
 ## Privacy: healthcare / PHI caveat
