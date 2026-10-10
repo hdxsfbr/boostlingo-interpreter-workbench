@@ -86,22 +86,30 @@ def main() -> None:
     order = sorted(by, key=lambda s: statistics.median(x["H"] for x in by[s]))
     print(f"turns: {len(turns)} in {len(sess)} sessions; experiment traces: {len(exps)}")
 
-    # 1. headline latency p50/p90 per setup
+    # 1. headline latency p50/p90 per setup (setups with n < MIN_N dropped: too few turns for a stable p50/p90)
+    MIN_N = 10
+    kept = [s for s in order if len(by[s]) >= MIN_N]
+    dropped = [s for s in order if len(by[s]) < MIN_N]
     fig, ax = plt.subplots(figsize=(8, 4.2))
-    xs = range(len(order))
-    p50 = [pct([x["H"] for x in by[s]], 50) for s in order]
-    p90 = [pct([x["H"] for x in by[s]], 90) for s in order]
+    xs = range(len(kept))
+    p50 = [pct([x["H"] for x in by[s]], 50) for s in kept]
+    p90 = [pct([x["H"] for x in by[s]], 90) for s in kept]
     ax.bar([i - 0.2 for i in xs], p50, 0.4, color=C["primary"], label="p50")
     ax.bar([i + 0.2 for i in xs], p90, 0.4, color=C["teal"], label="p90")
     for i, (a5, a9) in enumerate(zip(p50, p90, strict=True)):
         ax.text(i - 0.2, a5, f"{a5:.0f}", ha="center", va="bottom", fontsize=8)
         ax.text(i + 0.2, a9, f"{a9:.0f}", ha="center", va="bottom", fontsize=8)
-    ax.set_xticks(list(xs), [f"{s}\n(n={len(by[s])})" for s in order])
+    ax.set_xticks(list(xs), [f"{s}\n(n={len(by[s])})" for s in kept])
     ax.set_ylabel("ms")
-    ax.set_title("Headline latency: speech end → first audio of the last sentence (A21)")
+    ax.set_title("Speech end to first audio of the last sentence")
     ax.legend()
-    foot(fig, len(turns))
-    save(fig, out, "latency-p50-p90-by-setup.png")
+    if dropped:
+        fig.text(0.01, 0.045, f"Not shown (fewer than {MIN_N} turns): " + ", ".join(f"{s} (n={len(by[s])})" for s in dropped),
+                 fontsize=8, color=C["muted"])
+    foot(fig, sum(len(by[s]) for s in kept))
+    fig.tight_layout(rect=(0, 0.08, 1, 1))
+    p_ = out / "latency-p50-p90-by-setup.png"; fig.savefig(p_, dpi=150); plt.close(fig); print("wrote", p_)
+    print("latency kept:", {s: (len(by[s]), pct([x['H'] for x in by[s]], 50)) for s in kept}, "dropped:", {s: len(by[s]) for s in dropped})
 
     # 2. cascade per-stage breakdown (median ms after speech end, non-early turns only)
     stages = [("stt_final", "STT final"), ("mt_first_token", "MT 1st token"), ("tts_first_byte", "TTS 1st byte"),
@@ -153,16 +161,22 @@ def main() -> None:
         if "H_ms" in v and "chrF" in v:
             pts[setup].append((v["H_ms"], v["chrF"], v.get("src_wer")))
     if pts:
-        fig, (a1, a2) = plt.subplots(1, 2, figsize=(10, 4.2))
+        fig, a1 = plt.subplots(figsize=(8, 4.6))
         for j, (s, p) in enumerate(sorted(pts.items())):
             a1.scatter([x[0] for x in p], [x[1] for x in p], color=PAL[j], label=f"{s} (n={len(p)})", alpha=0.85)
-            w_ = [x for x in p if x[2] is not None]
-            a2.scatter([x[0] for x in w_], [x[2] * 100 for x in w_], color=PAL[j], label=s, alpha=0.85)
-        a1.set(xlabel="headline H (ms)", ylabel="chrF", title="Translation quality vs latency")
-        a2.set(xlabel="headline H (ms)", ylabel="source WER (%)", title="Source ASR WER vs latency")
+        a1.set(xlabel="Latency, speech end to first audio (ms)", ylabel="Translation quality (chrF, 0-100)",
+               title="Translation quality vs latency")
         a1.legend(fontsize=8)
+        fig.text(0.01, 0.045, "chrF compares each translation to one reference; low scores can be valid rewordings.",
+                 fontsize=8, color=C["muted"])
         foot(fig, sum(len(p) for p in pts.values()), "Langfuse scores (experiment traces)")
-        save(fig, out, "quality-vs-latency.png")
+        fig.tight_layout(rect=(0, 0.08, 1, 1))
+        p_ = out / "quality-vs-latency.png"; fig.savefig(p_, dpi=150); plt.close(fig); print("wrote", p_)
+        low = sorted(((v["chrF"], tid_) for tid_, v in sc.items() if "chrF" in v))[:4]
+        for c_, tid_ in low:
+            t_ = exps[tid_]
+            print("LOWCHRF", round(c_, 1), (t_["metadata"] or {}).get("setup"), "| in:", t_.get("input"), "| out:", t_.get("output"),
+                  "| meta:", {k: v for k, v in (t_["metadata"] or {}).items() if k not in ("models",)})
 
     # 5. drift: latency over time within the longest session(s)
     per = collections.defaultdict(list)
